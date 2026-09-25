@@ -7,6 +7,7 @@ import { STARTER_TEMPLATES } from './starter-templates.js';
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
+const APP_VERSION = '2026-09-25 · 3 (Workouts, Pause-Timer, Körpergraph)';
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -267,6 +268,7 @@ async function renderDashboard() {
     </div>
     <h2>Letzte Trainings</h2>
     ${workoutList(workouts.slice(0, 3), sets) || '<p class="muted">Noch keine Trainings erfasst.</p>'}
+    <p class="muted small center">App-Version ${esc(APP_VERSION)}</p>
   `;
   const labels = weeks.map((w) => fmtShortDate(w.start));
   makeChart(view.querySelector('#c-count'), 'bar', labels, [

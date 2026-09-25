@@ -1017,6 +1017,7 @@ var STARTER_TEMPLATES = [
 var view = document.getElementById("view");
 var nav = document.getElementById("nav");
 var DRAFT_KEY = "gym-tracker-draft";
+var APP_VERSION = "2026-09-25 · 3 (Workouts, Pause-Timer, Körpergraph)";
 var api = null;
 var user = null;
 var exercises = [];
@@ -1238,6 +1239,7 @@ async function renderDashboard() {
     </div>
     <h2>Letzte Trainings</h2>
     ${workoutList(workouts.slice(0, 3), sets) || '<p class="muted">Noch keine Trainings erfasst.</p>'}
+    <p class="muted small center">App-Version ${esc(APP_VERSION)}</p>
   `;
   const labels = weeks.map((w) => fmtShortDate(w.start));
   makeChart(view.querySelector("#c-count"), "bar", labels, [

@@ -1,6 +1,6 @@
 // Service Worker: hält die App-Dateien offline verfügbar.
 // Trainingsdaten kommen immer live von Supabase (dafür ist Internet nötig).
-const CACHE = 'gym-tracker-v3';
+const CACHE = 'gym-tracker-v4';
 const SHELL = [
   './',
   './index.html',
@@ -32,11 +32,13 @@ self.addEventListener('activate', (e) => {
 });
 
 // Netzwerk zuerst (damit Updates sofort ankommen), bei Offline aus dem Cache.
+// cache: 'no-cache' umgeht den HTTP-Cache des Browsers (GitHub Pages erlaubt 10 Minuten),
+// fragt also jedes Mal beim Server nach, ob sich die Datei geändert hat.
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(new Request(e.request.url, { cache: 'no-cache', credentials: 'same-origin' }))
       .then((res) => {
         if (!res.ok) return res;
         const copy = res.clone();
