@@ -38,7 +38,11 @@ export function estimate1RM(weight, reps) {
   return weight * (1 + reps / 30);
 }
 
+// Aufwärmsätze zählen nicht für Volumen, Fortschritt und Rekorde.
+export const isWorkingSet = (set) => !set.is_warmup;
+
 export function setVolume(set) {
+  if (!isWorkingSet(set)) return 0;
   return (Number(set.reps) || 0) * (Number(set.weight_kg) || 0);
 }
 
@@ -74,7 +78,7 @@ export function weeklySummary(workouts, sets, today, weeks = 8) {
 // sets: [{ date, reps, weight_kg, duration_min, distance_km }]
 export function exerciseProgress(sets, type) {
   const byDate = new Map();
-  for (const s of sets) {
+  for (const s of sets.filter(isWorkingSet)) {
     const prev = byDate.get(s.date) || { date: s.date, e1rm: 0, maxWeight: 0, volume: 0, duration: 0, distance: 0 };
     const w = Number(s.weight_kg) || 0;
     const r = Number(s.reps) || 0;
@@ -97,7 +101,7 @@ export function exerciseProgress(sets, type) {
 export function personalRecords(sets, exercises) {
   const records = new Map();
   const sessionTotals = new Map(); // `${exercise}|${workout}` -> Summe
-  for (const s of sets) {
+  for (const s of sets.filter(isWorkingSet)) {
     const ex = exercises.get(s.exercise_id);
     if (!ex) continue;
     let rec = records.get(s.exercise_id);

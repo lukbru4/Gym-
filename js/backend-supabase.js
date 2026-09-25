@@ -36,10 +36,13 @@ function backend(supabase) {
 
   // ---- Übungen ---------------------------------------------------------------
   const listExercises = () =>
-    fetchAll(() => supabase.from('exercises').select('id, name, type, user_id').order('name').order('id'));
+    fetchAll(() => supabase.from('exercises').select('id, name, type, user_id, muscles').order('name').order('id'));
 
-  const createExercise = (name, type) =>
-    supabase.from('exercises').insert({ name, type }).select('id, name, type, user_id').single().then(check);
+  const createExercise = (name, type, muscles = []) =>
+    supabase.from('exercises').insert({ name, type, muscles }).select('id, name, type, user_id, muscles').single().then(check);
+
+  const updateExercise = (id, fields) =>
+    supabase.from('exercises').update(fields).eq('id', id).select('id, name, type, user_id, muscles').single().then(check);
 
   // ---- Trainings -------------------------------------------------------------
   const listWorkouts = () =>
@@ -47,7 +50,7 @@ function backend(supabase) {
 
   const listSets = () =>
     fetchAll(() =>
-      supabase.from('sets').select('id, workout_id, exercise_id, position, reps, weight_kg, duration_min, distance_km').order('id')
+      supabase.from('sets').select('id, workout_id, exercise_id, position, reps, weight_kg, duration_min, distance_km, is_warmup').order('id')
     );
 
   async function getWorkout(id) {
@@ -55,7 +58,7 @@ function backend(supabase) {
     const sets = check(
       await supabase
         .from('sets')
-        .select('exercise_id, position, reps, weight_kg, duration_min, distance_km')
+        .select('exercise_id, position, reps, weight_kg, duration_min, distance_km, is_warmup')
         .eq('workout_id', id)
         .order('position')
     );
@@ -88,7 +91,24 @@ function backend(supabase) {
     check(await supabase.from('body_weights').upsert({ user_id: user.id, date, weight_kg }, { onConflict: 'user_id,date' }));
   }
 
+  // ---- Vorlagen -------------------------------------------------------------
+  const listTemplates = () =>
+    fetchAll(() => supabase.from('templates').select('id, name, exercises').order('created_at').order('id'));
+
+  const getTemplate = (id) =>
+    supabase.from('templates').select('id, name, exercises').eq('id', id).single().then(check);
+
+  async function saveTemplate({ id, name, exercises }) {
+    if (id) {
+      check(await supabase.from('templates').update({ name, exercises }).eq('id', id));
+      return id;
+    }
+    return check(await supabase.from('templates').insert({ name, exercises }).select('id').single()).id;
+  }
+
+  const deleteTemplate = (id) => supabase.from('templates').delete().eq('id', id).then(check);
+
   const deleteBodyWeight = (id) => supabase.from('body_weights').delete().eq('id', id).then(check);
 
-  return { mode: 'cloud', getUser, signIn, signUp, signOut, onAuthChange, listExercises, createExercise, listWorkouts, listSets, getWorkout, saveWorkout, deleteWorkout, listBodyWeights, saveBodyWeight, deleteBodyWeight };
+  return { mode: 'cloud', getUser, signIn, signUp, signOut, onAuthChange, listExercises, createExercise, updateExercise, listWorkouts, listSets, getWorkout, saveWorkout, deleteWorkout, listBodyWeights, saveBodyWeight, deleteBodyWeight, listTemplates, getTemplate, saveTemplate, deleteTemplate };
 }

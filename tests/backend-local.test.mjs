@@ -63,3 +63,36 @@ test('Backup Export/Import und Ablehnung ungültiger Dateien', async () => {
   assert.throws(() => b.importData({ foo: 1 }), /kein gültiges/);
   assert.equal((await b.listBodyWeights()).length, 1); // unverändert
 });
+
+test('Vorlagen speichern, ändern, löschen', async () => {
+  const b = create(memoryStorage());
+  const id = await b.saveTemplate({ id: null, name: 'Push', exercises: [{ exercise_id: 1, rest_seconds: 120, sets: [{ warmup: true, reps: 5, weight_kg: 20 }] }] });
+  let t = await b.getTemplate(id);
+  assert.equal(t.name, 'Push');
+  t.exercises[0].sets[0].reps = 99; // Kopie, Original bleibt
+  assert.equal((await b.getTemplate(id)).exercises[0].sets[0].reps, 5);
+  await b.saveTemplate({ id, name: 'Push A', exercises: [] });
+  assert.equal((await b.listTemplates())[0].name, 'Push A');
+  await b.deleteTemplate(id);
+  assert.equal((await b.listTemplates()).length, 0);
+});
+
+test('Alte Daten (Version 1) werden migriert', async () => {
+  const storage = memoryStorage();
+  storage.setItem('gym-tracker-data', JSON.stringify({
+    version: 1, nextId: 50,
+    exercises: [{ id: 1, name: 'Bankdrücken', type: 'strength', user_id: null }, { id: 40, name: 'Eigene', type: 'strength', user_id: 'local' }],
+    workouts: [{ id: 41, date: '2026-09-01', notes: null }],
+    sets: [{ id: 42, workout_id: 41, exercise_id: 1, position: 0, reps: 5, weight_kg: 60 }],
+    body_weights: [],
+  }));
+  const b = create(storage);
+  const ex = await b.listExercises();
+  assert.deepEqual(ex.find((e) => e.id === 1).muscles, ['brust']);
+  assert.deepEqual(ex.find((e) => e.id === 40).muscles, []);
+  assert.equal((await b.listSets())[0].is_warmup, false);
+  assert.deepEqual(await b.listTemplates(), []);
+  const updated = await b.updateExercise(40, { muscles: ['bizeps'] });
+  assert.deepEqual(updated.muscles, ['bizeps']);
+  await assert.rejects(() => b.updateExercise(1, { muscles: [] }), /eigene/);
+});

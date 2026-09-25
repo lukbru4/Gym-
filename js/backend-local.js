@@ -1,7 +1,10 @@
 // Lokaler Speicher im Browser (localStorage) – funktioniert ohne Konto und ohne Server.
 // Gleiche Schnittstelle wie backend-supabase.js.
 
+import { DEFAULT_MUSCLES } from './muscles.js';
+
 const STORAGE_KEY = 'gym-tracker-data';
+const VERSION = 2;
 const LOCAL_USER = Object.freeze({ id: 'local', email: 'Lokal' });
 
 // Gleiche Standardübungen wie in supabase/schema.sql
@@ -22,12 +25,15 @@ const TABLES = ['exercises', 'workouts', 'sets', 'body_weights'];
 
 function emptyData() {
   return {
-    version: 1,
+    version: VERSION,
     nextId: DEFAULT_EXERCISES.length + 1,
-    exercises: DEFAULT_EXERCISES.map(([name, type], i) => ({ id: i + 1, name, type, user_id: null })),
+    exercises: DEFAULT_EXERCISES.map(([name, type], i) => ({
+      id: i + 1, name, type, user_id: null, muscles: DEFAULT_MUSCLES[name] || [],
+    })),
     workouts: [],
     sets: [],
     body_weights: [],
+    templates: [],
   };
 }
 
@@ -38,10 +44,20 @@ export function validateData(data) {
   return data;
 }
 
+// Ältere Daten (Version 1) um Vorlagen, Muskeln und Aufwärmsätze ergänzen.
+export function migrate(data) {
+  if (data.version >= VERSION) return data;
+  data.templates ??= [];
+  for (const e of data.exercises) e.muscles ??= e.user_id ? [] : DEFAULT_MUSCLES[e.name] || [];
+  for (const s of data.sets) s.is_warmup ??= false;
+  data.version = VERSION;
+  return data;
+}
+
 export function create(storage = globalThis.localStorage) {
   let data;
   const raw = storage.getItem(STORAGE_KEY); // wirft, wenn der Browser Speicher blockiert
-  data = raw ? validateData(JSON.parse(raw)) : emptyData();
+  data = raw ? migrate(validateData(JSON.parse(raw))) : emptyData();
 
   const persist = () => {
     try {
@@ -67,9 +83,17 @@ export function create(storage = globalThis.localStorage) {
     listExercises: async () =>
       copy(data.exercises).sort((a, b) => a.name.localeCompare(b.name, 'de') || a.id - b.id),
 
-    async createExercise(name, type) {
-      const ex = { id: newId(), name, type, user_id: LOCAL_USER.id };
+    async createExercise(name, type, muscles = []) {
+      const ex = { id: newId(), name, type, user_id: LOCAL_USER.id, muscles: [...muscles] };
       data.exercises.push(ex);
+      persist();
+      return { ...ex };
+    },
+
+    async updateExercise(id, fields) {
+      const ex = data.exercises.find((e) => e.id === id && e.user_id === LOCAL_USER.id);
+      if (!ex) throw new Error('Nur eigene Übungen können geändert werden.');
+      Object.assign(ex, fields);
       persist();
       return { ...ex };
     },
@@ -105,6 +129,7 @@ export function create(storage = globalThis.localStorage) {
           weight_kg: s.weight_kg ?? null,
           duration_min: s.duration_min ?? null,
           distance_km: s.distance_km ?? null,
+          is_warmup: Boolean(s.is_warmup),
         });
       });
       persist();
@@ -131,11 +156,38 @@ export function create(storage = globalThis.localStorage) {
       persist();
     },
 
+    // Vorlagen
+    listTemplates: async () => structuredClone(data.templates).sort((a, b) => a.id - b.id),
+
+    async getTemplate(id) {
+      const t = data.templates.find((x) => x.id === id);
+      if (!t) throw new Error('Vorlage nicht gefunden.');
+      return structuredClone(t);
+    },
+
+    async saveTemplate({ id, name, exercises }) {
+      if (id) {
+        const t = data.templates.find((x) => x.id === id);
+        if (!t) throw new Error('Vorlage nicht gefunden.');
+        Object.assign(t, structuredClone({ name, exercises }));
+      } else {
+        id = newId();
+        data.templates.push(structuredClone({ id, name, exercises }));
+      }
+      persist();
+      return id;
+    },
+
+    async deleteTemplate(id) {
+      data.templates = data.templates.filter((t) => t.id !== id);
+      persist();
+    },
+
     // Backup
     validateBackup: validateData,
     exportData: () => JSON.parse(JSON.stringify(data)),
     importData(obj) {
-      data = validateData(JSON.parse(JSON.stringify(obj)));
+      data = migrate(validateData(JSON.parse(JSON.stringify(obj))));
       persist();
     },
   };

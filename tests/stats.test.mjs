@@ -81,3 +81,19 @@ test('personalRecords für Kraft und Cardio', () => {
   assert.deepEqual(run.longestDuration, { value: 35, date: '2026-09-01' });
   assert.deepEqual(run.longestDistance, { value: 5, date: '2026-09-01' });
 });
+
+test('Aufwärmsätze zählen nicht für Volumen und Rekorde', () => {
+  const weeks = weeklySummary(
+    [{ id: 1, date: '2026-09-22' }],
+    [{ workout_id: 1, reps: 5, weight_kg: 20, is_warmup: true }, { workout_id: 1, reps: 5, weight_kg: 40 }],
+    '2026-09-25',
+    1
+  );
+  assert.equal(weeks[0].volume, 200);
+  const recs = personalRecords(
+    [{ exercise_id: 1, workout_id: 1, date: '2026-09-22', reps: 20, weight_kg: 60, is_warmup: true },
+     { exercise_id: 1, workout_id: 1, date: '2026-09-22', reps: 5, weight_kg: 50 }],
+    new Map([[1, { name: 'X', type: 'strength' }]])
+  );
+  assert.deepEqual(recs[0].heaviest, { weight: 50, reps: 5, date: '2026-09-22' });
+});

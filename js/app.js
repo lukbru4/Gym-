@@ -1,5 +1,8 @@
 import { createBackend } from './api.js';
 import { todayISO, weeklySummary, exerciseProgress, personalRecords, setVolume } from './stats.js';
+import { MUSCLES, MUSCLE_NAMES, LEVELS, musclesOf, strengthLevels, bodySvg } from './muscles.js';
+import { REST_OPTIONS, getDefaultRest, setDefaultRest, fmtDuration, startRest, stop as stopRest, initTimer } from './timer.js';
+import { STARTER_TEMPLATES } from './starter-templates.js';
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
@@ -9,6 +12,7 @@ let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
 let exercises = []; // [{ id, name, type, user_id }]
 let charts = [];
+let viewCleanup = null; // räumt z. B. Intervalle der aktuellen Ansicht auf
 
 // ---------------------------------------------------------------------------
 // Hilfsfunktionen
@@ -118,17 +122,24 @@ function makeChart(canvas, type, labels, datasets, unit, { integer = false } = {
 // ---------------------------------------------------------------------------
 const routes = [
   [/^#?\/?$/, renderDashboard],
-  [/^#\/neu$/, () => renderWorkoutForm(null)],
+  [/^#\/neu$/, () => renderEditor('live')],
+  [/^#\/workouts$/, renderWorkouts],
+  [/^#\/start\/(\d+)$/, (m) => startFromTemplate(Number(m[1]))],
+  [/^#\/vorlage\/neu$/, () => renderEditor('template')],
+  [/^#\/vorlage\/(\d+)$/, (m) => renderEditor('template', Number(m[1]))],
   [/^#\/training\/(\d+)$/, (m) => renderWorkoutDetail(Number(m[1]))],
-  [/^#\/training\/(\d+)\/bearbeiten$/, (m) => renderWorkoutForm(Number(m[1]))],
+  [/^#\/training\/(\d+)\/bearbeiten$/, (m) => renderEditor('edit', Number(m[1]))],
   [/^#\/verlauf$/, renderHistory],
   [/^#\/fortschritt$/, renderProgress],
-  [/^#\/gewicht$/, renderBody],
+  [/^#\/koerper$/, renderBody],
+  [/^#\/gewicht$/, () => void (location.hash = '#/koerper')],
   [/^#\/backup$/, renderBackup],
 ];
 
 async function route() {
   destroyCharts();
+  viewCleanup?.();
+  viewCleanup = null;
   // Ansicht-spezifische Handler zurücksetzen
   view.oninput = view.onclick = view.onchange = view.onsubmit = null;
   document.getElementById('logout').hidden = !user;
@@ -138,7 +149,8 @@ async function route() {
   nav.hidden = false;
   nav.querySelectorAll('a').forEach((a) => {
     const target = a.getAttribute('href');
-    a.classList.toggle('active', target === '#/' ? hash === '#/' || hash === '' : hash.startsWith(target));
+    const section = /^#\/(neu|vorlage|start)/.test(hash) ? '#/workouts' : hash;
+    a.classList.toggle('active', target === '#/' ? section === '#/' || section === '' : section.startsWith(target));
   });
 
   for (const [re, handler] of routes) {
@@ -235,7 +247,7 @@ async function renderDashboard() {
       ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
          Sichere sie regelmäßig über <a href="#/backup">Backup</a>.</p>`
       : ''}
-    <a class="btn primary block big" href="#/neu">+ Training erfassen</a>
+    <a class="btn primary block big" href="#/workouts">Workout starten</a>
     <h2>Diese Woche</h2>
     <div class="tiles">
       <div class="tile"><span class="tile-value">${thisWeek.workouts}</span><span class="tile-label">Trainings</span></div>
@@ -309,9 +321,9 @@ async function renderWorkoutDetail(id) {
           <h3>${esc(ex?.name ?? 'Unbekannte Übung')}</h3>
           <table class="table">
             <thead><tr><th>#</th>${cardio ? '<th>Dauer</th><th>Distanz</th>' : '<th>Wdh.</th><th>Gewicht</th>'}</tr></thead>
-            <tbody>${sets
+            <tbody>${numberSets(sets)
               .map(
-                (s, i) => `<tr><td>${i + 1}</td>${
+                ([s, label]) => `<tr><td class="${label === 'A' ? 'warmup-label' : ''}">${label}</td>${
                   cardio
                     ? `<td>${s.duration_min != null ? `${fmt(s.duration_min)} min` : '–'}</td><td>${s.distance_km != null ? `${fmt(s.distance_km, 2)} km` : '–'}</td>`
                     : `<td>${s.reps ?? '–'}</td><td>${s.weight_kg != null ? `${fmt(s.weight_kg, 2)} kg` : '–'}</td>`
@@ -337,6 +349,12 @@ async function renderWorkoutDetail(id) {
   };
 }
 
+// Satznummern: Aufwärmsätze heißen "A", Arbeitssätze werden durchgezählt.
+function numberSets(sets) {
+  let n = 0;
+  return sets.map((s) => [s, s.is_warmup ? 'A' : String(++n)]);
+}
+
 // Aufeinanderfolgende Sätze derselben Übung zu Blöcken zusammenfassen.
 function groupSets(sets) {
   const groups = [];
@@ -349,14 +367,16 @@ function groupSets(sets) {
 }
 
 // ---------------------------------------------------------------------------
-// Training erfassen / bearbeiten
+// Editor für Live-Workout, Training bearbeiten und Vorlagen
 // ---------------------------------------------------------------------------
-const emptySet = (type) => (type === 'cardio' ? { duration_min: '', distance_km: '' } : { reps: '', weight_kg: '' });
+const emptySet = (type, warmup = false) =>
+  type === 'cardio' ? { duration_min: '', distance_km: '' } : { warmup, reps: '', weight_kg: '' };
 const toInput = (v) => (v == null ? '' : String(v).replace('.', ','));
 
 function loadDraft() {
   try {
-    return JSON.parse(localStorage.getItem(DRAFT_KEY));
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    return d && Array.isArray(d.blocks) ? { mode: 'live', started_at: Date.now(), ...d } : null;
   } catch {
     return null;
   }
@@ -376,28 +396,140 @@ function clearDraft() {
   }
 }
 
-async function renderWorkoutForm(id) {
+// Letzte Ausführung jeder Übung: Sätze aus dem neuesten Training, das sie enthält.
+function lastPerformance(workouts, sets, excludeWorkoutId) {
+  const rank = new Map(workouts.map((w, i) => [w.id, i])); // workouts sind neueste zuerst
+  const latest = new Map();
+  for (const s of sets) {
+    const r = rank.get(s.workout_id);
+    if (r == null || s.workout_id === excludeWorkoutId) continue;
+    const cur = latest.get(s.exercise_id);
+    if (!cur || r < cur.rank) latest.set(s.exercise_id, { rank: r, workout_id: s.workout_id });
+  }
+  const result = new Map();
+  for (const [exId, { workout_id }] of latest) {
+    result.set(
+      exId,
+      sets.filter((s) => s.workout_id === workout_id && s.exercise_id === exId).sort((a, b) => a.position - b.position)
+    );
+  }
+  return result;
+}
+
+// Passender Vorher-Satz: n-ter Aufwärmsatz ↔ n-ter Aufwärmsatz, n-ter Arbeitssatz ↔ n-ter Arbeitssatz.
+function previousFor(prevSets, block, si) {
+  if (!prevSets) return null;
+  const warm = Boolean(block.sets[si].warmup);
+  const idx = block.sets.slice(0, si).filter((r) => Boolean(r.warmup) === warm).length;
+  return prevSets.filter((p) => Boolean(p.is_warmup) === warm)[idx] || null;
+}
+
+function stateFromTemplate(t) {
+  return {
+    mode: 'live',
+    id: null,
+    template_id: t.id,
+    name: t.name,
+    date: todayISO(),
+    notes: '',
+    started_at: Date.now(),
+    blocks: t.exercises
+      .filter((e) => exerciseById(e.exercise_id))
+      .map((e) => {
+        const type = exerciseById(e.exercise_id).type;
+        return {
+          exercise_id: e.exercise_id,
+          rest_seconds: e.rest_seconds ?? null,
+          sets: e.sets.map((s) => ({
+            ...emptySet(type, Boolean(s.warmup)),
+            target:
+              type === 'cardio'
+                ? { duration_min: s.duration_min ?? null, distance_km: s.distance_km ?? null }
+                : { reps: s.reps ?? null, weight_kg: s.weight_kg ?? null },
+            done: false,
+          })),
+        };
+      }),
+  };
+}
+
+function templateBlocks(t) {
+  return t.exercises
+    .filter((e) => exerciseById(e.exercise_id))
+    .map((e) => {
+      const type = exerciseById(e.exercise_id).type;
+      return {
+        exercise_id: e.exercise_id,
+        rest_seconds: e.rest_seconds ?? null,
+        sets: e.sets.map((s) =>
+          type === 'cardio'
+            ? { duration_min: toInput(s.duration_min), distance_km: toInput(s.distance_km) }
+            : { warmup: Boolean(s.warmup), reps: toInput(s.reps), weight_kg: toInput(s.weight_kg) }
+        ),
+      };
+    });
+}
+
+// Liest einen Satz aus den Eingaben. Liefert null (leer), ein Objekt oder wirft bei ungültigen Werten.
+function parseRow(row, cardio) {
+  if (cardio) {
+    const duration_min = parseNum(row.duration_min);
+    const distance_km = parseNum(row.distance_km);
+    if (Number.isNaN(duration_min) || Number.isNaN(distance_km)) throw new Error('Bitte nur Zahlen eingeben.');
+    if (duration_min == null && distance_km == null) return null;
+    return { duration_min, distance_km };
+  }
+  const reps = parseNum(row.reps);
+  const weight_kg = parseNum(row.weight_kg);
+  if (Number.isNaN(reps) || Number.isNaN(weight_kg)) throw new Error('Bitte nur Zahlen eingeben.');
+  if (reps == null && weight_kg == null) return null;
+  if (!reps || !Number.isInteger(reps)) throw new Error('Jeder Kraftsatz braucht eine ganze Zahl an Wiederholungen.');
+  return { reps, weight_kg: weight_kg ?? 0, is_warmup: Boolean(row.warmup) };
+}
+
+function restOptions(selected) {
+  const std = getDefaultRest();
+  return `<option value="">Standard (${fmtDuration(std)})</option>${REST_OPTIONS.map(
+    (s) => `<option value="${s}" ${s === selected ? 'selected' : ''}>${fmtDuration(s)}</option>`
+  ).join('')}`;
+}
+
+function muscleChips(name, selected = []) {
+  return `<fieldset class="chips"><legend class="small muted">Hauptmuskeln (für den Körpergraphen)</legend>${MUSCLES.map(
+    ([id, label]) =>
+      `<label class="chip"><input type="checkbox" name="${name}" value="${id}" ${selected.includes(id) ? 'checked' : ''}>${esc(label)}</label>`
+  ).join('')}</fieldset>`;
+}
+
+// mode: 'live' (Training durchführen), 'edit' (gespeichertes Training ändern), 'template' (Vorlage)
+async function renderEditor(mode, id = null) {
   let state;
-  if (id) {
+  let prev = new Map();
+  if (mode === 'edit') {
     const w = await api.getWorkout(id);
     state = {
-      id,
-      date: w.date,
-      notes: w.notes ?? '',
+      mode, id, date: w.date, notes: w.notes ?? '',
       blocks: groupSets(w.sets).map((g) => ({
         exercise_id: g.exercise,
         sets: g.sets.map((s) =>
           exerciseById(g.exercise)?.type === 'cardio'
             ? { duration_min: toInput(s.duration_min), distance_km: toInput(s.distance_km) }
-            : { reps: toInput(s.reps), weight_kg: toInput(s.weight_kg) }
+            : { warmup: Boolean(s.is_warmup), reps: toInput(s.reps), weight_kg: toInput(s.weight_kg) }
         ),
       })),
     };
+  } else if (mode === 'template') {
+    const t = id ? await api.getTemplate(id) : { id: null, name: '', exercises: [] };
+    state = { mode, id: t.id, name: t.name, blocks: templateBlocks(t) };
   } else {
-    state = loadDraft() || { id: null, date: todayISO(), notes: '', blocks: [] };
+    const [workouts, sets] = await Promise.all([api.listWorkouts(), api.listSets()]);
+    prev = lastPerformance(workouts, sets, null);
+    state = loadDraft() || { mode, id: null, template_id: null, name: '', date: todayISO(), notes: '', started_at: Date.now(), blocks: [] };
     state.blocks = state.blocks.filter((b) => exerciseById(b.exercise_id));
   }
-  const persist = () => !state.id && saveDraft(state);
+  const live = mode === 'live';
+  const persist = () => live && saveDraft(state);
+  persist();
 
   const exerciseOptions = () => {
     const opts = (type) =>
@@ -411,59 +543,100 @@ async function renderWorkoutForm(id) {
       <option value="new">+ Eigene Übung anlegen …</option>`;
   };
 
+  const title = { live: state.name || 'Training', edit: 'Training bearbeiten', template: state.id ? 'Vorlage bearbeiten' : 'Neue Vorlage' }[mode];
+
   const draw = () => {
     view.innerHTML = `
-      <h2>${state.id ? 'Training bearbeiten' : 'Neues Training'}</h2>
-      <div class="card">
-        <label>Datum<input type="date" id="w-date" value="${esc(state.date)}" required></label>
+      <div class="editor-head">
+        <h2>${esc(title)}</h2>
+        ${live ? `<span class="muted" id="elapsed" aria-label="Trainingsdauer"></span>` : ''}
       </div>
+      ${mode === 'template' ? `<div class="card"><label>Name der Vorlage<input id="t-name" maxlength="80" value="${esc(state.name)}" placeholder="z. B. Push" required></label></div>` : ''}
+      ${mode === 'edit' ? `<div class="card"><label>Datum<input type="date" id="w-date" value="${esc(state.date)}" required></label></div>` : ''}
       ${state.blocks.map(blockHtml).join('')}
       <div class="card">
         <label>Übung hinzufügen<select id="add-exercise">${exerciseOptions()}</select></label>
         <form id="new-exercise" class="inline-form" hidden>
           <input type="text" name="name" placeholder="Name der Übung" maxlength="80" required>
           <select name="type"><option value="strength">Kraft</option><option value="cardio">Cardio</option></select>
+          ${muscleChips('muscle')}
           <button class="btn" type="submit">Anlegen</button>
         </form>
       </div>
-      <div class="card">
+      ${mode !== 'template' ? `<div class="card">
+        ${live ? `<label>Datum<input type="date" id="w-date" value="${esc(state.date)}" required></label>` : ''}
         <label>Notizen<textarea id="w-notes" rows="3" maxlength="2000" placeholder="Wie lief's?">${esc(state.notes)}</textarea></label>
-      </div>
+      </div>` : ''}
       <div class="row">
-        <button class="btn primary grow" id="save">Speichern</button>
-        <button class="btn" id="cancel">${state.id ? 'Abbrechen' : 'Verwerfen'}</button>
-      </div>`;
+        <button class="btn primary grow" id="save">${live ? 'Training beenden & speichern' : 'Speichern'}</button>
+        <button class="btn" id="cancel">${live ? 'Verwerfen' : 'Abbrechen'}</button>
+      </div>
+      ${mode === 'template' && state.id ? '<p class="center"><button class="btn danger" id="delete-template">Vorlage löschen</button></p>' : ''}`;
+    updateElapsed();
   };
 
   const blockHtml = (b, bi) => {
     const ex = exerciseById(b.exercise_id);
     const cardio = ex.type === 'cardio';
+    const cols = live ? 'live' : 'plain';
+    let workNo = 0;
+    const rows = b.sets
+      .map((s, si) => {
+        const label = !cardio && s.warmup ? 'A' : String(++workNo);
+        const p = live ? previousFor(prev.get(b.exercise_id), b, si) : null;
+        const ph = p
+          ? cardio ? { duration_min: toInput(p.duration_min), distance_km: toInput(p.distance_km) } : { reps: toInput(p.reps), weight_kg: toInput(p.weight_kg) }
+          : s.target
+            ? cardio ? { duration_min: toInput(s.target.duration_min), distance_km: toInput(s.target.distance_km) } : { reps: toInput(s.target.reps), weight_kg: toInput(s.target.weight_kg) }
+            : {};
+        const prevText = p
+          ? cardio ? `${fmt(p.duration_min)} min · ${fmt(p.distance_km, 2)} km` : `${fmt(p.weight_kg, 2)} × ${p.reps}`
+          : '–';
+        const input = (f, mode, aria) =>
+          `<input inputmode="${mode}" data-b="${bi}" data-s="${si}" data-f="${f}" value="${esc(s[f])}" placeholder="${esc(ph[f] ?? '')}" aria-label="${aria}">`;
+        return `<div class="set-row ${s.done ? 'done' : ''}">
+          ${cardio
+            ? `<span class="set-no">${label}</span>`
+            : `<button class="set-no set-type ${s.warmup ? 'warmup' : ''}" data-action="toggle-warmup" data-b="${bi}" data-s="${si}"
+                 aria-label="Satz ${label}: ${s.warmup ? 'Aufwärmsatz' : 'Arbeitssatz'} – tippen zum Umschalten">${label}</button>`}
+          ${live ? `<span class="prev small">${prevText}</span>` : ''}
+          ${cardio
+            ? input('duration_min', 'decimal', 'Dauer in Minuten') + input('distance_km', 'decimal', 'Distanz in km')
+            : input('weight_kg', 'decimal', 'Gewicht in kg') + input('reps', 'numeric', 'Wiederholungen')}
+          ${live
+            ? `<button class="check ${s.done ? 'on' : ''}" data-action="done" data-b="${bi}" data-s="${si}" aria-pressed="${Boolean(s.done)}" aria-label="Satz erledigt">✓</button>`
+            : `<button class="icon-btn" data-action="remove-set" data-b="${bi}" data-s="${si}" aria-label="Satz entfernen">−</button>`}
+        </div>`;
+      })
+      .join('');
     return `<div class="card block">
       <div class="block-head">
         <h3>${esc(ex.name)}</h3>
         <button class="icon-btn" data-action="remove-block" data-b="${bi}" aria-label="Übung entfernen">✕</button>
       </div>
-      <div class="set-grid ${cardio ? 'cardio' : ''}">
-        <span class="muted small">#</span>
-        <span class="muted small">${cardio ? 'Dauer (min)' : 'Wdh.'}</span>
-        <span class="muted small">${cardio ? 'Distanz (km)' : 'Gewicht (kg)'}</span>
-        <span></span>
-        ${b.sets
-          .map(
-            (s, si) => `
-          <span class="set-no">${si + 1}</span>
-          ${cardio
-            ? `<input inputmode="decimal" data-b="${bi}" data-s="${si}" data-f="duration_min" value="${esc(s.duration_min)}" aria-label="Dauer in Minuten">
-               <input inputmode="decimal" data-b="${bi}" data-s="${si}" data-f="distance_km" value="${esc(s.distance_km)}" aria-label="Distanz in km">`
-            : `<input inputmode="numeric" data-b="${bi}" data-s="${si}" data-f="reps" value="${esc(s.reps)}" aria-label="Wiederholungen">
-               <input inputmode="decimal" data-b="${bi}" data-s="${si}" data-f="weight_kg" value="${esc(s.weight_kg)}" aria-label="Gewicht in kg">`}
-          <button class="icon-btn" data-action="remove-set" data-b="${bi}" data-s="${si}" aria-label="Satz entfernen">−</button>`
-          )
-          .join('')}
+      ${mode !== 'edit' ? `<label class="rest-select small">Pause<select data-rest-b="${bi}">${restOptions(b.rest_seconds)}</select></label>` : ''}
+      <div class="set-table ${cols}">
+        <div class="set-row head">
+          <span>Satz</span>${live ? '<span>Vorherig</span>' : ''}
+          <span>${cardio ? 'min' : 'kg'}</span><span>${cardio ? 'km' : 'Wdh.'}</span><span></span>
+        </div>
+        ${rows}
       </div>
-      <button class="btn small-btn" data-action="add-set" data-b="${bi}">+ ${cardio ? 'Eintrag' : 'Satz'}</button>
+      <div class="row">
+        <button class="btn small-btn grow" data-action="add-set" data-b="${bi}">+ ${cardio ? 'Eintrag' : 'Satz'}</button>
+        ${live ? `<button class="btn small-btn" data-action="remove-last" data-b="${bi}" aria-label="Letzten Satz entfernen">− Satz</button>` : ''}
+      </div>
     </div>`;
   };
+
+  function updateElapsed() {
+    const el = view.querySelector('#elapsed');
+    if (el) el.textContent = fmtDuration((Date.now() - state.started_at) / 1000);
+  }
+  if (live) {
+    const t = setInterval(updateElapsed, 1000);
+    viewCleanup = () => clearInterval(t);
+  }
 
   draw();
 
@@ -471,6 +644,7 @@ async function renderWorkoutForm(id) {
     const t = e.target;
     if (t.id === 'w-date') state.date = t.value;
     else if (t.id === 'w-notes') state.notes = t.value;
+    else if (t.id === 't-name') state.name = t.value;
     else if (t.dataset.f) state.blocks[t.dataset.b].sets[t.dataset.s][t.dataset.f] = t.value;
     else return;
     t.classList.toggle('invalid', t.dataset.f ? Number.isNaN(parseNum(t.value)) : false);
@@ -478,46 +652,105 @@ async function renderWorkoutForm(id) {
   };
 
   view.onclick = async (e) => {
-    const t = e.target.closest('[data-action], #save, #cancel');
+    const t = e.target.closest('[data-action], #save, #cancel, #delete-template');
     if (!t) return;
     const b = Number(t.dataset.b);
-    if (t.dataset.action === 'add-set') {
-      const block = state.blocks[b];
-      const last = block.sets[block.sets.length - 1];
-      block.sets.push(last ? { ...last } : emptySet(exerciseById(block.exercise_id).type));
-    } else if (t.dataset.action === 'remove-set') {
-      state.blocks[b].sets.splice(Number(t.dataset.s), 1);
-      if (!state.blocks[b].sets.length) state.blocks.splice(b, 1);
-    } else if (t.dataset.action === 'remove-block') {
-      if (!confirm('Übung mit allen Sätzen entfernen?')) return;
-      state.blocks.splice(b, 1);
-    } else if (t.id === 'cancel') {
-      if (state.id) return void (location.hash = `#/training/${state.id}`);
-      if (state.blocks.length && !confirm('Training verwerfen?')) return;
-      clearDraft();
-      return void (location.hash = '#/');
-    } else if (t.id === 'save') {
-      return save(t);
+    const block = state.blocks[b];
+    const s = Number(t.dataset.s);
+    switch (t.dataset.action || t.id) {
+      case 'add-set': {
+        const last = block.sets[block.sets.length - 1];
+        const type = exerciseById(block.exercise_id).type;
+        block.sets.push(last ? { ...last, warmup: false, done: false } : emptySet(type));
+        break;
+      }
+      case 'remove-set':
+        block.sets.splice(s, 1);
+        if (!block.sets.length) state.blocks.splice(b, 1);
+        break;
+      case 'remove-last':
+        block.sets.pop();
+        if (!block.sets.length) state.blocks.splice(b, 1);
+        break;
+      case 'remove-block':
+        if (!confirm('Übung mit allen Sätzen entfernen?')) return;
+        state.blocks.splice(b, 1);
+        break;
+      case 'toggle-warmup':
+        block.sets[s].warmup = !block.sets[s].warmup;
+        break;
+      case 'done': {
+        const row = block.sets[s];
+        if (row.done) {
+          row.done = false;
+          break;
+        }
+        // Leere Felder mit dem Vorschlag (vorherig bzw. Vorlage) füllen
+        view.querySelectorAll(`input[data-b="${b}"][data-s="${s}"]`).forEach((inp) => {
+          if (!row[inp.dataset.f] && inp.placeholder) row[inp.dataset.f] = inp.placeholder;
+        });
+        try {
+          if (!parseRow(row, exerciseById(block.exercise_id).type === 'cardio')) {
+            showError(new Error('Bitte zuerst Werte eintragen.'));
+            break;
+          }
+        } catch (err) {
+          showError(err);
+          break;
+        }
+        row.done = true;
+        startRest(block.rest_seconds ?? getDefaultRest());
+        break;
+      }
+      case 'cancel':
+        if (mode === 'edit') return void (location.hash = `#/training/${state.id}`);
+        if (mode === 'template') return void (location.hash = '#/workouts');
+        if (state.blocks.length && !confirm('Training verwerfen? Die Eingaben gehen verloren.')) return;
+        clearDraft();
+        stopRest();
+        return void (location.hash = '#/workouts');
+      case 'delete-template':
+        if (!confirm(`Vorlage „${state.name}“ löschen?`)) return;
+        try {
+          await api.deleteTemplate(state.id);
+          location.hash = '#/workouts';
+        } catch (err) {
+          showError(err);
+        }
+        return;
+      case 'save':
+        return mode === 'template' ? saveTemplate(t) : saveWorkout(t);
     }
     persist();
     draw();
   };
 
   view.onchange = async (e) => {
-    if (e.target.id !== 'add-exercise') return;
-    const value = e.target.value;
+    const t = e.target;
+    if (t.dataset.restB != null) {
+      state.blocks[t.dataset.restB].rest_seconds = t.value ? Number(t.value) : null;
+      return persist();
+    }
+    if (t.id !== 'add-exercise') return;
     const form = view.querySelector('#new-exercise');
-    if (value === 'new') {
+    if (t.value === 'new') {
       form.hidden = false;
       form.querySelector('input').focus();
       return;
     }
-    if (!value) return;
-    const ex = exerciseById(value);
-    state.blocks.push({ exercise_id: ex.id, sets: [emptySet(ex.type)] });
+    if (!t.value) return;
+    addBlock(exerciseById(t.value));
+  };
+
+  function addBlock(ex) {
+    const prevSets = prev.get(ex.id);
+    const sets = prevSets?.length
+      ? prevSets.map((p) => ({ ...emptySet(ex.type, Boolean(p.is_warmup)), done: false }))
+      : [emptySet(ex.type)];
+    state.blocks.push({ exercise_id: ex.id, rest_seconds: null, sets });
     persist();
     draw();
-  };
+  }
 
   view.onsubmit = async (e) => {
     if (e.target.id !== 'new-exercise') return;
@@ -525,52 +758,226 @@ async function renderWorkoutForm(id) {
     const f = new FormData(e.target);
     const name = String(f.get('name')).trim();
     const type = f.get('type');
+    const muscles = type === 'cardio' ? [] : f.getAll('muscle');
     if (!name) return;
     const existing = exercises.find((x) => x.name.toLowerCase() === name.toLowerCase());
     try {
-      const ex = existing || (await api.createExercise(name, type));
+      const ex = existing || (await api.createExercise(name, type, muscles));
       if (!existing) exercises = [...exercises, ex].sort((a, b) => a.name.localeCompare(b.name, 'de'));
-      state.blocks.push({ exercise_id: ex.id, sets: [emptySet(ex.type)] });
-      persist();
-      draw();
+      addBlock(ex);
     } catch (err) {
       showError(err);
     }
   };
 
-  async function save(btn) {
+  async function saveTemplate(btn) {
+    const name = state.name.trim();
+    if (!name) return showError(new Error('Bitte gib der Vorlage einen Namen.'));
+    if (!state.blocks.length) return showError(new Error('Füge mindestens eine Übung hinzu.'));
+    let templateExercises;
+    try {
+      templateExercises = state.blocks.map((b) => {
+        const cardio = exerciseById(b.exercise_id).type === 'cardio';
+        return {
+          exercise_id: b.exercise_id,
+          rest_seconds: b.rest_seconds ?? null,
+          sets: b.sets.map((row) => {
+            const v = parseRowLoose(row, cardio);
+            return cardio ? v : { warmup: Boolean(row.warmup), reps: v.reps, weight_kg: v.weight_kg };
+          }),
+        };
+      });
+    } catch (err) {
+      return showError(err);
+    }
+    btn.disabled = true;
+    try {
+      await api.saveTemplate({ id: state.id, name, exercises: templateExercises });
+      location.hash = '#/workouts';
+    } catch (err) {
+      btn.disabled = false;
+      showError(err);
+    }
+  }
+
+  async function saveWorkout(btn) {
     const sets = [];
-    for (const block of state.blocks) {
-      const cardio = exerciseById(block.exercise_id).type === 'cardio';
-      for (const s of block.sets) {
-        if (cardio) {
-          const duration_min = parseNum(s.duration_min);
-          const distance_km = parseNum(s.distance_km);
-          if (Number.isNaN(duration_min) || Number.isNaN(distance_km)) return showError(new Error('Bitte nur Zahlen eingeben.'));
-          if (duration_min == null && distance_km == null) continue;
-          sets.push({ exercise_id: block.exercise_id, duration_min, distance_km });
-        } else {
-          const reps = parseNum(s.reps);
-          const weight_kg = parseNum(s.weight_kg);
-          if (Number.isNaN(reps) || Number.isNaN(weight_kg)) return showError(new Error('Bitte nur Zahlen eingeben.'));
-          if (reps == null && weight_kg == null) continue;
-          if (!reps || !Number.isInteger(reps)) return showError(new Error('Jeder Kraftsatz braucht eine ganze Zahl an Wiederholungen.'));
-          sets.push({ exercise_id: block.exercise_id, reps, weight_kg: weight_kg ?? 0 });
+    try {
+      for (const block of state.blocks) {
+        const cardio = exerciseById(block.exercise_id).type === 'cardio';
+        for (const row of block.sets) {
+          const v = parseRow(row, cardio);
+          if (v) sets.push({ exercise_id: block.exercise_id, ...v });
         }
       }
+    } catch (err) {
+      return showError(err);
     }
     if (!state.date) return showError(new Error('Bitte ein Datum angeben.'));
     if (!sets.length && !state.notes.trim()) return showError(new Error('Das Training ist noch leer.'));
+    if (live && state.blocks.some((b) => b.sets.some((r) => !r.done && !parseRowSafe(r, b)))) {
+      if (!confirm('Nicht abgehakte, leere Sätze werden nicht gespeichert. Training beenden?')) return;
+    }
     btn.disabled = true;
     try {
       const savedId = await api.saveWorkout({ id: state.id, date: state.date, notes: state.notes.trim() || null, sets });
-      if (!state.id) clearDraft();
+      if (live) {
+        clearDraft();
+        stopRest();
+        if (state.template_id) await offerTemplateUpdate(state);
+      }
       location.hash = `#/training/${savedId}`;
     } catch (err) {
       btn.disabled = false;
       showError(err);
     }
   }
+}
+
+// Für Vorlagen: leere Felder sind erlaubt (Zielwerte optional).
+function parseRowLoose(row, cardio) {
+  const num = (v) => {
+    const n = parseNum(v);
+    if (Number.isNaN(n)) throw new Error('Bitte nur Zahlen eingeben.');
+    return n;
+  };
+  if (cardio) return { duration_min: num(row.duration_min), distance_km: num(row.distance_km) };
+  const reps = num(row.reps);
+  if (reps != null && !Number.isInteger(reps)) throw new Error('Wiederholungen müssen ganze Zahlen sein.');
+  return { reps, weight_kg: num(row.weight_kg) };
+}
+
+function parseRowSafe(row, block) {
+  try {
+    return parseRow(row, exerciseById(block.exercise_id).type === 'cardio');
+  } catch {
+    return null;
+  }
+}
+
+// Nach dem Training: Vorlage mit den heute geschafften Werten als neue Zielwerte aktualisieren?
+async function offerTemplateUpdate(state) {
+  let template;
+  try {
+    template = await api.getTemplate(state.template_id);
+  } catch {
+    return; // Vorlage wurde inzwischen gelöscht
+  }
+  if (!confirm(`Vorlage „${template.name}“ mit den Werten von heute aktualisieren?`)) return;
+  const exercisesOut = state.blocks.map((b) => {
+    const cardio = exerciseById(b.exercise_id).type === 'cardio';
+    return {
+      exercise_id: b.exercise_id,
+      rest_seconds: b.rest_seconds ?? null,
+      sets: b.sets.map((row) => {
+        const v = parseRowSafe(row, b);
+        if (cardio) return v || { duration_min: row.target?.duration_min ?? null, distance_km: row.target?.distance_km ?? null };
+        return {
+          warmup: Boolean(row.warmup),
+          reps: v ? v.reps : row.target?.reps ?? null,
+          weight_kg: v ? v.weight_kg : row.target?.weight_kg ?? null,
+        };
+      }),
+    };
+  });
+  await api.saveTemplate({ id: template.id, name: template.name, exercises: exercisesOut });
+}
+
+// ---------------------------------------------------------------------------
+// Workouts: Vorlagen auswählen und starten
+// ---------------------------------------------------------------------------
+const hasDraft = () => Boolean(loadDraft()?.blocks.length);
+
+async function renderWorkouts() {
+  const templates = await api.listTemplates();
+  const draft = loadDraft();
+  const names = new Set(templates.map((t) => t.name.toLowerCase()));
+  const missingStarters = STARTER_TEMPLATES.filter((t) => !names.has(t.name.toLowerCase()));
+  const setCount = (t) => t.exercises.reduce((n, e) => n + e.sets.length, 0);
+
+  view.innerHTML = `
+    <h2>Workouts</h2>
+    ${draft?.blocks.length
+      ? `<div class="card highlight">
+          <h3>Laufendes Training${draft.name ? `: ${esc(draft.name)}` : ''}</h3>
+          <p class="muted small">Gestartet vor ${fmtDuration((Date.now() - draft.started_at) / 1000)} · ${plural(draft.blocks.length, 'Übung', 'Übungen')}</p>
+          <a class="btn primary block" href="#/neu">Fortsetzen</a>
+        </div>`
+      : ''}
+    ${templates
+      .map(
+        (t) => `<div class="card template">
+          <div class="block-head"><h3>${esc(t.name)}</h3><a class="link" href="#/vorlage/${t.id}">Bearbeiten</a></div>
+          <p class="muted small">${plural(t.exercises.length, 'Übung', 'Übungen')} · ${plural(setCount(t), 'Satz', 'Sätze')}</p>
+          <p class="small">${esc(t.exercises.map((e) => exerciseById(e.exercise_id)?.name).filter(Boolean).join(' · '))}</p>
+          <a class="btn primary block" href="#/start/${t.id}">Starten</a>
+        </div>`
+      )
+      .join('') || '<p class="muted">Noch keine Vorlagen. Lege eine an oder übernimm die Startvorlagen.</p>'}
+    ${missingStarters.length
+      ? `<div class="card">
+          <h3>Startvorlagen</h3>
+          <p class="muted small">${esc(missingStarters.map((t) => t.name).join(' & '))} mit deinen Übungen und Gewichten
+          aus deiner bisherigen App (umgerechnet von Pfund in kg).</p>
+          <button class="btn block" id="add-starters">${esc(missingStarters.map((t) => t.name).join(' & '))} hinzufügen</button>
+        </div>`
+      : ''}
+    <div class="row">
+      <a class="btn grow" href="#/vorlage/neu">+ Vorlage</a>
+      <button class="btn grow" id="empty-workout">Leeres Training</button>
+    </div>
+    <div class="card">
+      <label>Standard-Pause zwischen Sätzen
+        <select id="default-rest">${REST_OPTIONS.map((sec) => `<option value="${sec}" ${sec === getDefaultRest() ? 'selected' : ''}>${fmtDuration(sec)} min</option>`).join('')}</select>
+      </label>
+      <p class="muted small">Gilt für alle Übungen, bei denen du keine eigene Pause eingestellt hast.
+      Die Pause pro Übung stellst du in der Vorlage oder direkt im Training ein.</p>
+    </div>`;
+
+  view.querySelector('#default-rest').onchange = (e) => setDefaultRest(Number(e.target.value));
+  view.querySelector('#empty-workout').onclick = () => {
+    if (hasDraft() && !confirm('Es läuft bereits ein Training. Verwerfen und leer neu starten?')) return;
+    saveDraft({ mode: 'live', id: null, template_id: null, name: '', date: todayISO(), notes: '', started_at: Date.now(), blocks: [] });
+    location.hash = '#/neu';
+  };
+  const starterBtn = view.querySelector('#add-starters');
+  if (starterBtn) {
+    starterBtn.onclick = async () => {
+      starterBtn.disabled = true;
+      try {
+        await addStarterTemplates(missingStarters);
+        renderWorkouts().catch(showError);
+      } catch (err) {
+        starterBtn.disabled = false;
+        showError(err);
+      }
+    };
+  }
+}
+
+async function addStarterTemplates(starters) {
+  for (const t of starters) {
+    const templateExercises = [];
+    for (const e of t.exercises) {
+      let ex = exercises.find((x) => x.name.toLowerCase() === e.name.toLowerCase());
+      if (!ex) {
+        ex = await api.createExercise(e.name, 'strength', e.muscles);
+        exercises = [...exercises, ex].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+      }
+      templateExercises.push({ exercise_id: ex.id, rest_seconds: null, sets: e.sets.map((x) => ({ ...x })) });
+    }
+    await api.saveTemplate({ id: null, name: t.name, exercises: templateExercises });
+  }
+}
+
+async function startFromTemplate(id) {
+  const t = await api.getTemplate(id);
+  if (hasDraft() && !confirm('Es läuft bereits ein Training. Verwerfen und „' + t.name + '“ starten?')) {
+    location.hash = '#/neu';
+    return;
+  }
+  saveDraft(stateFromTemplate(t));
+  location.replace('#/neu');
 }
 
 // ---------------------------------------------------------------------------
@@ -689,8 +1096,44 @@ function recordsHtml(records) {
 // ---------------------------------------------------------------------------
 async function renderBody() {
   destroyCharts();
-  const weights = await api.listBodyWeights();
+  const [weights, workouts, sets] = await Promise.all([api.listBodyWeights(), api.listWorkouts(), api.listSets()]);
+  const dateOf = new Map(workouts.map((w) => [w.id, w.date]));
+  const dated = sets.map((x) => ({ ...x, date: dateOf.get(x.workout_id) })).filter((x) => x.date);
+  const levels = strengthLevels(dated, exerciseMap(), todayISO());
+  const trained = [...levels.entries()].filter(([, r]) => r.level > 0);
+  const usedIds = new Set(dated.map((x) => x.exercise_id));
+  const unassigned = exercises.filter((e) => e.type === 'strength' && e.user_id && !musclesOf(e).length);
+  const pct = (g) => `${g >= 0 ? '+' : ''}${fmt(g * 100, 0)} %`;
+
   view.innerHTML = `
+    <h2>Körpergraph</h2>
+    <div class="card">
+      ${bodySvg(levels, esc)}
+      <ul class="legend" aria-label="Legende">
+        <li><span class="swatch" style="background:var(--level-0)"></span>nicht trainiert</li>
+        ${LEVELS.map((l) => `<li><span class="swatch" style="background:var(--level-${l.level})"></span>Stufe ${l.level}: ${l.label}</li>`).join('')}
+      </ul>
+      <p class="muted small">Kraft-Stufe = wie stark dein geschätztes 1RM (Epley) seit deinem ersten Training
+      gestiegen ist: bester Wert der letzten 30 Tage gegenüber dem ersten Training, gemittelt über alle Übungen
+      des Muskels. Aufwärmsätze zählen nicht. Tippe auf einen Muskel für Details.</p>
+      ${trained.length
+        ? `<details class="table-toggle"><summary>Als Tabelle anzeigen</summary>
+          <table class="table"><thead><tr><th>Muskel</th><th>Stufe</th><th>Steigerung</th><th>Übungen</th></tr></thead>
+          <tbody>${trained
+            .map(([m, r]) => `<tr><td>${esc(MUSCLE_NAMES.get(m))}</td><td>${r.level}</td><td>${pct(r.gain)}</td>
+              <td class="small">${r.exercises.map((x) => `${esc(x.name)}: ${fmt(x.first)} → ${fmt(x.current)} kg`).join('<br>')}</td></tr>`)
+            .join('')}</tbody></table></details>`
+        : '<p class="muted">Sobald du Krafttrainings gespeichert hast, färbt sich der Körper ein.</p>'}
+      <p id="muscle-detail" class="notice small" hidden></p>
+    </div>
+    ${unassigned.length
+      ? `<div class="card"><h3>Übungen ohne Muskelzuordnung</h3>
+          <p class="muted small">Diese eigenen Übungen erscheinen erst im Körpergraphen, wenn du ihnen Muskeln zuordnest.</p>
+          ${unassigned
+            .map((e) => `<form class="assign" data-ex="${e.id}"><strong>${esc(e.name)}</strong>${usedIds.has(e.id) ? '' : ' <span class="muted small">(noch nicht trainiert)</span>'}
+              ${muscleChips('muscle')}<button class="btn small-btn" type="submit">Speichern</button></form>`)
+            .join('')}</div>`
+      : ''}
     <h2>Körpergewicht</h2>
     <form class="card" id="bw-form">
       <div class="row">
@@ -716,6 +1159,35 @@ async function renderBody() {
       { label: 'Körpergewicht', data: weights.map((w) => Number(w.weight_kg)), color: cssVar('--series-1') },
     ], 'kg');
   }
+
+  const detail = view.querySelector('#muscle-detail');
+  const showMuscle = (g) => {
+    const r = levels.get(g.dataset.muscle);
+    detail.hidden = false;
+    detail.innerHTML = `<strong>${esc(MUSCLE_NAMES.get(g.dataset.muscle))}</strong>: ${
+      r.level
+        ? `Stufe ${r.level} (${pct(r.gain)})<br>${r.exercises.map((x) => `${esc(x.name)}: ${fmt(x.first)} → ${fmt(x.current)} kg (${pct(x.gain)})`).join('<br>')}`
+        : 'noch nicht trainiert'
+    }`;
+  };
+  view.querySelectorAll('.muscle').forEach((g) => {
+    g.onclick = () => showMuscle(g);
+    g.onkeydown = (e) => (e.key === 'Enter' || e.key === ' ') && showMuscle(g);
+  });
+  view.querySelectorAll('form.assign').forEach((form) => {
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const muscles = new FormData(form).getAll('muscle');
+      if (!muscles.length) return showError(new Error('Bitte mindestens einen Muskel auswählen.'));
+      try {
+        const updated = await api.updateExercise(Number(form.dataset.ex), { muscles });
+        exercises = exercises.map((x) => (x.id === updated.id ? updated : x));
+        renderBody().catch(showError);
+      } catch (err) {
+        showError(err);
+      }
+    };
+  });
 
   view.querySelector('#bw-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -799,6 +1271,7 @@ async function renderBackup() {
 // Start
 // ---------------------------------------------------------------------------
 async function init() {
+  initTimer(document.getElementById('rest-timer'));
   try {
     api = await createBackend();
   } catch (err) {

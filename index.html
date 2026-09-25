@@ -21,11 +21,20 @@
   <main id="view" class="container"><p class="muted center">Lädt …</p></main>
   <nav id="nav" class="bottom-nav" hidden>
     <a href="#/"><span aria-hidden="true">🏠</span>Start</a>
-    <a href="#/neu"><span aria-hidden="true">➕</span>Training</a>
+    <a href="#/workouts"><span aria-hidden="true">🏋️</span>Workouts</a>
     <a href="#/verlauf"><span aria-hidden="true">📋</span>Verlauf</a>
     <a href="#/fortschritt"><span aria-hidden="true">📈</span>Fortschritt</a>
-    <a href="#/gewicht"><span aria-hidden="true">⚖️</span>Gewicht</a>
+    <a href="#/koerper"><span aria-hidden="true">🧍</span>Körper</a>
   </nav>
+  <div id="rest-timer" class="rest-timer" role="timer" aria-live="off" hidden>
+    <div class="rest-bar"><span></span></div>
+    <div class="rest-controls">
+      <button class="btn small-btn" data-rest="minus" aria-label="15 Sekunden weniger">−15</button>
+      <div class="rest-center"><span class="small muted">Pause</span><strong class="rest-time">0:00</strong></div>
+      <button class="btn small-btn" data-rest="plus" aria-label="15 Sekunden mehr">+15</button>
+      <button class="btn small-btn primary" data-rest="skip">Weiter</button>
+    </div>
+  </div>
   <div id="toast" class="toast" role="alert" hidden></div>
 </body>
 </html>

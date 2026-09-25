@@ -10,8 +10,11 @@ create table if not exists public.exercises (
   user_id     uuid references auth.users (id) on delete cascade default auth.uid(),
   name        text not null check (length(trim(name)) between 1 and 80),
   type        text not null check (type in ('strength', 'cardio')),
+  muscles     text[] not null default '{}',
   created_at  timestamptz not null default now()
 );
+-- für bestehende Installationen
+alter table public.exercises add column if not exists muscles text[] not null default '{}';
 
 create unique index if not exists exercises_unique_name
   on public.exercises (coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(name));
@@ -41,8 +44,10 @@ create table if not exists public.sets (
   reps          int check (reps >= 0 and reps <= 1000),
   weight_kg     numeric(6, 2) check (weight_kg >= 0 and weight_kg <= 1000),
   duration_min  numeric(6, 2) check (duration_min >= 0 and duration_min <= 1440),
-  distance_km   numeric(7, 3) check (distance_km >= 0 and distance_km <= 1000)
+  distance_km   numeric(7, 3) check (distance_km >= 0 and distance_km <= 1000),
+  is_warmup     boolean not null default false
 );
+alter table public.sets add column if not exists is_warmup boolean not null default false;
 
 create index if not exists sets_workout on public.sets (workout_id);
 create index if not exists sets_user_exercise on public.sets (user_id, exercise_id);
@@ -59,12 +64,25 @@ create table if not exists public.body_weights (
 );
 
 -- ---------------------------------------------------------------------------
+-- Workout-Vorlagen (z. B. "Push", "Pull")
+-- exercises: [{ exercise_id, rest_seconds, sets: [{ warmup, weight_kg, reps }] }]
+-- ---------------------------------------------------------------------------
+create table if not exists public.templates (
+  id          bigint generated always as identity primary key,
+  user_id     uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  name        text not null check (length(trim(name)) between 1 and 80),
+  exercises   jsonb not null default '[]'::jsonb check (jsonb_typeof(exercises) = 'array'),
+  created_at  timestamptz not null default now()
+);
+
+-- ---------------------------------------------------------------------------
 -- Row Level Security: jeder sieht und ändert nur seine eigenen Daten
 -- ---------------------------------------------------------------------------
 alter table public.exercises    enable row level security;
 alter table public.workouts     enable row level security;
 alter table public.sets         enable row level security;
 alter table public.body_weights enable row level security;
+alter table public.templates    enable row level security;
 
 drop policy if exists "exercises read"   on public.exercises;
 drop policy if exists "exercises insert" on public.exercises;
@@ -93,6 +111,10 @@ create policy "sets own" on public.sets for all to authenticated
                 and (e.user_id is null or e.user_id = (select auth.uid())))
   );
 
+drop policy if exists "templates own" on public.templates;
+create policy "templates own" on public.templates for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
 drop policy if exists "body_weights own" on public.body_weights;
 create policy "body_weights own" on public.body_weights for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
@@ -100,37 +122,38 @@ create policy "body_weights own" on public.body_weights for all to authenticated
 -- ---------------------------------------------------------------------------
 -- Vorgegebene Übungen
 -- ---------------------------------------------------------------------------
-insert into public.exercises (user_id, name, type) values
-  (null, 'Bankdrücken', 'strength'),
-  (null, 'Schrägbankdrücken', 'strength'),
-  (null, 'Kurzhantel-Bankdrücken', 'strength'),
-  (null, 'Butterfly', 'strength'),
-  (null, 'Dips', 'strength'),
-  (null, 'Kniebeuge', 'strength'),
-  (null, 'Beinpresse', 'strength'),
-  (null, 'Ausfallschritte', 'strength'),
-  (null, 'Beinstrecker', 'strength'),
-  (null, 'Beinbeuger', 'strength'),
-  (null, 'Wadenheben', 'strength'),
-  (null, 'Kreuzheben', 'strength'),
-  (null, 'Rumänisches Kreuzheben', 'strength'),
-  (null, 'Klimmzüge', 'strength'),
-  (null, 'Latziehen', 'strength'),
-  (null, 'Langhantelrudern', 'strength'),
-  (null, 'Kabelrudern', 'strength'),
-  (null, 'Schulterdrücken', 'strength'),
-  (null, 'Seitheben', 'strength'),
-  (null, 'Face Pulls', 'strength'),
-  (null, 'Bizepscurls', 'strength'),
-  (null, 'Hammercurls', 'strength'),
-  (null, 'Trizepsdrücken am Kabel', 'strength'),
-  (null, 'French Press', 'strength'),
-  (null, 'Crunches', 'strength'),
-  (null, 'Plank', 'strength'),
-  (null, 'Laufband', 'cardio'),
-  (null, 'Crosstrainer', 'cardio'),
-  (null, 'Fahrradergometer', 'cardio'),
-  (null, 'Rudergerät', 'cardio'),
-  (null, 'Stepper', 'cardio'),
-  (null, 'Laufen (draußen)', 'cardio')
-on conflict do nothing;
+insert into public.exercises (user_id, name, type, muscles) values
+  (null, 'Bankdrücken', 'strength', '{brust}'),
+  (null, 'Schrägbankdrücken', 'strength', '{brust}'),
+  (null, 'Kurzhantel-Bankdrücken', 'strength', '{brust}'),
+  (null, 'Butterfly', 'strength', '{brust}'),
+  (null, 'Dips', 'strength', '{trizeps,brust}'),
+  (null, 'Kniebeuge', 'strength', '{quadrizeps,gesaess}'),
+  (null, 'Beinpresse', 'strength', '{quadrizeps}'),
+  (null, 'Ausfallschritte', 'strength', '{quadrizeps,gesaess}'),
+  (null, 'Beinstrecker', 'strength', '{quadrizeps}'),
+  (null, 'Beinbeuger', 'strength', '{beinbeuger}'),
+  (null, 'Wadenheben', 'strength', '{waden}'),
+  (null, 'Kreuzheben', 'strength', '{unterer_ruecken,gesaess}'),
+  (null, 'Rumänisches Kreuzheben', 'strength', '{beinbeuger,gesaess}'),
+  (null, 'Klimmzüge', 'strength', '{lat}'),
+  (null, 'Latziehen', 'strength', '{lat}'),
+  (null, 'Langhantelrudern', 'strength', '{oberer_ruecken,lat}'),
+  (null, 'Kabelrudern', 'strength', '{oberer_ruecken}'),
+  (null, 'Schulterdrücken', 'strength', '{schultern}'),
+  (null, 'Seitheben', 'strength', '{schultern}'),
+  (null, 'Face Pulls', 'strength', '{schultern}'),
+  (null, 'Bizepscurls', 'strength', '{bizeps}'),
+  (null, 'Hammercurls', 'strength', '{bizeps}'),
+  (null, 'Trizepsdrücken am Kabel', 'strength', '{trizeps}'),
+  (null, 'French Press', 'strength', '{trizeps}'),
+  (null, 'Crunches', 'strength', '{bauch}'),
+  (null, 'Plank', 'strength', '{bauch}'),
+  (null, 'Laufband', 'cardio', '{}'),
+  (null, 'Crosstrainer', 'cardio', '{}'),
+  (null, 'Fahrradergometer', 'cardio', '{}'),
+  (null, 'Rudergerät', 'cardio', '{}'),
+  (null, 'Stepper', 'cardio', '{}'),
+  (null, 'Laufen (draußen)', 'cardio', '{}')
+on conflict (coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(name))
+  do update set muscles = excluded.muscles;
