@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gym Tracker</title>
+  <meta name="description" content="Trainings, Fortschritt und Körpergewicht tracken">
+  <meta name="theme-color" content="#1f6fd1">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.js" defer></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="#/">🏋️ Gym Tracker</a></h1>
+    <button class="link" id="logout" hidden>Abmelden</button>
+  </header>
+  <main id="view" class="container"><p class="muted center">Lädt …</p></main>
+  <nav id="nav" class="bottom-nav" hidden>
+    <a href="#/"><span aria-hidden="true">🏠</span>Start</a>
+    <a href="#/neu"><span aria-hidden="true">➕</span>Training</a>
+    <a href="#/verlauf"><span aria-hidden="true">📋</span>Verlauf</a>
+    <a href="#/fortschritt"><span aria-hidden="true">📈</span>Fortschritt</a>
+    <a href="#/gewicht"><span aria-hidden="true">⚖️</span>Gewicht</a>
+  </nav>
+  <div id="toast" class="toast" role="alert" hidden></div>
+</body>
+</html>
