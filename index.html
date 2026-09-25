@@ -9,6 +9,17 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
+  <script>
+    // Design vor dem ersten Zeichnen setzen (gleiche Regel wie js/theme.js)
+    try {
+      var m = localStorage.getItem('gym-tracker-theme') || 'time', h = new Date().getHours();
+      if (m === 'time') document.documentElement.dataset.theme = h >= 18 || h < 6 ? 'dark' : 'light';
+      else if (m === 'light' || m === 'dark') document.documentElement.dataset.theme = m;
+    } catch (e) {
+      var hh = new Date().getHours();
+      document.documentElement.dataset.theme = hh >= 18 || hh < 6 ? 'dark' : 'light';
+    }
+  </script>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.js" defer></script>
   <script type="module" src="js/app.js"></script>

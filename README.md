@@ -26,7 +26,7 @@ Hinweis: Lokale Daten werden beim Umstieg auf die Cloud nicht automatisch übern
 - **Live-Training.** Sätze abhaken (✓), Spalte „Vorherig“ mit den Werten vom letzten Mal und Aufwärmsätze („A“, antippen zum Umschalten).
 - **Werte übernehmen.** Leere Felder übernehmen beim Abhaken den Vorschlag. Nach dem Training kann die Vorlage die Werte von heute übernehmen.
 - **Pause-Timer.** Nach jedem abgehakten Satz startet die Pause, mit Ton und Vibration am Ende. Die Standard-Pause stellst du auf der Seite „Workouts“ ein, eine eigene Pause pro Übung in der Vorlage oder im Training.
-- **Körpergraph.** Die Körper-Silhouette von vorne und hinten zeigt pro Muskel eine Kraft-Stufe von 1 bis 5. Die Stufe gibt an, wie stark dein geschätztes 1RM seit dem ersten Training gestiegen ist. Die Formel steht in der App.
+- **Körpergraph.** Eine anatomische Figur von vorne und hinten, bei der alle Muskeln umrandet sind. Sie zeigt pro Muskel eine Kraft-Stufe von 1 bis 5. Die Stufe gibt an, wie stark dein geschätztes 1RM seit dem ersten Training gestiegen ist. Die Formel steht in der App.
 - **Ohne Einrichtung nutzbar.** Im lokalen Modus liegen die Daten im Browser, mit Backup-Export und -Import.
 - **Login im Cloud-Modus.** Mehrere Personen können sich registrieren. Jede Person sieht nur ihre eigenen Daten.
 - **Krafttraining.** Pro Übung trägst du Sätze mit Wiederholungen und Gewicht ein. Komma und Punkt funktionieren beide, z. B. `62,5`.
@@ -39,7 +39,7 @@ Hinweis: Lokale Daten werden beim Umstieg auf die Cloud nicht automatisch übern
 - **Fortschritt pro Übung.** Das Diagramm zeigt das geschätzte 1RM nach der Epley-Formel und den schwersten Satz, bei Cardio Dauer und Distanz. Alle Werte gibt es auch als Tabelle.
 - **Persönliche Rekorde.** Pro Übung: schwerster Satz, bestes geschätztes 1RM und meistes Volumen in einem Training. Bei Cardio: längste Dauer und weiteste Distanz.
 - **Körpergewicht.** Ein Eintrag pro Tag, mit Verlaufsdiagramm.
-- **Hell- und Dunkelmodus.** Richtet sich nach der Einstellung deines Geräts.
+- **Hell- und Dunkelmodus.** Von 18:00 bis 6:00 Uhr ist die App dunkel, tagsüber hell. Unter Workouts → Design kannst du stattdessen „Wie Gerät“, „Immer hell“ oder „Immer dunkel“ wählen.
 
 **Technik:** HTML, CSS und JavaScript ohne Build-Schritt. Für Login und Datenbank nutzt die App [Supabase](https://supabase.com), für die Diagramme [Chart.js](https://www.chartjs.org).
 
@@ -108,6 +108,7 @@ Alternativ geht auch `python3 -m http.server`. Die Seite muss über einen Webser
 | `js/stats.js` | Reine Rechenfunktionen (getestet in `tests/`) |
 | `js/muscles.js` | Muskelgruppen, Kraft-Stufe, Körpergraph (SVG) |
 | `js/timer.js` | Pause-Timer und Standard-Pause |
+| `js/theme.js` | Hell/Dunkel nach Uhrzeit oder Einstellung |
 | `js/starter-templates.js` | Startvorlagen Push & Pull |
 | `js/config.js` | Supabase-Zugangsdaten |
 | `supabase/schema.sql` | Datenbankschema, Zugriffsregeln, Standardübungen |
