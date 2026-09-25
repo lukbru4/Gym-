@@ -8,7 +8,7 @@ import { THEME_OPTIONS, getThemeMode, setThemeMode, initTheme } from './theme.js
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-09-25 · 5 (Körpergraph neu, Dunkelmodus nach Uhrzeit)';
+const APP_VERSION = '2026-09-25 · 6 (Körpergraph wie Vorlage)';
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
