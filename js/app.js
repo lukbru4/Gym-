@@ -1,10 +1,11 @@
-import * as api from './api.js';
+import { createBackend } from './api.js';
 import { todayISO, weeklySummary, exerciseProgress, personalRecords, setVolume } from './stats.js';
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
 
+let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
 let exercises = []; // [{ id, name, type, user_id }]
 let charts = [];
@@ -28,6 +29,7 @@ function fmtDate(iso, withWeekday = true) {
     year: 'numeric',
   });
 }
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const fmtShortDate = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
 
 // Akzeptiert "62,5" und "62.5". Leer -> null.
@@ -122,6 +124,7 @@ const routes = [
   [/^#\/verlauf$/, renderHistory],
   [/^#\/fortschritt$/, renderProgress],
   [/^#\/gewicht$/, renderBody],
+  [/^#\/backup$/, renderBackup],
 ];
 
 async function route() {
@@ -129,7 +132,6 @@ async function route() {
   // Ansicht-spezifische Handler zurücksetzen
   view.oninput = view.onclick = view.onchange = view.onsubmit = null;
   document.getElementById('logout').hidden = !user;
-  if (!api.isConfigured) return renderSetupHint();
   if (!user) return renderAuth();
 
   const hash = location.hash || '#/';
@@ -159,14 +161,15 @@ async function route() {
 // ---------------------------------------------------------------------------
 // Einrichtung & Login
 // ---------------------------------------------------------------------------
-function renderSetupHint() {
+function renderStartError(err) {
   nav.hidden = true;
   view.innerHTML = `
     <div class="card">
-      <h2>Einrichtung fehlt</h2>
-      <p>Die App ist noch nicht mit Supabase verbunden. Trage <code>SUPABASE_URL</code> und
-      <code>SUPABASE_ANON_KEY</code> in <code>js/config.js</code> ein.</p>
-      <p>Die Schritte stehen in der <code>README.md</code>.</p>
+      <h2>App konnte nicht starten</h2>
+      <p class="muted">${esc(err?.message || err)}</p>
+      <p>${api?.mode === 'cloud' || !api
+        ? 'Prüfe deine Internetverbindung und die Supabase-Zugangsdaten und lade die Seite neu.'
+        : 'Der Browser erlaubt keinen lokalen Speicher (z.&nbsp;B. im privaten Modus). Öffne die Seite in einem normalen Fenster.'}</p>
     </div>`;
 }
 
@@ -228,6 +231,10 @@ async function renderDashboard() {
   const lastWeight = weights[weights.length - 1];
 
   view.innerHTML = `
+    ${api.mode === 'local'
+      ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
+         Sichere sie regelmäßig über <a href="#/backup">Backup</a>.</p>`
+      : ''}
     <a class="btn primary block big" href="#/neu">+ Training erfassen</a>
     <h2>Diese Woche</h2>
     <div class="tiles">
@@ -736,10 +743,75 @@ async function renderBody() {
 }
 
 // ---------------------------------------------------------------------------
+// Backup (nur lokaler Modus)
+// ---------------------------------------------------------------------------
+async function renderBackup() {
+  if (api.mode !== 'local') {
+    view.innerHTML = '<h2>Backup</h2><p class="muted">Deine Daten liegen in der Cloud (Supabase) und brauchen kein manuelles Backup.</p>';
+    return;
+  }
+  const data = api.exportData();
+  view.innerHTML = `
+    <h2>Backup</h2>
+    <div class="card">
+      <p>Im lokalen Modus liegen deine Daten nur in diesem Browser. Löschst du die Browserdaten,
+      sind sie weg. Exportiere deshalb regelmäßig eine Sicherung.</p>
+      <p class="muted small">Gespeichert: ${plural(data.workouts.length, 'Training', 'Trainings')},
+      ${plural(data.sets.length, 'Satz', 'Sätze')}, ${plural(data.body_weights.length, 'Gewichtseintrag', 'Gewichtseinträge')}.</p>
+      <button class="btn primary block" id="export">Backup herunterladen</button>
+    </div>
+    <div class="card">
+      <h3>Backup einspielen</h3>
+      <p class="muted small">Ersetzt alle Daten in diesem Browser durch die Daten aus der Datei.
+      So kannst du deine Daten auch auf ein anderes Gerät übertragen.</p>
+      <label>Backup-Datei (.json)<input type="file" id="import" accept="application/json,.json"></label>
+    </div>`;
+
+  view.querySelector('#export').onclick = () => {
+    const blob = new Blob([JSON.stringify(api.exportData(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `gym-tracker-backup-${todayISO()}.json`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  view.querySelector('#import').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const obj = api.validateBackup(JSON.parse(await file.text()));
+      if (!confirm('Alle aktuellen Daten in diesem Browser werden ersetzt. Fortfahren?')) return;
+      api.importData(obj);
+      exercises = await api.listExercises();
+      clearDraft();
+      location.hash = '#/';
+    } catch (err) {
+      showError(err instanceof SyntaxError ? new Error('Die Datei ist kein gültiges JSON.') : err);
+    } finally {
+      e.target.value = '';
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
 async function init() {
-  if (api.isConfigured) {
+  try {
+    api = await createBackend();
+  } catch (err) {
+    console.error(err);
+    return renderStartError(err);
+  }
+  const headerBtn = document.getElementById('logout');
+  if (api.mode === 'local') {
+    user = await api.getUser();
+    exercises = await api.listExercises();
+    headerBtn.textContent = 'Backup';
+    headerBtn.onclick = () => (location.hash = '#/backup');
+  } else {
     user = await api.getUser();
     if (user) exercises = await api.listExercises();
     api.onAuthChange((u) => {
@@ -753,7 +825,7 @@ async function init() {
         route();
       }, 0);
     });
-    document.getElementById('logout').onclick = () => api.signOut();
+    headerBtn.onclick = () => api.signOut();
   }
   window.addEventListener('hashchange', route);
   route();
@@ -761,6 +833,7 @@ async function init() {
 
 init().catch(showError);
 
-if ('serviceWorker' in navigator) {
+// Die Einzeldatei-Version (gym-tracker.html) hat keinen Service Worker neben sich.
+if ('serviceWorker' in navigator && !window.GYM_STANDALONE) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }

@@ -1,0 +1,1317 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gym Tracker</title>
+  <meta name="description" content="Trainings, Fortschritt und Körpergewicht tracken">
+  <meta name="theme-color" content="#1f6fd1">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%0A%20%20%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22%231f6fd1%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23fff%22%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22176%22%20width%3D%2248%22%20height%3D%22160%22%20rx%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22368%22%20y%3D%22176%22%20width%3D%2248%22%20height%3D%22160%22%20rx%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2256%22%20y%3D%22216%22%20width%3D%2240%22%20height%3D%2280%22%20rx%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22416%22%20y%3D%22216%22%20width%3D%2240%22%20height%3D%2280%22%20rx%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22144%22%20y%3D%22240%22%20width%3D%22224%22%20height%3D%2232%22%20rx%3D%2210%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E" type="image/svg+xml">
+    <style>
+:root {
+  color-scheme: light;
+  --bg: #f6f6f4;
+  --surface: #fcfcfb;
+  --border: #e2e1dc;
+  --text: #0b0b0b;
+  --text-secondary: #52514e;
+  --accent: #1f6fd1;
+  --accent-text: #ffffff;
+  --danger: #c93a39;
+  --grid: #e8e7e2;
+  --invalid: #fbe9e9;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --radius: 14px;
+  --nav-h: 64px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211;
+    --surface: #1a1a19;
+    --border: #2f2f2d;
+    --text: #ffffff;
+    --text-secondary: #c3c2b7;
+    --accent: #3987e5;
+    --danger: #e66767;
+    --grid: #2c2c2a;
+    --invalid: #3a2020;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211;
+  --surface: #1a1a19;
+  --border: #2f2f2d;
+  --text: #ffffff;
+  --text-secondary: #c3c2b7;
+  --accent: #3987e5;
+  --danger: #e66767;
+  --grid: #2c2c2a;
+  --invalid: #3a2020;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+}
+h1, h2, h3 { line-height: 1.2; }
+h2 { font-size: 1.3rem; margin: 24px 0 12px; }
+h3 { font-size: 1.05rem; margin: 0 0 8px; }
+a { color: var(--accent); }
+code { font-size: 0.9em; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.topbar h1 { font-size: 1.1rem; margin: 0; }
+.topbar h1 a { color: var(--text); text-decoration: none; }
+
+.container { max-width: 720px; margin: 0 auto; padding: 16px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card.auth { max-width: 420px; margin: 32px auto; }
+.notes { white-space: pre-wrap; }
+
+.muted { color: var(--text-secondary); }
+.small { font-size: 0.85rem; }
+.center { text-align: center; }
+.notice { background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+
+label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 12px; }
+input, select, textarea {
+  display: block; width: 100%;
+  margin-top: 6px;
+  font: inherit; font-weight: 400;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 48px;
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+input.invalid { background: var(--invalid); border-color: var(--danger); }
+textarea { resize: vertical; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 0 18px;
+  font: inherit; font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn.danger { color: var(--danger); }
+.btn.block { display: flex; width: 100%; }
+.btn.big { min-height: 56px; font-size: 1.1rem; }
+.btn:disabled { opacity: 0.6; cursor: wait; }
+.small-btn { min-height: 40px; margin-top: 10px; }
+.link { background: none; border: 0; color: var(--accent); font: inherit; cursor: pointer; padding: 8px 0; }
+.icon-btn {
+  width: 40px; height: 40px;
+  border: 0; border-radius: 10px;
+  background: transparent; color: var(--text-secondary);
+  font-size: 1.1rem; cursor: pointer;
+}
+.icon-btn:hover { background: var(--bg); }
+
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.grow { flex: 1 1 140px; }
+
+.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px; }
+@media (min-width: 600px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
+.tile {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px; display: flex; flex-direction: column; gap: 2px;
+}
+.tile-value { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tile-label { font-size: 0.85rem; color: var(--text-secondary); }
+
+.chart { position: relative; height: 220px; }
+
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { margin-bottom: 8px; }
+.list a, .list-row {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 16px; color: var(--text); text-decoration: none;
+}
+.list-row { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+.list-row span { flex: 1; }
+
+.block-head { display: flex; align-items: center; justify-content: space-between; }
+.block-head h3 { margin: 0; }
+.set-grid {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr 40px;
+  gap: 8px; align-items: center; margin-top: 8px;
+}
+.set-grid input { margin: 0; text-align: center; font-variant-numeric: tabular-nums; }
+.set-no { color: var(--text-secondary); text-align: center; font-weight: 600; }
+.inline-form { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.inline-form input, .inline-form select { margin: 0; }
+
+.table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.table th, .table td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.table th { font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; }
+.scroll-x { overflow-x: auto; }
+.table-toggle { margin-top: 12px; }
+.table-toggle summary { cursor: pointer; color: var(--accent); padding: 6px 0; }
+
+.bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface); border-top: 1px solid var(--border);
+}
+.bottom-nav[hidden] { display: none; }
+.bottom-nav a {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font-size: 0.72rem; color: var(--text-secondary); text-decoration: none;
+}
+.bottom-nav a span { font-size: 1.3rem; }
+.bottom-nav a.active { color: var(--accent); font-weight: 700; }
+
+.toast {
+  position: fixed; left: 16px; right: 16px; z-index: 20;
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
+  max-width: 560px; margin: 0 auto;
+  background: var(--danger); color: #fff;
+  padding: 12px 16px; border-radius: 12px;
+}
+[hidden] { display: none !important; }
+</style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.js" defer></script>
+  <script>window.GYM_STANDALONE = true;</script>
+  <script type="module">
+// Gym Tracker – Einzeldatei-Version (erzeugt mit "npm run build", nicht von Hand bearbeiten).
+// Ohne weitere Einstellungen werden die Daten lokal in diesem Browser gespeichert.
+// Für Cloud-Speicher mit Login: SUPABASE_URL und SUPABASE_ANON_KEY unten eintragen (siehe README).
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
+// js/backend-supabase.js
+var backend_supabase_exports = {};
+__export(backend_supabase_exports, {
+  create: () => create
+});
+async function create(url, anonKey) {
+  const { createClient } = await import(SUPABASE_JS);
+  return backend(createClient(url, anonKey));
+}
+function backend(supabase) {
+  function check({ data, error }) {
+    if (error) throw error;
+    return data;
+  }
+  async function fetchAll(buildQuery, pageSize = 1e3) {
+    const rows = [];
+    for (let from = 0; ; from += pageSize) {
+      const page = check(await buildQuery().range(from, from + pageSize - 1));
+      rows.push(...page);
+      if (page.length < pageSize) return rows;
+    }
+  }
+  async function getUser() {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user ?? null;
+  }
+  const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password }).then(check);
+  const signUp = (email, password) => supabase.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } }).then(check);
+  const signOut = () => supabase.auth.signOut();
+  const onAuthChange = (cb) => supabase.auth.onAuthStateChange((_event, session) => cb(session?.user ?? null));
+  const listExercises = () => fetchAll(() => supabase.from("exercises").select("id, name, type, user_id").order("name").order("id"));
+  const createExercise = (name, type) => supabase.from("exercises").insert({ name, type }).select("id, name, type, user_id").single().then(check);
+  const listWorkouts = () => fetchAll(() => supabase.from("workouts").select("id, date, notes").order("date", { ascending: false }).order("id", { ascending: false }));
+  const listSets = () => fetchAll(
+    () => supabase.from("sets").select("id, workout_id, exercise_id, position, reps, weight_kg, duration_min, distance_km").order("id")
+  );
+  async function getWorkout(id) {
+    const workout = check(await supabase.from("workouts").select("id, date, notes").eq("id", id).single());
+    const sets = check(
+      await supabase.from("sets").select("exercise_id, position, reps, weight_kg, duration_min, distance_km").eq("workout_id", id).order("position")
+    );
+    return { ...workout, sets };
+  }
+  async function saveWorkout({ id, date, notes, sets }) {
+    let workoutId = id;
+    if (workoutId) {
+      check(await supabase.from("workouts").update({ date, notes }).eq("id", workoutId));
+      check(await supabase.from("sets").delete().eq("workout_id", workoutId));
+    } else {
+      workoutId = check(await supabase.from("workouts").insert({ date, notes }).select("id").single()).id;
+    }
+    if (sets.length) {
+      check(await supabase.from("sets").insert(sets.map((s, i) => ({ ...s, workout_id: workoutId, position: i }))));
+    }
+    return workoutId;
+  }
+  const deleteWorkout = (id) => supabase.from("workouts").delete().eq("id", id).then(check);
+  const listBodyWeights = () => fetchAll(() => supabase.from("body_weights").select("id, date, weight_kg").order("date"));
+  async function saveBodyWeight(date, weight_kg) {
+    const user2 = await getUser();
+    check(await supabase.from("body_weights").upsert({ user_id: user2.id, date, weight_kg }, { onConflict: "user_id,date" }));
+  }
+  const deleteBodyWeight = (id) => supabase.from("body_weights").delete().eq("id", id).then(check);
+  return { mode: "cloud", getUser, signIn, signUp, signOut, onAuthChange, listExercises, createExercise, listWorkouts, listSets, getWorkout, saveWorkout, deleteWorkout, listBodyWeights, saveBodyWeight, deleteBodyWeight };
+}
+var SUPABASE_JS;
+var init_backend_supabase = __esm({
+  "js/backend-supabase.js"() {
+    SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+  }
+});
+
+// js/backend-local.js
+var backend_local_exports = {};
+__export(backend_local_exports, {
+  create: () => create2,
+  validateData: () => validateData
+});
+function emptyData() {
+  return {
+    version: 1,
+    nextId: DEFAULT_EXERCISES.length + 1,
+    exercises: DEFAULT_EXERCISES.map(([name, type], i) => ({ id: i + 1, name, type, user_id: null })),
+    workouts: [],
+    sets: [],
+    body_weights: []
+  };
+}
+function validateData(data) {
+  if (!data || typeof data !== "object" || !TABLES.every((t) => Array.isArray(data[t])) || !Number.isInteger(data.nextId)) {
+    throw new Error("Die Datei ist kein gültiges Gym-Tracker-Backup.");
+  }
+  return data;
+}
+function create2(storage = globalThis.localStorage) {
+  let data;
+  const raw = storage.getItem(STORAGE_KEY);
+  data = raw ? validateData(JSON.parse(raw)) : emptyData();
+  const persist = () => {
+    try {
+      storage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (err) {
+      throw new Error(`Speichern im Browser fehlgeschlagen (${err.message}).`);
+    }
+  };
+  const newId = () => data.nextId++;
+  const copy = (rows) => rows.map((r) => ({ ...r }));
+  const byDateDesc = (a, b) => b.date.localeCompare(a.date) || b.id - a.id;
+  return {
+    mode: "local",
+    // Auth: lokal gibt es genau einen Nutzer, ohne Login
+    getUser: async () => LOCAL_USER,
+    signIn: async () => {
+    },
+    signUp: async () => ({ session: {} }),
+    signOut: async () => {
+    },
+    onAuthChange: () => {
+    },
+    listExercises: async () => copy(data.exercises).sort((a, b) => a.name.localeCompare(b.name, "de") || a.id - b.id),
+    async createExercise(name, type) {
+      const ex = { id: newId(), name, type, user_id: LOCAL_USER.id };
+      data.exercises.push(ex);
+      persist();
+      return { ...ex };
+    },
+    listWorkouts: async () => copy(data.workouts).sort(byDateDesc),
+    listSets: async () => copy(data.sets).sort((a, b) => a.id - b.id),
+    async getWorkout(id) {
+      const w = data.workouts.find((x) => x.id === id);
+      if (!w) throw new Error("Training nicht gefunden.");
+      const sets = copy(data.sets.filter((s) => s.workout_id === id)).sort((a, b) => a.position - b.position);
+      return { ...w, sets };
+    },
+    async saveWorkout({ id, date, notes, sets }) {
+      let workoutId = id;
+      if (workoutId) {
+        const w = data.workouts.find((x) => x.id === workoutId);
+        if (!w) throw new Error("Training nicht gefunden.");
+        Object.assign(w, { date, notes });
+        data.sets = data.sets.filter((s) => s.workout_id !== workoutId);
+      } else {
+        workoutId = newId();
+        data.workouts.push({ id: workoutId, date, notes });
+      }
+      sets.forEach((s, i) => {
+        data.sets.push({
+          id: newId(),
+          workout_id: workoutId,
+          exercise_id: s.exercise_id,
+          position: i,
+          reps: s.reps ?? null,
+          weight_kg: s.weight_kg ?? null,
+          duration_min: s.duration_min ?? null,
+          distance_km: s.distance_km ?? null
+        });
+      });
+      persist();
+      return workoutId;
+    },
+    async deleteWorkout(id) {
+      data.workouts = data.workouts.filter((w) => w.id !== id);
+      data.sets = data.sets.filter((s) => s.workout_id !== id);
+      persist();
+    },
+    listBodyWeights: async () => copy(data.body_weights).sort((a, b) => a.date.localeCompare(b.date)),
+    async saveBodyWeight(date, weight_kg) {
+      const existing = data.body_weights.find((b) => b.date === date);
+      if (existing) existing.weight_kg = weight_kg;
+      else data.body_weights.push({ id: newId(), date, weight_kg });
+      persist();
+    },
+    async deleteBodyWeight(id) {
+      data.body_weights = data.body_weights.filter((b) => b.id !== id);
+      persist();
+    },
+    // Backup
+    validateBackup: validateData,
+    exportData: () => JSON.parse(JSON.stringify(data)),
+    importData(obj) {
+      data = validateData(JSON.parse(JSON.stringify(obj)));
+      persist();
+    }
+  };
+}
+var STORAGE_KEY, LOCAL_USER, DEFAULT_EXERCISES, TABLES;
+var init_backend_local = __esm({
+  "js/backend-local.js"() {
+    STORAGE_KEY = "gym-tracker-data";
+    LOCAL_USER = Object.freeze({ id: "local", email: "Lokal" });
+    DEFAULT_EXERCISES = [
+      ["Bankdrücken", "strength"],
+      ["Schrägbankdrücken", "strength"],
+      ["Kurzhantel-Bankdrücken", "strength"],
+      ["Butterfly", "strength"],
+      ["Dips", "strength"],
+      ["Kniebeuge", "strength"],
+      ["Beinpresse", "strength"],
+      ["Ausfallschritte", "strength"],
+      ["Beinstrecker", "strength"],
+      ["Beinbeuger", "strength"],
+      ["Wadenheben", "strength"],
+      ["Kreuzheben", "strength"],
+      ["Rumänisches Kreuzheben", "strength"],
+      ["Klimmzüge", "strength"],
+      ["Latziehen", "strength"],
+      ["Langhantelrudern", "strength"],
+      ["Kabelrudern", "strength"],
+      ["Schulterdrücken", "strength"],
+      ["Seitheben", "strength"],
+      ["Face Pulls", "strength"],
+      ["Bizepscurls", "strength"],
+      ["Hammercurls", "strength"],
+      ["Trizepsdrücken am Kabel", "strength"],
+      ["French Press", "strength"],
+      ["Crunches", "strength"],
+      ["Plank", "strength"],
+      ["Laufband", "cardio"],
+      ["Crosstrainer", "cardio"],
+      ["Fahrradergometer", "cardio"],
+      ["Rudergerät", "cardio"],
+      ["Stepper", "cardio"],
+      ["Laufen (draußen)", "cardio"]
+    ];
+    TABLES = ["exercises", "workouts", "sets", "body_weights"];
+  }
+});
+
+// js/config.js
+var SUPABASE_URL = "https://DEIN-PROJEKT.supabase.co";
+var SUPABASE_ANON_KEY = "DEIN-ANON-KEY";
+
+// js/api.js
+var isCloudConfigured = !SUPABASE_URL.includes("DEIN-PROJEKT") && !SUPABASE_ANON_KEY.includes("DEIN-ANON-KEY");
+async function createBackend() {
+  if (isCloudConfigured) {
+    const { create: create4 } = await Promise.resolve().then(() => (init_backend_supabase(), backend_supabase_exports));
+    return create4(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  const { create: create3 } = await Promise.resolve().then(() => (init_backend_local(), backend_local_exports));
+  return create3();
+}
+
+// js/stats.js
+function todayISO(now = /* @__PURE__ */ new Date()) {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+function parseISO(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+function toISO(date) {
+  return date.toISOString().slice(0, 10);
+}
+function weekStart(iso) {
+  const d = parseISO(iso);
+  const offset = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - offset);
+  return toISO(d);
+}
+function addDays(iso, days) {
+  const d = parseISO(iso);
+  d.setUTCDate(d.getUTCDate() + days);
+  return toISO(d);
+}
+function estimate1RM(weight, reps) {
+  if (!weight || !reps) return 0;
+  if (reps === 1) return weight;
+  return weight * (1 + reps / 30);
+}
+function setVolume(set) {
+  return (Number(set.reps) || 0) * (Number(set.weight_kg) || 0);
+}
+function weeklySummary(workouts, sets, today, weeks = 8) {
+  const current = weekStart(today);
+  const buckets = [];
+  const byStart = /* @__PURE__ */ new Map();
+  for (let i = weeks - 1; i >= 0; i--) {
+    const start = addDays(current, -7 * i);
+    const bucket = { start, workouts: 0, volume: 0, cardioMin: 0 };
+    buckets.push(bucket);
+    byStart.set(start, bucket);
+  }
+  const workoutWeek = /* @__PURE__ */ new Map();
+  for (const w of workouts) {
+    const bucket = byStart.get(weekStart(w.date));
+    if (!bucket) continue;
+    bucket.workouts++;
+    workoutWeek.set(w.id, bucket);
+  }
+  for (const s of sets) {
+    const bucket = workoutWeek.get(s.workout_id);
+    if (!bucket) continue;
+    bucket.volume += setVolume(s);
+    bucket.cardioMin += Number(s.duration_min) || 0;
+  }
+  return buckets;
+}
+function exerciseProgress(sets, type) {
+  const byDate = /* @__PURE__ */ new Map();
+  for (const s of sets) {
+    const prev = byDate.get(s.date) || { date: s.date, e1rm: 0, maxWeight: 0, volume: 0, duration: 0, distance: 0 };
+    const w = Number(s.weight_kg) || 0;
+    const r = Number(s.reps) || 0;
+    prev.e1rm = Math.max(prev.e1rm, estimate1RM(w, r));
+    prev.maxWeight = Math.max(prev.maxWeight, r > 0 ? w : 0);
+    prev.volume += w * r;
+    prev.duration += Number(s.duration_min) || 0;
+    prev.distance += Number(s.distance_km) || 0;
+    byDate.set(s.date, prev);
+  }
+  const rows = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  return type === "cardio" ? rows.map(({ date, duration, distance }) => ({ date, duration, distance })) : rows.map(({ date, e1rm, maxWeight, volume }) => ({ date, e1rm, maxWeight, volume }));
+}
+function personalRecords(sets, exercises2) {
+  const records = /* @__PURE__ */ new Map();
+  const sessionTotals = /* @__PURE__ */ new Map();
+  for (const s of sets) {
+    const ex = exercises2.get(s.exercise_id);
+    if (!ex) continue;
+    let rec = records.get(s.exercise_id);
+    if (!rec) {
+      rec = ex.type === "cardio" ? { exercise: ex.name, type: "cardio", longestDuration: null, longestDistance: null } : { exercise: ex.name, type: "strength", heaviest: null, bestE1RM: null, bestVolume: null };
+      records.set(s.exercise_id, rec);
+    }
+    const key = `${s.exercise_id}|${s.workout_id}`;
+    const total = sessionTotals.get(key) || { date: s.date, volume: 0, duration: 0, distance: 0 };
+    if (rec.type === "cardio") {
+      total.duration += Number(s.duration_min) || 0;
+      total.distance += Number(s.distance_km) || 0;
+    } else {
+      const w = Number(s.weight_kg) || 0;
+      const r = Number(s.reps) || 0;
+      if (r > 0 && (!rec.heaviest || w > rec.heaviest.weight)) rec.heaviest = { weight: w, reps: r, date: s.date };
+      const e = estimate1RM(w, r);
+      if (e > 0 && (!rec.bestE1RM || e > rec.bestE1RM.value)) rec.bestE1RM = { value: e, date: s.date };
+      total.volume += w * r;
+    }
+    sessionTotals.set(key, total);
+  }
+  for (const [key, total] of sessionTotals) {
+    const rec = records.get(Number(key.split("|")[0]));
+    if (rec.type === "cardio") {
+      if (total.duration > 0 && (!rec.longestDuration || total.duration > rec.longestDuration.value)) {
+        rec.longestDuration = { value: total.duration, date: total.date };
+      }
+      if (total.distance > 0 && (!rec.longestDistance || total.distance > rec.longestDistance.value)) {
+        rec.longestDistance = { value: total.distance, date: total.date };
+      }
+    } else if (total.volume > 0 && (!rec.bestVolume || total.volume > rec.bestVolume.value)) {
+      rec.bestVolume = { value: total.volume, date: total.date };
+    }
+  }
+  return [...records.values()].sort((a, b) => a.exercise.localeCompare(b.exercise, "de"));
+}
+
+// js/app.js
+var view = document.getElementById("view");
+var nav = document.getElementById("nav");
+var DRAFT_KEY = "gym-tracker-draft";
+var api = null;
+var user = null;
+var exercises = [];
+var charts = [];
+var esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+var fmt = (n, digits = 1) => Number(n || 0).toLocaleString("de-DE", { maximumFractionDigits: digits });
+function fmtDate(iso, withWeekday = true) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("de-DE", {
+    timeZone: "UTC",
+    weekday: withWeekday ? "short" : void 0,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
+}
+var plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+var fmtShortDate = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+function parseNum(v) {
+  const s = String(v ?? "").trim().replace(",", ".");
+  if (s === "") return null;
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0 ? n : NaN;
+}
+var exerciseById = (id) => exercises.find((e) => e.id === Number(id));
+var exerciseMap = () => new Map(exercises.map((e) => [e.id, e]));
+function showError(err) {
+  console.error(err);
+  const msg = err?.message || String(err);
+  const box = document.getElementById("toast");
+  box.textContent = `Fehler: ${msg}`;
+  box.hidden = false;
+  clearTimeout(showError.t);
+  showError.t = setTimeout(() => box.hidden = true, 6e3);
+}
+function destroyCharts() {
+  charts.forEach((c) => c.destroy());
+  charts = [];
+}
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+function makeChart(canvas, type, labels, datasets, unit, { integer = false } = {}) {
+  const text = cssVar("--text-secondary");
+  const grid = cssVar("--grid");
+  const surface = cssVar("--surface");
+  const chart = new window.Chart(canvas, {
+    type,
+    data: {
+      labels,
+      datasets: datasets.map((d) => ({
+        label: d.label,
+        data: d.data,
+        borderColor: d.color,
+        backgroundColor: d.color,
+        borderWidth: 2,
+        pointRadius: type === "line" ? 4 : 0,
+        pointHoverRadius: 6,
+        pointBorderColor: surface,
+        pointBorderWidth: 2,
+        borderRadius: type === "bar" ? 4 : 0,
+        maxBarThickness: 28,
+        tension: 0
+      }))
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: datasets.length > 1, labels: { color: text, boxWidth: 12, boxHeight: 12 } },
+        tooltip: {
+          callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)} ${unit}` }
+        }
+      },
+      scales: {
+        x: { ticks: { color: text, maxRotation: 0, autoSkipPadding: 12 }, grid: { display: false }, border: { color: grid } },
+        y: {
+          beginAtZero: type === "bar",
+          ticks: { color: text, callback: (v) => fmt(v), ...integer ? { precision: 0 } : {} },
+          grid: { color: grid },
+          border: { display: false },
+          title: { display: true, text: unit, color: text }
+        }
+      }
+    }
+  });
+  charts.push(chart);
+  return chart;
+}
+var routes = [
+  [/^#?\/?$/, renderDashboard],
+  [/^#\/neu$/, () => renderWorkoutForm(null)],
+  [/^#\/training\/(\d+)$/, (m) => renderWorkoutDetail(Number(m[1]))],
+  [/^#\/training\/(\d+)\/bearbeiten$/, (m) => renderWorkoutForm(Number(m[1]))],
+  [/^#\/verlauf$/, renderHistory],
+  [/^#\/fortschritt$/, renderProgress],
+  [/^#\/gewicht$/, renderBody],
+  [/^#\/backup$/, renderBackup]
+];
+async function route() {
+  destroyCharts();
+  view.oninput = view.onclick = view.onchange = view.onsubmit = null;
+  document.getElementById("logout").hidden = !user;
+  if (!user) return renderAuth();
+  const hash = location.hash || "#/";
+  nav.hidden = false;
+  nav.querySelectorAll("a").forEach((a) => {
+    const target = a.getAttribute("href");
+    a.classList.toggle("active", target === "#/" ? hash === "#/" || hash === "" : hash.startsWith(target));
+  });
+  for (const [re, handler] of routes) {
+    const m = hash.match(re);
+    if (m) {
+      view.innerHTML = '<p class="muted center">Lädt …</p>';
+      try {
+        await handler(m);
+      } catch (err) {
+        view.innerHTML = `<div class="card"><p>Konnte die Daten nicht laden.</p><p class="muted">${esc(err.message)}</p></div>`;
+        console.error(err);
+      }
+      window.scrollTo(0, 0);
+      return;
+    }
+  }
+  location.hash = "#/";
+}
+function renderStartError(err) {
+  nav.hidden = true;
+  view.innerHTML = `
+    <div class="card">
+      <h2>App konnte nicht starten</h2>
+      <p class="muted">${esc(err?.message || err)}</p>
+      <p>${api?.mode === "cloud" || !api ? "Prüfe deine Internetverbindung und die Supabase-Zugangsdaten und lade die Seite neu." : "Der Browser erlaubt keinen lokalen Speicher (z.&nbsp;B. im privaten Modus). Öffne die Seite in einem normalen Fenster."}</p>
+    </div>`;
+}
+function renderAuth() {
+  nav.hidden = true;
+  let mode = "login";
+  const draw = (message = "") => {
+    view.innerHTML = `
+      <div class="card auth">
+        <h2>${mode === "login" ? "Anmelden" : "Konto erstellen"}</h2>
+        <form id="auth-form">
+          <label>E-Mail<input type="email" name="email" autocomplete="email" required></label>
+          <label>Passwort<input type="password" name="password" minlength="6" required
+            autocomplete="${mode === "login" ? "current-password" : "new-password"}"></label>
+          <button class="btn primary block" type="submit">${mode === "login" ? "Anmelden" : "Registrieren"}</button>
+        </form>
+        ${message ? `<p class="notice">${esc(message)}</p>` : ""}
+        <p class="center">
+          <button class="link" id="toggle-mode" type="button">
+            ${mode === "login" ? "Noch kein Konto? Registrieren" : "Schon ein Konto? Anmelden"}
+          </button>
+        </p>
+      </div>`;
+    view.querySelector("#toggle-mode").onclick = () => {
+      mode = mode === "login" ? "signup" : "login";
+      draw();
+    };
+    view.querySelector("#auth-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const btn = e.target.querySelector("button[type=submit]");
+      btn.disabled = true;
+      try {
+        if (mode === "login") {
+          await api.signIn(f.get("email"), f.get("password"));
+        } else {
+          const data = await api.signUp(f.get("email"), f.get("password"));
+          if (!data.session) {
+            mode = "login";
+            draw("Fast geschafft: Bitte bestätige deine E-Mail-Adresse über den Link in der Mail und melde dich dann an.");
+          }
+        }
+      } catch (err) {
+        btn.disabled = false;
+        showError(err);
+      }
+    };
+  };
+  draw();
+}
+async function renderDashboard() {
+  const [workouts, sets, weights] = await Promise.all([api.listWorkouts(), api.listSets(), api.listBodyWeights()]);
+  const weeks = weeklySummary(workouts, sets, todayISO(), 8);
+  const thisWeek = weeks[weeks.length - 1];
+  const lastWeight = weights[weights.length - 1];
+  view.innerHTML = `
+    ${api.mode === "local" ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
+         Sichere sie regelmäßig über <a href="#/backup">Backup</a>.</p>` : ""}
+    <a class="btn primary block big" href="#/neu">+ Training erfassen</a>
+    <h2>Diese Woche</h2>
+    <div class="tiles">
+      <div class="tile"><span class="tile-value">${thisWeek.workouts}</span><span class="tile-label">Trainings</span></div>
+      <div class="tile"><span class="tile-value">${fmt(thisWeek.volume, 0)}</span><span class="tile-label">kg Volumen</span></div>
+      <div class="tile"><span class="tile-value">${fmt(thisWeek.cardioMin, 0)}</span><span class="tile-label">Min. Cardio</span></div>
+      <div class="tile"><span class="tile-value">${lastWeight ? fmt(lastWeight.weight_kg) : "–"}</span>
+        <span class="tile-label">kg Körpergewicht${lastWeight ? ` (${fmtShortDate(lastWeight.date)})` : ""}</span></div>
+    </div>
+    <div class="card">
+      <h3>Trainings pro Woche</h3>
+      <div class="chart"><canvas id="c-count" aria-label="Trainings pro Woche"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Volumen pro Woche</h3>
+      <p class="muted small">Summe aus Wiederholungen × Gewicht aller Kraftsätze</p>
+      <div class="chart"><canvas id="c-volume" aria-label="Volumen pro Woche"></canvas></div>
+    </div>
+    <h2>Letzte Trainings</h2>
+    ${workoutList(workouts.slice(0, 3), sets) || '<p class="muted">Noch keine Trainings erfasst.</p>'}
+  `;
+  const labels = weeks.map((w) => fmtShortDate(w.start));
+  makeChart(view.querySelector("#c-count"), "bar", labels, [
+    { label: "Trainings", data: weeks.map((w) => w.workouts), color: cssVar("--series-1") }
+  ], "Trainings", { integer: true });
+  makeChart(view.querySelector("#c-volume"), "bar", labels, [
+    { label: "Volumen", data: weeks.map((w) => Math.round(w.volume)), color: cssVar("--series-1") }
+  ], "kg");
+}
+function workoutList(workouts, sets) {
+  if (!workouts.length) return "";
+  const byWorkout = /* @__PURE__ */ new Map();
+  for (const s of sets) {
+    if (!byWorkout.has(s.workout_id)) byWorkout.set(s.workout_id, []);
+    byWorkout.get(s.workout_id).push(s);
+  }
+  return `<ul class="list">${workouts.map((w) => {
+    const ws = byWorkout.get(w.id) || [];
+    const names = [...new Set(ws.map((s) => exerciseById(s.exercise_id)?.name).filter(Boolean))];
+    const volume = ws.reduce((sum, s) => sum + setVolume(s), 0);
+    return `<li><a href="#/training/${w.id}">
+        <strong>${fmtDate(w.date)}</strong>
+        <span class="muted small">${ws.length} ${ws.length === 1 ? "Satz" : "Sätze"}${volume ? ` · ${fmt(volume, 0)} kg Volumen` : ""}</span>
+        <span class="small">${esc(names.join(", ")) || '<span class="muted">Keine Übungen</span>'}</span>
+      </a></li>`;
+  }).join("")}</ul>`;
+}
+async function renderHistory() {
+  const [workouts, sets] = await Promise.all([api.listWorkouts(), api.listSets()]);
+  view.innerHTML = `<h2>Verlauf</h2>${workoutList(workouts, sets) || '<p class="muted">Noch keine Trainings erfasst.</p>'}`;
+}
+async function renderWorkoutDetail(id) {
+  const w = await api.getWorkout(id);
+  const groups = groupSets(w.sets);
+  view.innerHTML = `
+    <p><a href="#/verlauf" class="link">← Verlauf</a></p>
+    <h2>${fmtDate(w.date)}</h2>
+    ${w.notes ? `<div class="card notes">${esc(w.notes)}</div>` : ""}
+    ${groups.map(({ exercise, sets }) => {
+    const ex = exerciseById(exercise);
+    const cardio = ex?.type === "cardio";
+    return `<div class="card">
+          <h3>${esc(ex?.name ?? "Unbekannte Übung")}</h3>
+          <table class="table">
+            <thead><tr><th>#</th>${cardio ? "<th>Dauer</th><th>Distanz</th>" : "<th>Wdh.</th><th>Gewicht</th>"}</tr></thead>
+            <tbody>${sets.map(
+      (s, i) => `<tr><td>${i + 1}</td>${cardio ? `<td>${s.duration_min != null ? `${fmt(s.duration_min)} min` : "–"}</td><td>${s.distance_km != null ? `${fmt(s.distance_km, 2)} km` : "–"}</td>` : `<td>${s.reps ?? "–"}</td><td>${s.weight_kg != null ? `${fmt(s.weight_kg, 2)} kg` : "–"}</td>`}</tr>`
+    ).join("")}</tbody>
+          </table>
+        </div>`;
+  }).join("") || '<p class="muted">Keine Sätze gespeichert.</p>'}
+    <div class="row">
+      <a class="btn" href="#/training/${id}/bearbeiten">Bearbeiten</a>
+      <button class="btn danger" id="delete">Löschen</button>
+    </div>`;
+  view.querySelector("#delete").onclick = async () => {
+    if (!confirm("Dieses Training wirklich löschen?")) return;
+    try {
+      await api.deleteWorkout(id);
+      location.hash = "#/verlauf";
+    } catch (err) {
+      showError(err);
+    }
+  };
+}
+function groupSets(sets) {
+  const groups = [];
+  for (const s of sets) {
+    const last = groups[groups.length - 1];
+    if (last && last.exercise === s.exercise_id) last.sets.push(s);
+    else groups.push({ exercise: s.exercise_id, sets: [s] });
+  }
+  return groups;
+}
+var emptySet = (type) => type === "cardio" ? { duration_min: "", distance_km: "" } : { reps: "", weight_kg: "" };
+var toInput = (v) => v == null ? "" : String(v).replace(".", ",");
+function loadDraft() {
+  try {
+    return JSON.parse(localStorage.getItem(DRAFT_KEY));
+  } catch {
+    return null;
+  }
+}
+function saveDraft(state) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
+  } catch {
+  }
+}
+function clearDraft() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+  }
+}
+async function renderWorkoutForm(id) {
+  let state;
+  if (id) {
+    const w = await api.getWorkout(id);
+    state = {
+      id,
+      date: w.date,
+      notes: w.notes ?? "",
+      blocks: groupSets(w.sets).map((g) => ({
+        exercise_id: g.exercise,
+        sets: g.sets.map(
+          (s) => exerciseById(g.exercise)?.type === "cardio" ? { duration_min: toInput(s.duration_min), distance_km: toInput(s.distance_km) } : { reps: toInput(s.reps), weight_kg: toInput(s.weight_kg) }
+        )
+      }))
+    };
+  } else {
+    state = loadDraft() || { id: null, date: todayISO(), notes: "", blocks: [] };
+    state.blocks = state.blocks.filter((b) => exerciseById(b.exercise_id));
+  }
+  const persist = () => !state.id && saveDraft(state);
+  const exerciseOptions = () => {
+    const opts = (type) => exercises.filter((e) => e.type === type).map((e) => `<option value="${e.id}">${esc(e.name)}${e.user_id ? " ★" : ""}</option>`).join("");
+    return `<option value="">Übung wählen …</option>
+      <optgroup label="Kraft">${opts("strength")}</optgroup>
+      <optgroup label="Cardio">${opts("cardio")}</optgroup>
+      <option value="new">+ Eigene Übung anlegen …</option>`;
+  };
+  const draw = () => {
+    view.innerHTML = `
+      <h2>${state.id ? "Training bearbeiten" : "Neues Training"}</h2>
+      <div class="card">
+        <label>Datum<input type="date" id="w-date" value="${esc(state.date)}" required></label>
+      </div>
+      ${state.blocks.map(blockHtml).join("")}
+      <div class="card">
+        <label>Übung hinzufügen<select id="add-exercise">${exerciseOptions()}</select></label>
+        <form id="new-exercise" class="inline-form" hidden>
+          <input type="text" name="name" placeholder="Name der Übung" maxlength="80" required>
+          <select name="type"><option value="strength">Kraft</option><option value="cardio">Cardio</option></select>
+          <button class="btn" type="submit">Anlegen</button>
+        </form>
+      </div>
+      <div class="card">
+        <label>Notizen<textarea id="w-notes" rows="3" maxlength="2000" placeholder="Wie lief's?">${esc(state.notes)}</textarea></label>
+      </div>
+      <div class="row">
+        <button class="btn primary grow" id="save">Speichern</button>
+        <button class="btn" id="cancel">${state.id ? "Abbrechen" : "Verwerfen"}</button>
+      </div>`;
+  };
+  const blockHtml = (b, bi) => {
+    const ex = exerciseById(b.exercise_id);
+    const cardio = ex.type === "cardio";
+    return `<div class="card block">
+      <div class="block-head">
+        <h3>${esc(ex.name)}</h3>
+        <button class="icon-btn" data-action="remove-block" data-b="${bi}" aria-label="Übung entfernen">✕</button>
+      </div>
+      <div class="set-grid ${cardio ? "cardio" : ""}">
+        <span class="muted small">#</span>
+        <span class="muted small">${cardio ? "Dauer (min)" : "Wdh."}</span>
+        <span class="muted small">${cardio ? "Distanz (km)" : "Gewicht (kg)"}</span>
+        <span></span>
+        ${b.sets.map(
+      (s, si) => `
+          <span class="set-no">${si + 1}</span>
+          ${cardio ? `<input inputmode="decimal" data-b="${bi}" data-s="${si}" data-f="duration_min" value="${esc(s.duration_min)}" aria-label="Dauer in Minuten">
+               <input inputmode="decimal" data-b="${bi}" data-s="${si}" data-f="distance_km" value="${esc(s.distance_km)}" aria-label="Distanz in km">` : `<input inputmode="numeric" data-b="${bi}" data-s="${si}" data-f="reps" value="${esc(s.reps)}" aria-label="Wiederholungen">
+               <input inputmode="decimal" data-b="${bi}" data-s="${si}" data-f="weight_kg" value="${esc(s.weight_kg)}" aria-label="Gewicht in kg">`}
+          <button class="icon-btn" data-action="remove-set" data-b="${bi}" data-s="${si}" aria-label="Satz entfernen">−</button>`
+    ).join("")}
+      </div>
+      <button class="btn small-btn" data-action="add-set" data-b="${bi}">+ ${cardio ? "Eintrag" : "Satz"}</button>
+    </div>`;
+  };
+  draw();
+  view.oninput = (e) => {
+    const t = e.target;
+    if (t.id === "w-date") state.date = t.value;
+    else if (t.id === "w-notes") state.notes = t.value;
+    else if (t.dataset.f) state.blocks[t.dataset.b].sets[t.dataset.s][t.dataset.f] = t.value;
+    else return;
+    t.classList.toggle("invalid", t.dataset.f ? Number.isNaN(parseNum(t.value)) : false);
+    persist();
+  };
+  view.onclick = async (e) => {
+    const t = e.target.closest("[data-action], #save, #cancel");
+    if (!t) return;
+    const b = Number(t.dataset.b);
+    if (t.dataset.action === "add-set") {
+      const block = state.blocks[b];
+      const last = block.sets[block.sets.length - 1];
+      block.sets.push(last ? { ...last } : emptySet(exerciseById(block.exercise_id).type));
+    } else if (t.dataset.action === "remove-set") {
+      state.blocks[b].sets.splice(Number(t.dataset.s), 1);
+      if (!state.blocks[b].sets.length) state.blocks.splice(b, 1);
+    } else if (t.dataset.action === "remove-block") {
+      if (!confirm("Übung mit allen Sätzen entfernen?")) return;
+      state.blocks.splice(b, 1);
+    } else if (t.id === "cancel") {
+      if (state.id) return void (location.hash = `#/training/${state.id}`);
+      if (state.blocks.length && !confirm("Training verwerfen?")) return;
+      clearDraft();
+      return void (location.hash = "#/");
+    } else if (t.id === "save") {
+      return save(t);
+    }
+    persist();
+    draw();
+  };
+  view.onchange = async (e) => {
+    if (e.target.id !== "add-exercise") return;
+    const value = e.target.value;
+    const form = view.querySelector("#new-exercise");
+    if (value === "new") {
+      form.hidden = false;
+      form.querySelector("input").focus();
+      return;
+    }
+    if (!value) return;
+    const ex = exerciseById(value);
+    state.blocks.push({ exercise_id: ex.id, sets: [emptySet(ex.type)] });
+    persist();
+    draw();
+  };
+  view.onsubmit = async (e) => {
+    if (e.target.id !== "new-exercise") return;
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const name = String(f.get("name")).trim();
+    const type = f.get("type");
+    if (!name) return;
+    const existing = exercises.find((x) => x.name.toLowerCase() === name.toLowerCase());
+    try {
+      const ex = existing || await api.createExercise(name, type);
+      if (!existing) exercises = [...exercises, ex].sort((a, b) => a.name.localeCompare(b.name, "de"));
+      state.blocks.push({ exercise_id: ex.id, sets: [emptySet(ex.type)] });
+      persist();
+      draw();
+    } catch (err) {
+      showError(err);
+    }
+  };
+  async function save(btn) {
+    const sets = [];
+    for (const block of state.blocks) {
+      const cardio = exerciseById(block.exercise_id).type === "cardio";
+      for (const s of block.sets) {
+        if (cardio) {
+          const duration_min = parseNum(s.duration_min);
+          const distance_km = parseNum(s.distance_km);
+          if (Number.isNaN(duration_min) || Number.isNaN(distance_km)) return showError(new Error("Bitte nur Zahlen eingeben."));
+          if (duration_min == null && distance_km == null) continue;
+          sets.push({ exercise_id: block.exercise_id, duration_min, distance_km });
+        } else {
+          const reps = parseNum(s.reps);
+          const weight_kg = parseNum(s.weight_kg);
+          if (Number.isNaN(reps) || Number.isNaN(weight_kg)) return showError(new Error("Bitte nur Zahlen eingeben."));
+          if (reps == null && weight_kg == null) continue;
+          if (!reps || !Number.isInteger(reps)) return showError(new Error("Jeder Kraftsatz braucht eine ganze Zahl an Wiederholungen."));
+          sets.push({ exercise_id: block.exercise_id, reps, weight_kg: weight_kg ?? 0 });
+        }
+      }
+    }
+    if (!state.date) return showError(new Error("Bitte ein Datum angeben."));
+    if (!sets.length && !state.notes.trim()) return showError(new Error("Das Training ist noch leer."));
+    btn.disabled = true;
+    try {
+      const savedId = await api.saveWorkout({ id: state.id, date: state.date, notes: state.notes.trim() || null, sets });
+      if (!state.id) clearDraft();
+      location.hash = `#/training/${savedId}`;
+    } catch (err) {
+      btn.disabled = false;
+      showError(err);
+    }
+  }
+}
+async function renderProgress() {
+  const [workouts, sets] = await Promise.all([api.listWorkouts(), api.listSets()]);
+  const dateOf = new Map(workouts.map((w) => [w.id, w.date]));
+  const dated = sets.map((s) => ({ ...s, date: dateOf.get(s.workout_id) })).filter((s) => s.date);
+  const used = exercises.filter((e) => dated.some((s) => s.exercise_id === e.id));
+  if (!used.length) {
+    view.innerHTML = '<h2>Fortschritt</h2><p class="muted">Sobald du Trainings erfasst hast, siehst du hier deinen Fortschritt.</p>';
+    return;
+  }
+  let selected;
+  try {
+    selected = Number(localStorage.getItem("gym-tracker-progress-exercise"));
+  } catch {
+  }
+  if (!used.some((e) => e.id === selected)) selected = used[0].id;
+  const records = personalRecords(dated, exerciseMap());
+  view.innerHTML = `
+    <h2>Fortschritt</h2>
+    <div class="card">
+      <label>Übung<select id="p-exercise">${used.map((e) => `<option value="${e.id}" ${e.id === selected ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</select></label>
+      <div id="p-body"></div>
+    </div>
+    <h2>Persönliche Rekorde</h2>
+    ${recordsHtml(records)}`;
+  const drawExercise = () => {
+    destroyCharts();
+    const ex = exerciseById(selected);
+    const rows = exerciseProgress(dated.filter((s) => s.exercise_id === selected), ex.type);
+    const body = view.querySelector("#p-body");
+    const labels = rows.map((r) => fmtShortDate(r.date));
+    if (ex.type === "cardio") {
+      body.innerHTML = `
+        <h3>Dauer pro Training</h3><div class="chart"><canvas id="p-c1"></canvas></div>
+        <h3>Distanz pro Training</h3><div class="chart"><canvas id="p-c2"></canvas></div>
+        ${progressTable(rows, ["Datum", "Dauer", "Distanz"], (r) => [fmtDate(r.date, false), `${fmt(r.duration)} min`, `${fmt(r.distance, 2)} km`])}`;
+      makeChart(body.querySelector("#p-c1"), "line", labels, [{ label: "Dauer", data: rows.map((r) => r.duration), color: cssVar("--series-1") }], "min");
+      makeChart(body.querySelector("#p-c2"), "line", labels, [{ label: "Distanz", data: rows.map((r) => r.distance), color: cssVar("--series-1") }], "km");
+    } else {
+      body.innerHTML = `
+        <h3>Kraftentwicklung</h3>
+        <p class="muted small">Geschätztes 1RM nach Epley-Formel: Gewicht × (1 + Wdh. / 30)</p>
+        <div class="chart"><canvas id="p-c1"></canvas></div>
+        ${progressTable(rows, ["Datum", "Schwerster Satz", "Gesch. 1RM", "Volumen"], (r) => [
+        fmtDate(r.date, false),
+        `${fmt(r.maxWeight, 2)} kg`,
+        `${fmt(r.e1rm)} kg`,
+        `${fmt(r.volume, 0)} kg`
+      ])}`;
+      makeChart(body.querySelector("#p-c1"), "line", labels, [
+        { label: "Gesch. 1RM", data: rows.map((r) => Math.round(r.e1rm * 10) / 10), color: cssVar("--series-1") },
+        { label: "Schwerster Satz", data: rows.map((r) => r.maxWeight), color: cssVar("--series-2") }
+      ], "kg");
+    }
+  };
+  view.querySelector("#p-exercise").onchange = (e) => {
+    selected = Number(e.target.value);
+    try {
+      localStorage.setItem("gym-tracker-progress-exercise", String(selected));
+    } catch {
+    }
+    drawExercise();
+  };
+  drawExercise();
+}
+function progressTable(rows, head, cells) {
+  return `<details class="table-toggle"><summary>Als Tabelle anzeigen</summary>
+    <table class="table"><thead><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
+    <tbody>${[...rows].reverse().map((r) => `<tr>${cells(r).map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>
+  </details>`;
+}
+function recordsHtml(records) {
+  const strength = records.filter((r) => r.type === "strength");
+  const cardio = records.filter((r) => r.type === "cardio");
+  const cell = (rec, text) => rec ? `${text}<br><span class="muted small">${fmtShortDate(rec.date)}${rec.date.slice(2, 4)}</span>` : "–";
+  return `
+    ${strength.length ? `<div class="card scroll-x"><h3>Kraft</h3><table class="table">
+      <thead><tr><th>Übung</th><th>Schwerster Satz</th><th>Bestes gesch. 1RM</th><th>Meistes Volumen</th></tr></thead>
+      <tbody>${strength.map(
+    (r) => `<tr><td>${esc(r.exercise)}</td>
+          <td>${cell(r.heaviest, r.heaviest && `${fmt(r.heaviest.weight, 2)} kg × ${r.heaviest.reps}`)}</td>
+          <td>${cell(r.bestE1RM, r.bestE1RM && `${fmt(r.bestE1RM.value)} kg`)}</td>
+          <td>${cell(r.bestVolume, r.bestVolume && `${fmt(r.bestVolume.value, 0)} kg`)}</td></tr>`
+  ).join("")}</tbody></table></div>` : ""}
+    ${cardio.length ? `<div class="card scroll-x"><h3>Cardio</h3><table class="table">
+      <thead><tr><th>Übung</th><th>Längste Dauer</th><th>Weiteste Distanz</th></tr></thead>
+      <tbody>${cardio.map(
+    (r) => `<tr><td>${esc(r.exercise)}</td>
+          <td>${cell(r.longestDuration, r.longestDuration && `${fmt(r.longestDuration.value)} min`)}</td>
+          <td>${cell(r.longestDistance, r.longestDistance && `${fmt(r.longestDistance.value, 2)} km`)}</td></tr>`
+  ).join("")}</tbody></table></div>` : ""}`;
+}
+async function renderBody() {
+  destroyCharts();
+  const weights = await api.listBodyWeights();
+  view.innerHTML = `
+    <h2>Körpergewicht</h2>
+    <form class="card" id="bw-form">
+      <div class="row">
+        <label class="grow">Datum<input type="date" name="date" value="${todayISO()}" required></label>
+        <label class="grow">Gewicht (kg)<input name="weight" inputmode="decimal" placeholder="z. B. 80,5" required></label>
+      </div>
+      <button class="btn primary block" type="submit">Speichern</button>
+      <p class="muted small">Pro Tag gibt es einen Eintrag – ein neuer Wert für denselben Tag ersetzt den alten.</p>
+    </form>
+    ${weights.length ? `<div class="card"><h3>Verlauf</h3><div class="chart"><canvas id="bw-chart"></canvas></div></div>
+         <ul class="list">${[...weights].reverse().map(
+    (w) => `<li class="list-row"><span>${fmtDate(w.date)}</span><strong>${fmt(w.weight_kg)} kg</strong>
+               <button class="icon-btn" data-id="${w.id}" aria-label="Eintrag löschen">✕</button></li>`
+  ).join("")}</ul>` : '<p class="muted">Noch keine Einträge.</p>'}`;
+  if (weights.length) {
+    makeChart(view.querySelector("#bw-chart"), "line", weights.map((w) => fmtShortDate(w.date)), [
+      { label: "Körpergewicht", data: weights.map((w) => Number(w.weight_kg)), color: cssVar("--series-1") }
+    ], "kg");
+  }
+  view.querySelector("#bw-form").onsubmit = async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const weight = parseNum(f.get("weight"));
+    if (!weight || Number.isNaN(weight)) return showError(new Error("Bitte ein gültiges Gewicht eingeben."));
+    try {
+      await api.saveBodyWeight(f.get("date"), weight);
+      renderBody().catch(showError);
+    } catch (err) {
+      showError(err);
+    }
+  };
+  view.querySelectorAll("[data-id]").forEach((btn) => {
+    btn.onclick = async () => {
+      if (!confirm("Eintrag löschen?")) return;
+      try {
+        await api.deleteBodyWeight(Number(btn.dataset.id));
+        renderBody().catch(showError);
+      } catch (err) {
+        showError(err);
+      }
+    };
+  });
+}
+async function renderBackup() {
+  if (api.mode !== "local") {
+    view.innerHTML = '<h2>Backup</h2><p class="muted">Deine Daten liegen in der Cloud (Supabase) und brauchen kein manuelles Backup.</p>';
+    return;
+  }
+  const data = api.exportData();
+  view.innerHTML = `
+    <h2>Backup</h2>
+    <div class="card">
+      <p>Im lokalen Modus liegen deine Daten nur in diesem Browser. Löschst du die Browserdaten,
+      sind sie weg. Exportiere deshalb regelmäßig eine Sicherung.</p>
+      <p class="muted small">Gespeichert: ${plural(data.workouts.length, "Training", "Trainings")},
+      ${plural(data.sets.length, "Satz", "Sätze")}, ${plural(data.body_weights.length, "Gewichtseintrag", "Gewichtseinträge")}.</p>
+      <button class="btn primary block" id="export">Backup herunterladen</button>
+    </div>
+    <div class="card">
+      <h3>Backup einspielen</h3>
+      <p class="muted small">Ersetzt alle Daten in diesem Browser durch die Daten aus der Datei.
+      So kannst du deine Daten auch auf ein anderes Gerät übertragen.</p>
+      <label>Backup-Datei (.json)<input type="file" id="import" accept="application/json,.json"></label>
+    </div>`;
+  view.querySelector("#export").onclick = () => {
+    const blob = new Blob([JSON.stringify(api.exportData(), null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `gym-tracker-backup-${todayISO()}.json`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1e3);
+  };
+  view.querySelector("#import").onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const obj = api.validateBackup(JSON.parse(await file.text()));
+      if (!confirm("Alle aktuellen Daten in diesem Browser werden ersetzt. Fortfahren?")) return;
+      api.importData(obj);
+      exercises = await api.listExercises();
+      clearDraft();
+      location.hash = "#/";
+    } catch (err) {
+      showError(err instanceof SyntaxError ? new Error("Die Datei ist kein gültiges JSON.") : err);
+    } finally {
+      e.target.value = "";
+    }
+  };
+}
+async function init() {
+  try {
+    api = await createBackend();
+  } catch (err) {
+    console.error(err);
+    return renderStartError(err);
+  }
+  const headerBtn = document.getElementById("logout");
+  if (api.mode === "local") {
+    user = await api.getUser();
+    exercises = await api.listExercises();
+    headerBtn.textContent = "Backup";
+    headerBtn.onclick = () => location.hash = "#/backup";
+  } else {
+    user = await api.getUser();
+    if (user) exercises = await api.listExercises();
+    api.onAuthChange((u) => {
+      const changed = u?.id !== user?.id;
+      user = u;
+      if (!changed) return;
+      setTimeout(async () => {
+        exercises = u ? await api.listExercises().catch((err) => (showError(err), [])) : [];
+        if (!u) clearDraft();
+        route();
+      }, 0);
+    });
+    headerBtn.onclick = () => api.signOut();
+  }
+  window.addEventListener("hashchange", route);
+  route();
+}
+init().catch(showError);
+if ("serviceWorker" in navigator && !window.GYM_STANDALONE) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {
+  });
+}
+</script>
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="#/">🏋️ Gym Tracker</a></h1>
+    <button class="link" id="logout" hidden>Abmelden</button>
+  </header>
+  <main id="view" class="container"><p class="muted center">Lädt …</p></main>
+  <nav id="nav" class="bottom-nav" hidden>
+    <a href="#/"><span aria-hidden="true">🏠</span>Start</a>
+    <a href="#/neu"><span aria-hidden="true">➕</span>Training</a>
+    <a href="#/verlauf"><span aria-hidden="true">📋</span>Verlauf</a>
+    <a href="#/fortschritt"><span aria-hidden="true">📈</span>Fortschritt</a>
+    <a href="#/gewicht"><span aria-hidden="true">⚖️</span>Gewicht</a>
+  </nav>
+  <div id="toast" class="toast" role="alert" hidden></div>
+</body>
+</html>

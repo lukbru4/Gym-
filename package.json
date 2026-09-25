@@ -4,6 +4,10 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "start": "npx --yes serve ."
+    "start": "npx --yes serve .",
+    "build": "node scripts/build-single.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

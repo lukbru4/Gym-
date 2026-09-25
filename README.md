@@ -2,9 +2,28 @@
 
 Eine Web-App, mit der du deine Trainings im Gym erfassen und auswerten kannst. Sie ist fürs Handy gebaut und lässt sich dort auch wie eine App installieren.
 
+## Schnellstart: eine einzige HTML-Datei
+
+Lade [`gym-tracker.html`](gym-tracker.html) herunter und öffne sie im Browser. Mehr ist nicht nötig.
+Die Datei enthält die komplette App. Beim ersten Öffnen braucht sie Internet, um die Diagramm-Bibliothek zu laden.
+
+## Zwei Speicher-Modi
+
+| | **Lokal** (Standard) | **Cloud** (Supabase) |
+|---|---|---|
+| Einrichtung | keine | Supabase-Projekt anlegen, 2 Werte eintragen |
+| Login | nein | ja, E-Mail und Passwort, mehrere Nutzer |
+| Daten liegen | nur in diesem Browser | in deiner Supabase-Datenbank |
+| Sync Handy ↔ PC | nur per Backup-Datei | automatisch |
+| Sicherung | **Backup** oben rechts: als JSON exportieren und importieren | übernimmt Supabase |
+
+Die App wählt den Modus selbst. Sind Supabase-Zugangsdaten eingetragen, speichert sie in der Cloud, sonst lokal.
+Hinweis: Lokale Daten werden beim Umstieg auf die Cloud nicht automatisch übernommen.
+
 **Funktionen**
 
-- **Login.** Mehrere Personen können sich registrieren. Jede Person sieht nur ihre eigenen Daten.
+- **Ohne Einrichtung nutzbar.** Im lokalen Modus liegen die Daten im Browser, mit Backup-Export und -Import.
+- **Login im Cloud-Modus.** Mehrere Personen können sich registrieren. Jede Person sieht nur ihre eigenen Daten.
 - **Krafttraining.** Pro Übung trägst du Sätze mit Wiederholungen und Gewicht ein. Komma und Punkt funktionieren beide, z. B. `62,5`.
 - **Cardio.** Pro Eintrag gibst du Dauer in Minuten und Distanz in km an.
 - **Übungsliste.** Gängige Übungen sind vorgegeben, eigene legst du direkt beim Eintragen an.
@@ -19,7 +38,7 @@ Eine Web-App, mit der du deine Trainings im Gym erfassen und auswerten kannst. S
 
 **Technik:** HTML, CSS und JavaScript ohne Build-Schritt. Für Login und Datenbank nutzt die App [Supabase](https://supabase.com), für die Diagramme [Chart.js](https://www.chartjs.org).
 
-## Einrichtung
+## Einrichtung des Cloud-Modus (optional)
 
 ### 1. Supabase-Projekt anlegen
 
@@ -30,7 +49,8 @@ Eine Web-App, mit der du deine Trainings im Gym erfassen und auswerten kannst. S
 
 ### 2. App konfigurieren
 
-Trage die beiden Werte in [`js/config.js`](js/config.js) ein:
+Trage die beiden Werte in [`js/config.js`](js/config.js) ein und führe danach `npm run build` aus, damit auch `gym-tracker.html` sie enthält.
+Wenn du nur die Einzeldatei nutzt, kannst du die Werte stattdessen direkt in `gym-tracker.html` ändern. Suche dort nach `SUPABASE_URL`.
 
 ```js
 export const SUPABASE_URL = 'https://abcdefgh.supabase.co';
@@ -62,7 +82,8 @@ Supabase verschickt nach der Registrierung standardmäßig eine Bestätigungs-E-
 
 ```bash
 npm start      # startet einen lokalen Webserver (npx serve)
-npm test       # testet die Rechenlogik (Wochenübersicht, 1RM, Rekorde)
+npm test       # testet Rechenlogik und lokalen Speicher
+npm run build  # erzeugt gym-tracker.html neu (vorher einmal: npm install)
 ```
 
 Alternativ geht auch `python3 -m http.server`. Die Seite muss über einen Webserver laufen, nicht per `file://`, weil sie ES-Module nutzt.
@@ -74,8 +95,11 @@ Alternativ geht auch `python3 -m http.server`. Die Seite muss über einen Webser
 | `index.html` | Grundgerüst, Navigation |
 | `css/style.css` | Styles (mobile-first, Hell/Dunkel) |
 | `js/app.js` | Routing und alle Ansichten |
-| `js/api.js` | Zugriffe auf Supabase (Login, Datenbank) |
+| `js/api.js` | Wählt den Speicher: lokal oder Cloud |
+| `js/backend-local.js` | Lokaler Speicher im Browser inkl. Backup |
+| `js/backend-supabase.js` | Cloud-Speicher über Supabase (Login, Datenbank) |
 | `js/stats.js` | Reine Rechenfunktionen (getestet in `tests/`) |
 | `js/config.js` | Supabase-Zugangsdaten |
 | `supabase/schema.sql` | Datenbankschema, Zugriffsregeln, Standardübungen |
 | `sw.js`, `manifest.webmanifest`, `icon.svg` | Installierbare App (PWA) |
+| `gym-tracker.html` | Einzeldatei-Version, erzeugt von `scripts/build-single.mjs` |
