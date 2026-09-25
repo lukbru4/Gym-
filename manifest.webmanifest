@@ -1,0 +1,14 @@
+{
+  "name": "Gym Tracker",
+  "short_name": "Gym",
+  "description": "Trainings, Fortschritt und Körpergewicht tracken",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f6f4",
+  "theme_color": "#1f6fd1",
+  "lang": "de",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
