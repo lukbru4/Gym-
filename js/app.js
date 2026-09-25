@@ -7,7 +7,7 @@ import { STARTER_TEMPLATES } from './starter-templates.js';
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-09-25 · 3 (Workouts, Pause-Timer, Körpergraph)';
+const APP_VERSION = '2026-09-25 · 4 (realistischer Körpergraph)';
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
