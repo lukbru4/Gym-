@@ -1,6 +1,6 @@
 // Service Worker: hält die App-Dateien offline verfügbar.
 // Trainingsdaten kommen immer live von Supabase (dafür ist Internet nötig).
-const CACHE = 'gym-tracker-v13';
+const CACHE = 'gym-tracker-v14';
 const SHELL = [
   './',
   './index.html',
