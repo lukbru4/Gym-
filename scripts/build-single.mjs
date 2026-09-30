@@ -25,7 +25,7 @@ const replaceOnce = (search, replacement) => {
 };
 replaceOnce('<link rel="manifest" href="manifest.webmanifest">\n', '');
 replaceOnce('<link rel="icon" href="icon.svg" type="image/svg+xml">', `<link rel="icon" href="${icon}" type="image/svg+xml">`);
-replaceOnce('<link rel="apple-touch-icon" href="icon.svg">\n', '');
+replaceOnce('<link rel="apple-touch-icon" href="apple-touch-icon.png">\n', '');
 replaceOnce('<link rel="stylesheet" href="css/style.css">', `<style>\n${css}</style>`);
 replaceOnce(
   '<script type="module" src="js/app.js"></script>',
