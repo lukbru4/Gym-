@@ -786,9 +786,14 @@ function backend(supabase) {
     }
     return check(await supabase.from("templates").insert({ name, exercises: exercises2 }).select("id").single()).id;
   }
+  async function deleteAccount() {
+    check(await supabase.rpc("delete_my_account"));
+    await supabase.auth.signOut();
+  }
+  const serverCredits = async () => check(await supabase.rpc("my_credits"));
   const deleteTemplate = (id) => supabase.from("templates").delete().eq("id", id).then(check);
   const deleteBodyWeight = (id) => supabase.from("body_weights").delete().eq("id", id).then(check);
-  return { mode: "cloud", getUser, signIn, signUp, signOut, onAuthChange, listExercises, createExercise, updateExercise, listWorkouts, listSets, getWorkout, saveWorkout, deleteWorkout, listBodyWeights, saveBodyWeight, deleteBodyWeight, listTemplates, getTemplate, saveTemplate, deleteTemplate };
+  return { mode: "cloud", getUser, signIn, signUp, signOut, onAuthChange, listExercises, createExercise, updateExercise, listWorkouts, listSets, getWorkout, saveWorkout, deleteWorkout, listBodyWeights, saveBodyWeight, deleteBodyWeight, listTemplates, getTemplate, saveTemplate, deleteTemplate, deleteAccount, serverCredits };
 }
 var SUPABASE_JS;
 var init_backend_supabase = __esm({
@@ -1291,6 +1296,11 @@ function create2(storage = globalThis.localStorage) {
       data.templates = data.templates.filter((t) => t.id !== id);
       persist();
     },
+    // Alles löschen (lokales Gegenstück zu "Konto löschen")
+    deleteAllData() {
+      data = emptyData();
+      persist();
+    },
     // Backup
     validateBackup: validateData,
     exportData: () => JSON.parse(JSON.stringify(data)),
@@ -1544,6 +1554,113 @@ function initUpdateCheck(currentVersion, banner) {
   check(true);
 }
 
+// js/migrate.js
+var LOCAL_KEY = "gym-tracker-data";
+var DONE_KEY = "gym-tracker-migrated";
+var PARTIAL_KEY = "gym-tracker-migrated-workouts";
+function readPartial(userId) {
+  try {
+    return new Set((JSON.parse(localStorage.getItem(PARTIAL_KEY)) || {})[userId] || []);
+  } catch {
+    return /* @__PURE__ */ new Set();
+  }
+}
+function writePartial(userId, ids) {
+  try {
+    const all = JSON.parse(localStorage.getItem(PARTIAL_KEY)) || {};
+    all[userId] = [...ids];
+    localStorage.setItem(PARTIAL_KEY, JSON.stringify(all));
+  } catch {
+  }
+}
+function readLocalData() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LOCAL_KEY));
+    if (!d || !Array.isArray(d.workouts)) return null;
+    const hasData = d.workouts.length || d.body_weights?.length || d.templates?.length;
+    return hasData ? d : null;
+  } catch {
+    return null;
+  }
+}
+function migrationDone(userId) {
+  try {
+    return (JSON.parse(localStorage.getItem(DONE_KEY)) || []).includes(userId);
+  } catch {
+    return false;
+  }
+}
+function markDone(userId) {
+  try {
+    const list = JSON.parse(localStorage.getItem(DONE_KEY)) || [];
+    localStorage.setItem(DONE_KEY, JSON.stringify([.../* @__PURE__ */ new Set([...list, userId])]));
+  } catch {
+  }
+}
+async function migrateToCloud(data, api2, cloudExercises, userId, onProgress = () => {
+}) {
+  const exercises2 = [...cloudExercises];
+  const localEx = new Map((data.exercises || []).map((e) => [e.id, e]));
+  const idMap = /* @__PURE__ */ new Map();
+  let createdExercises = 0;
+  async function cloudId(localId) {
+    if (idMap.has(localId)) return idMap.get(localId);
+    const le = localEx.get(localId);
+    if (!le) return null;
+    let ce = exercises2.find((x) => x.name.toLowerCase() === le.name.toLowerCase());
+    if (!ce) {
+      ce = await api2.createExercise(le.name, le.type, le.muscles || []);
+      exercises2.push(ce);
+      createdExercises++;
+    }
+    idMap.set(localId, ce.id);
+    return ce.id;
+  }
+  const workouts = [...data.workouts].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+  const already = readPartial(userId);
+  let done = 0;
+  for (const w of workouts) {
+    if (already.has(w.id)) {
+      onProgress(`Trainings: ${++done} von ${workouts.length}`);
+      continue;
+    }
+    const sets = [];
+    for (const s of (data.sets || []).filter((x) => x.workout_id === w.id).sort((a, b) => a.position - b.position)) {
+      const exercise_id = await cloudId(s.exercise_id);
+      if (!exercise_id) continue;
+      sets.push({
+        exercise_id,
+        reps: s.reps ?? null,
+        weight_kg: s.weight_kg ?? null,
+        duration_min: s.duration_min ?? null,
+        distance_km: s.distance_km ?? null,
+        is_warmup: Boolean(s.is_warmup)
+      });
+    }
+    await api2.saveWorkout({ id: null, date: w.date, notes: w.notes ?? null, sets });
+    already.add(w.id);
+    writePartial(userId, already);
+    onProgress(`Trainings: ${++done} von ${workouts.length}`);
+  }
+  for (const b of data.body_weights || []) await api2.saveBodyWeight(b.date, b.weight_kg);
+  for (const t of data.templates || []) {
+    const exercisesOut = [];
+    for (const e of t.exercises) {
+      const exercise_id = await cloudId(e.exercise_id);
+      if (exercise_id) exercisesOut.push({ ...e, exercise_id });
+    }
+    await api2.saveTemplate({ id: null, name: t.name, exercises: exercisesOut });
+  }
+  markDone(userId);
+  return {
+    exercises: createdExercises,
+    workouts: workouts.length,
+    weights: (data.body_weights || []).length,
+    templates: (data.templates || []).length,
+    cloudExercises: exercises2
+  };
+}
+
 // js/xp.js
 init_stats();
 var RULES = {
@@ -1698,7 +1815,7 @@ function initTheme(onChange) {
 var view = document.getElementById("view");
 var nav = document.getElementById("nav");
 var DRAFT_KEY = "gym-tracker-draft";
-var APP_VERSION = "2026-10-01 · 13 (Level Up)";
+var APP_VERSION = "2026-10-01 · 14 (Konto, Server-Credits)";
 var api = null;
 var user = null;
 var exercises = [];
@@ -1901,7 +2018,16 @@ async function renderDashboard() {
   const lastWeight = weights[weights.length - 1];
   const progress = computeProgress(workouts, sets, exerciseMap());
   const player = playerLevel(progress.total);
+  const localData = api.mode === "cloud" && user && !migrationDone(user.id) ? readLocalData() : null;
   view.innerHTML = `
+    ${localData ? `<div class="card highlight" id="migrate-card">
+          <h3>Lokale Daten gefunden</h3>
+          <p class="small">Auf diesem Gerät liegen noch ${plural(localData.workouts.length, "Training", "Trainings")},
+          ${plural((localData.body_weights || []).length, "Gewichtseintrag", "Gewichtseinträge")} und
+          ${plural((localData.templates || []).length, "Vorlage", "Vorlagen")} aus dem lokalen Modus.</p>
+          <button class="btn primary block" id="migrate">In mein Konto übertragen</button>
+          <p class="muted small" id="migrate-status">Die lokale Kopie bleibt zur Sicherheit erhalten.</p>
+        </div>` : ""}
     ${api.mode === "local" ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
          Sichere sie regelmäßig über <a href="#/backup">Backup</a>.</p>` : ""}
     <div class="hero-row">
@@ -1940,6 +2066,20 @@ async function renderDashboard() {
     ${workoutList(workouts.slice(0, 3), sets) || '<p class="muted">Noch keine Trainings erfasst.</p>'}
     <p class="muted small center">App-Version ${esc(APP_VERSION)}</p>
   `;
+  view.querySelector("#migrate")?.addEventListener("click", async (e) => {
+    const status = view.querySelector("#migrate-status");
+    e.target.disabled = true;
+    try {
+      const r = await migrateToCloud(localData, api, exercises, user.id, (t) => status.textContent = t);
+      exercises = [...r.cloudExercises].sort((a, b) => a.name.localeCompare(b.name, "de"));
+      alert(`Übertragen: ${plural(r.workouts, "Training", "Trainings")}, ${plural(r.weights, "Gewichtseintrag", "Gewichtseinträge")}, ${plural(r.templates, "Vorlage", "Vorlagen")}.`);
+      route();
+    } catch (err) {
+      e.target.disabled = false;
+      status.textContent = "Übertragung abgebrochen – du kannst es erneut versuchen.";
+      showError(err);
+    }
+  });
   const labels = weeks.map((w) => fmtShortDate(w.start));
   makeChart(view.querySelector("#c-count"), "bar", labels, [
     { label: "Trainings", data: weeks.map((w) => w.workouts), color: cssVar("--series-1") }
@@ -2541,11 +2681,44 @@ async function renderWorkouts() {
       <p class="muted small">App-Version: ${esc(APP_VERSION)}</p>
       <button class="btn block" id="hard-reload">App aktualisieren</button>
       <p class="muted small">Lädt die neueste Version vom Server. Deine Trainings bleiben erhalten.</p>
+    </div>
+    <div class="card account">
+      <h3>Konto</h3>
+      ${api.mode === "cloud" ? `<p class="small">Angemeldet als <strong>${esc(user?.email ?? "")}</strong></p>
+           <div class="row"><button class="btn grow" id="sign-out">Abmelden</button>
+           <button class="btn danger grow" id="delete-account">Konto löschen</button></div>
+           <p class="muted small">„Konto löschen“ entfernt dein Konto und alle deine Trainings, Vorlagen und
+           Einträge endgültig vom Server.</p>` : `<p class="muted small">Lokaler Modus ohne Konto: Deine Daten liegen nur in diesem Browser.</p>
+           <button class="btn danger block" id="delete-local">Alle Daten löschen</button>`}
     </div>`;
   view.querySelector("#default-rest").onchange = (e) => setDefaultRest(Number(e.target.value));
   view.querySelector("#theme-mode").onchange = (e) => setThemeMode(e.target.value);
   view.querySelector("#scheme").onchange = (e) => setScheme(e.target.value);
   view.querySelector("#hard-reload").onclick = hardReload;
+  const confirmDelete = (what) => prompt(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen:`)?.trim().toUpperCase() === "LÖSCHEN";
+  view.querySelector("#sign-out")?.addEventListener("click", () => api.signOut());
+  view.querySelector("#delete-account")?.addEventListener("click", async (e) => {
+    if (!confirmDelete("Das Löschen deines Kontos")) return;
+    e.target.disabled = true;
+    try {
+      await api.deleteAccount();
+      clearDraft();
+    } catch (err) {
+      e.target.disabled = false;
+      showError(err);
+    }
+  });
+  view.querySelector("#delete-local")?.addEventListener("click", async () => {
+    if (!confirmDelete("Das Löschen aller Daten")) return;
+    try {
+      api.deleteAllData();
+      exercises = await api.listExercises();
+      clearDraft();
+      location.hash = "#/";
+    } catch (err) {
+      showError(err);
+    }
+  });
   view.querySelector("#empty-workout").onclick = () => {
     if (hasDraft() && !confirm("Es läuft bereits ein Training. Verwerfen und leer neu starten?")) return;
     saveDraft({ mode: "live", id: null, template_id: null, name: "", date: todayISO(), notes: "", started_at: Date.now(), blocks: [] });

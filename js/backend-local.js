@@ -183,6 +183,12 @@ export function create(storage = globalThis.localStorage) {
       persist();
     },
 
+    // Alles löschen (lokales Gegenstück zu "Konto löschen")
+    deleteAllData() {
+      data = emptyData();
+      persist();
+    },
+
     // Backup
     validateBackup: validateData,
     exportData: () => JSON.parse(JSON.stringify(data)),

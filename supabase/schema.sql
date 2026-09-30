@@ -157,3 +157,96 @@ insert into public.exercises (user_id, name, type, muscles) values
   (null, 'Laufen (draußen)', 'cardio', '{}')
 on conflict (coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(name))
   do update set muscles = excluded.muscles;
+
+-- ---------------------------------------------------------------------------
+-- Konto löschen (Apple verlangt, dass Nutzer ihr Konto in der App löschen können).
+-- Löscht den Auth-Nutzer; alle Daten hängen per "on delete cascade" daran.
+-- ---------------------------------------------------------------------------
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'nicht angemeldet';
+  end if;
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+revoke all on function public.delete_my_account() from public;
+grant execute on function public.delete_my_account() to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Credits serverseitig berechnen – gleiche Regeln wie js/xp.js:
+--   +20 pro Training mit mindestens einem Arbeitssatz, +2 pro Arbeitssatz,
+--   +10 wenn eine Kraftübung stärker ist als beim letzten Mal (geschätztes 1RM, Epley),
+--   +25 zusätzlich bei neuem Rekord der Übung. Aufwärmsätze zählen nicht.
+-- Grundlage für den Shop: Käufe prüfen später gegen diesen Wert, nicht gegen die App.
+-- ---------------------------------------------------------------------------
+create or replace function public.credits_earned(p_user uuid)
+returns integer
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  w record;
+  e record;
+  total integer := 0;
+  n_sets integer;
+  st jsonb := '{}'::jsonb; -- exercise_id -> {"n": Anzahl Trainings, "last": 1RM, "best": 1RM}
+  prev jsonb;
+begin
+  for w in
+    select id from public.workouts where user_id = p_user order by date, id
+  loop
+    select count(*) into n_sets from public.sets s
+      where s.workout_id = w.id and not s.is_warmup;
+    if n_sets > 0 then
+      total := total + 20 + 2 * n_sets;
+    end if;
+    for e in
+      select s.exercise_id, x.type,
+             max(case
+                   when coalesce(s.weight_kg, 0) = 0 or coalesce(s.reps, 0) = 0 then 0
+                   when s.reps = 1 then s.weight_kg::double precision
+                   else s.weight_kg::double precision * (1 + s.reps::double precision / 30)
+                 end) as best
+        from public.sets s
+        join public.exercises x on x.id = s.exercise_id
+       where s.workout_id = w.id and not s.is_warmup
+       group by s.exercise_id, x.type
+    loop
+      prev := st -> e.exercise_id::text;
+      if e.type <> 'cardio' and prev is not null then
+        if e.best > (prev ->> 'last')::double precision + 1e-9 then
+          total := total + 10;
+        end if;
+        if e.best > (prev ->> 'best')::double precision + 1e-9 then
+          total := total + 25;
+        end if;
+      end if;
+      st := st || jsonb_build_object(e.exercise_id::text, jsonb_build_object(
+        'last', case when e.type = 'cardio' then 0 else e.best end,
+        'best', greatest(coalesce((prev ->> 'best')::double precision, 0),
+                         case when e.type = 'cardio' then 0 else e.best end)));
+    end loop;
+  end loop;
+  return total;
+end;
+$$;
+revoke all on function public.credits_earned(uuid) from public;
+
+-- Für die App: eigene Credits abfragen (nur für den angemeldeten Nutzer)
+create or replace function public.my_credits()
+returns integer
+language sql
+stable
+security definer
+set search_path = ''
+as $$ select public.credits_earned(auth.uid()) $$;
+revoke all on function public.my_credits() from public;
+grant execute on function public.my_credits() to authenticated;

@@ -4,13 +4,14 @@ import { MUSCLES, MUSCLE_NAMES, LEVELS, musclesOf, strengthLevels, bodySvg } fro
 import { REST_OPTIONS, getDefaultRest, setDefaultRest, fmtDuration, startRest, stop as stopRest, initTimer } from './timer.js';
 import { STARTER_TEMPLATES } from './starter-templates.js';
 import { initUpdateCheck, hardReload } from './update.js';
+import { readLocalData, migrationDone, migrateToCloud } from './migrate.js';
 import { RULES, KG_PER_WEIGHT_LEVEL, computeProgress, playerLevel, exerciseLevel, weightLevel } from './xp.js';
 import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setScheme, initTheme } from './theme.js';
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-10-01 · 13 (Level Up)'; // muss zu version.json passen (npm run build)
+const APP_VERSION = '2026-10-01 · 14 (Konto, Server-Credits)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -250,7 +251,19 @@ async function renderDashboard() {
   const progress = computeProgress(workouts, sets, exerciseMap());
   const player = playerLevel(progress.total);
 
+  const localData = api.mode === 'cloud' && user && !migrationDone(user.id) ? readLocalData() : null;
+
   view.innerHTML = `
+    ${localData
+      ? `<div class="card highlight" id="migrate-card">
+          <h3>Lokale Daten gefunden</h3>
+          <p class="small">Auf diesem Gerät liegen noch ${plural(localData.workouts.length, 'Training', 'Trainings')},
+          ${plural((localData.body_weights || []).length, 'Gewichtseintrag', 'Gewichtseinträge')} und
+          ${plural((localData.templates || []).length, 'Vorlage', 'Vorlagen')} aus dem lokalen Modus.</p>
+          <button class="btn primary block" id="migrate">In mein Konto übertragen</button>
+          <p class="muted small" id="migrate-status">Die lokale Kopie bleibt zur Sicherheit erhalten.</p>
+        </div>`
+      : ''}
     ${api.mode === 'local'
       ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
          Sichere sie regelmäßig über <a href="#/backup">Backup</a>.</p>`
@@ -291,6 +304,20 @@ async function renderDashboard() {
     ${workoutList(workouts.slice(0, 3), sets) || '<p class="muted">Noch keine Trainings erfasst.</p>'}
     <p class="muted small center">App-Version ${esc(APP_VERSION)}</p>
   `;
+  view.querySelector('#migrate')?.addEventListener('click', async (e) => {
+    const status = view.querySelector('#migrate-status');
+    e.target.disabled = true;
+    try {
+      const r = await migrateToCloud(localData, api, exercises, user.id, (t) => (status.textContent = t));
+      exercises = [...r.cloudExercises].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+      alert(`Übertragen: ${plural(r.workouts, 'Training', 'Trainings')}, ${plural(r.weights, 'Gewichtseintrag', 'Gewichtseinträge')}, ${plural(r.templates, 'Vorlage', 'Vorlagen')}.`);
+      route();
+    } catch (err) {
+      e.target.disabled = false;
+      status.textContent = 'Übertragung abgebrochen – du kannst es erneut versuchen.';
+      showError(err);
+    }
+  });
   const labels = weeks.map((w) => fmtShortDate(w.start));
   makeChart(view.querySelector('#c-count'), 'bar', labels, [
     { label: 'Trainings', data: weeks.map((w) => w.workouts), color: cssVar('--series-1') },
@@ -1000,12 +1027,48 @@ async function renderWorkouts() {
       <p class="muted small">App-Version: ${esc(APP_VERSION)}</p>
       <button class="btn block" id="hard-reload">App aktualisieren</button>
       <p class="muted small">Lädt die neueste Version vom Server. Deine Trainings bleiben erhalten.</p>
+    </div>
+    <div class="card account">
+      <h3>Konto</h3>
+      ${api.mode === 'cloud'
+        ? `<p class="small">Angemeldet als <strong>${esc(user?.email ?? '')}</strong></p>
+           <div class="row"><button class="btn grow" id="sign-out">Abmelden</button>
+           <button class="btn danger grow" id="delete-account">Konto löschen</button></div>
+           <p class="muted small">„Konto löschen“ entfernt dein Konto und alle deine Trainings, Vorlagen und
+           Einträge endgültig vom Server.</p>`
+        : `<p class="muted small">Lokaler Modus ohne Konto: Deine Daten liegen nur in diesem Browser.</p>
+           <button class="btn danger block" id="delete-local">Alle Daten löschen</button>`}
     </div>`;
 
   view.querySelector('#default-rest').onchange = (e) => setDefaultRest(Number(e.target.value));
   view.querySelector('#theme-mode').onchange = (e) => setThemeMode(e.target.value);
   view.querySelector('#scheme').onchange = (e) => setScheme(e.target.value);
   view.querySelector('#hard-reload').onclick = hardReload;
+  const confirmDelete = (what) =>
+    prompt(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen:`)?.trim().toUpperCase() === 'LÖSCHEN';
+  view.querySelector('#sign-out')?.addEventListener('click', () => api.signOut());
+  view.querySelector('#delete-account')?.addEventListener('click', async (e) => {
+    if (!confirmDelete('Das Löschen deines Kontos')) return;
+    e.target.disabled = true;
+    try {
+      await api.deleteAccount();
+      clearDraft();
+    } catch (err) {
+      e.target.disabled = false;
+      showError(err);
+    }
+  });
+  view.querySelector('#delete-local')?.addEventListener('click', async () => {
+    if (!confirmDelete('Das Löschen aller Daten')) return;
+    try {
+      api.deleteAllData();
+      exercises = await api.listExercises();
+      clearDraft();
+      location.hash = '#/';
+    } catch (err) {
+      showError(err);
+    }
+  });
   view.querySelector('#empty-workout').onclick = () => {
     if (hasDraft() && !confirm('Es läuft bereits ein Training. Verwerfen und leer neu starten?')) return;
     saveDraft({ mode: 'live', id: null, template_id: null, name: '', date: todayISO(), notes: '', started_at: Date.now(), blocks: [] });

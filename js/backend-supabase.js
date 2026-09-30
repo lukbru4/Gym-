@@ -106,9 +106,16 @@ function backend(supabase) {
     return check(await supabase.from('templates').insert({ name, exercises }).select('id').single()).id;
   }
 
+  // ---- Konto ---------------------------------------------------------------
+  async function deleteAccount() {
+    check(await supabase.rpc('delete_my_account'));
+    await supabase.auth.signOut();
+  }
+  const serverCredits = async () => check(await supabase.rpc('my_credits'));
+
   const deleteTemplate = (id) => supabase.from('templates').delete().eq('id', id).then(check);
 
   const deleteBodyWeight = (id) => supabase.from('body_weights').delete().eq('id', id).then(check);
 
-  return { mode: 'cloud', getUser, signIn, signUp, signOut, onAuthChange, listExercises, createExercise, updateExercise, listWorkouts, listSets, getWorkout, saveWorkout, deleteWorkout, listBodyWeights, saveBodyWeight, deleteBodyWeight, listTemplates, getTemplate, saveTemplate, deleteTemplate };
+  return { mode: 'cloud', getUser, signIn, signUp, signOut, onAuthChange, listExercises, createExercise, updateExercise, listWorkouts, listSets, getWorkout, saveWorkout, deleteWorkout, listBodyWeights, saveBodyWeight, deleteBodyWeight, listTemplates, getTemplate, saveTemplate, deleteTemplate, deleteAccount, serverCredits };
 }

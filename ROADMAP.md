@@ -1,0 +1,41 @@
+# Level Up – Roadmap zum App Store & Google Play
+
+Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunden, Shop und Gamification.
+
+## Phase 1 – Konten & Credits auf dem Server
+- [x] Konto löschen in der App (Apple-Pflicht) – `delete_my_account()` in `supabase/schema.sql`
+- [x] Credits serverseitig berechnen – `credits_earned()` / `my_credits()`, gleiche Regeln wie `js/xp.js`
+- [x] Lokale Daten ins Konto übertragen (abbruchsicher, keine Doppelten)
+- [x] Lokaler Modus: „Alle Daten löschen“
+- [ ] Supabase-Projekt anlegen und `js/config.js` eintragen (**Lukas**)
+- [ ] Anmelden mit Apple & Google (braucht Apple-Developer-Konto bzw. Google-Cloud-Projekt)
+
+## Phase 2 – Code-Umbau
+- [ ] TypeScript + Komponenten-Framework, Build mit Vite
+- [ ] Tests weiter ausbauen
+
+## Phase 3 – Freunde & Community
+- [ ] Profile (Name, Avatar, Level, Serie, Körpergraph, Rekorde)
+- [ ] Freunde per Link/Code einladen, Freundschaftsanfragen
+- [ ] Feed, Likes, Kommentare
+- [ ] Ranglisten (Freunde, pro Übung, pro Woche), Challenges
+- [ ] Privatsphäre-Einstellungen, Melden & Blockieren (Apple-Pflicht bei Nutzerinhalten)
+
+## Phase 4 – Shop
+- [ ] Designs, Körpergraph-Skins, Avatar-Items mit Credits kaufen (serverseitig geprüft)
+
+## Phase 5 – Native Apps (Capacitor)
+- [ ] iOS- und Android-Projekt, Builds (iOS über Cloud-Mac, z. B. GitHub Actions oder Codemagic)
+- [ ] Push-Nachrichten, Pause-Timer-Benachrichtigung, Apple Health / Health Connect
+
+## Phase 6 – Veröffentlichung vorbereiten
+- [ ] Apple Developer Program (99 USD/Jahr) und Google Play Console (25 USD einmalig) (**Lukas**)
+- [ ] Datenschutzerklärung, Impressum, Nutzungsbedingungen
+- [ ] Store-Einträge, Screenshots, Datenschutz-Angaben, Altersfreigabe
+- [ ] Testphase: TestFlight bzw. geschlossener Test (Google: 12 Tester, 14 Tage für neue private Konten)
+
+## Phase 7 – Veröffentlichung
+
+## Phase 8 – Einnahmen
+- [ ] Belohnte Werbung (AdMob) mit Einwilligung (DSGVO) und ATT auf iOS
+- [ ] Premium-Abo (In-App-Kauf, z. B. über RevenueCat)
