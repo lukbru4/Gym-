@@ -34,6 +34,7 @@ Hinweis: Lokale Daten werden beim Umstieg auf die Cloud nicht automatisch übern
 - **Übungsliste.** Gängige Übungen sind vorgegeben, eigene legst du direkt beim Eintragen an.
 - **Notizen.** Zu jedem Training kannst du einen Freitext speichern.
 - **Entwurf.** Ein angefangenes Training bleibt erhalten, wenn du die Seite neu lädst oder schließt.
+- **Credits & Level.** Pro Training gibt es Credits: +20 fürs Training, +2 pro Arbeitssatz, +10 pro Übung, die stärker ist als beim letzten Mal, und +25 für einen neuen Rekord. Die Credits ergeben dein Spieler-Level. Jede Übung hat ein eigenes Übungs-Level, das mit Training und Steigerungen wächst, und ein Gewichts-Level (1 Level pro 5 kg geschätztem Maximalgewicht).
 - **Serie.** Auf der Startseite stehen die Wochen in Folge mit mindestens einem Training (🔥), darunter der Körpergraph.
 - **Wochenübersicht.** Trainings, Volumen, Cardio-Minuten und aktuelles Körpergewicht, dazu Diagramme der letzten 8 Wochen.
 - **Verlauf.** Alle Trainings mit Detailansicht. Du kannst sie bearbeiten und löschen.

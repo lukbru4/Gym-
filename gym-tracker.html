@@ -6,7 +6,7 @@
   <title>Gym Tracker</title>
   <meta name="description" content="Trainings, Fortschritt und Körpergewicht tracken">
   <meta name="theme-color" content="#1f6fd1">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%0A%20%20%3Crect%20width%3D%22512%22%20height%3D%22512%22%20fill%3D%22%230a0a0a%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23b4f000%22%3E%0A%20%20%20%20%3Crect%20x%3D%2296%22%20y%3D%22176%22%20width%3D%2248%22%20height%3D%22160%22%20rx%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22368%22%20y%3D%22176%22%20width%3D%2248%22%20height%3D%22160%22%20rx%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2256%22%20y%3D%22216%22%20width%3D%2240%22%20height%3D%2280%22%20rx%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22416%22%20y%3D%22216%22%20width%3D%2240%22%20height%3D%2280%22%20rx%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22144%22%20y%3D%22240%22%20width%3D%22224%22%20height%3D%2232%22%20rx%3D%2210%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E" type="image/svg+xml">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3CradialGradient%20id%3D%22bg%22%20cx%3D%2250%25%22%20cy%3D%2238%25%22%20r%3D%2275%25%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231f2410%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%230d0f08%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23050505%22%2F%3E%0A%20%20%20%20%3C%2FradialGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22bar%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23d4ff3a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%238fcc00%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3Cfilter%20id%3D%22glow%22%20x%3D%22-30%25%22%20y%3D%22-60%25%22%20width%3D%22160%25%22%20height%3D%22220%25%22%3E%0A%20%20%20%20%20%20%3CfeGaussianBlur%20stdDeviation%3D%2214%22%20result%3D%22b%22%2F%3E%0A%20%20%20%20%20%20%3CfeMerge%3E%3CfeMergeNode%20in%3D%22b%22%2F%3E%3CfeMergeNode%20in%3D%22SourceGraphic%22%2F%3E%3C%2FfeMerge%3E%0A%20%20%20%20%3C%2Ffilter%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%22512%22%20height%3D%22512%22%20fill%3D%22url(%23bg)%22%2F%3E%0A%20%20%3Cg%20transform%3D%22translate(256%20256)%20scale(0.82)%20translate(-256%20-256)%22%20filter%3D%22url(%23glow)%22%20fill%3D%22url(%23bar)%22%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22238%22%20width%3D%22212%22%20height%3D%2236%22%20rx%3D%2212%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2298%22%20y%3D%22160%22%20width%3D%2258%22%20height%3D%22192%22%20rx%3D%2222%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22356%22%20y%3D%22160%22%20width%3D%2258%22%20height%3D%22192%22%20rx%3D%2222%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2252%22%20y%3D%22204%22%20width%3D%2242%22%20height%3D%22104%22%20rx%3D%2216%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22418%22%20y%3D%22204%22%20width%3D%2242%22%20height%3D%22104%22%20rx%3D%2216%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20transform%3D%22translate(256%20256)%20scale(0.82)%20translate(-256%20-256)%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.28%22%3E%0A%20%20%20%20%3Crect%20x%3D%22108%22%20y%3D%22172%22%20width%3D%2212%22%20height%3D%2280%22%20rx%3D%226%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22366%22%20y%3D%22172%22%20width%3D%2212%22%20height%3D%2280%22%20rx%3D%226%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E" type="image/svg+xml">
     <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Gym">
@@ -647,6 +647,33 @@ form.assign { padding: 10px 0; border-top: 1px solid var(--border); }
 .bodygraph-link { display: block; margin-bottom: 16px; border-radius: 12px; }
 .bodygraph-link .bodygraph-panel { margin: 0; }
 .bodygraph .muscle.static { cursor: inherit; }
+
+/* Credits & Level */
+.hero-row { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: start; margin: 4px 0 12px; }
+.hero-row .streak { margin: 0; }
+.player-level { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.player-level .streak-value small { font-size: 0.8rem; color: var(--text-secondary); font-weight: 400; }
+.level-badge {
+  display: inline-grid; place-items: center; min-width: 34px; height: 34px; padding: 0 8px;
+  border-radius: 10px; background: var(--accent); color: var(--accent-text);
+  font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.level-badge.weight { background: var(--warmup); color: #111; }
+.level-badge.small-badge { min-width: 28px; height: 26px; font-size: 0.9rem; border-radius: 8px; }
+.xp-bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; }
+.xp-bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.xp-hint { font-size: 0.75rem; color: var(--text-secondary); }
+.level-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0 16px; }
+.level-row > div { display: flex; flex-direction: column; gap: 4px; }
+.credits-card { border-color: var(--accent); }
+.credits-total { font-size: 2rem; font-weight: 800; color: var(--accent); }
+.credits-total small { font-size: 1rem; font-weight: 600; }
+.level-up { font-weight: 700; margin: 4px 0 8px; }
+.credit-items { list-style: none; margin: 8px 0 0; padding: 0; }
+.credit-items li { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--border); }
+.rules { margin: 0 0 16px; font-size: 0.9rem; color: var(--text-secondary); }
+.rules summary { cursor: pointer; color: var(--accent); padding: 6px 0; }
+.rules ul { margin: 6px 0; padding-left: 20px; }
 
 /* Pause-Timer */
 .rest-timer {
@@ -1517,6 +1544,81 @@ function initUpdateCheck(currentVersion, banner) {
   check(true);
 }
 
+// js/xp.js
+init_stats();
+var RULES = {
+  workout: 20,
+  // Training abgeschlossen
+  set: 2,
+  // pro Arbeitssatz (Aufwärmsätze zählen nicht)
+  improvement: 10,
+  // Übung stärker als beim letzten Mal (geschätztes 1RM)
+  record: 25
+  // neuer Rekord für die Übung (zusätzlich)
+};
+var EXERCISE_XP = { session: 10, improvement: 10, record: 15 };
+var KG_PER_WEIGHT_LEVEL = 5;
+function levelFrom(xp, factor) {
+  let level = 1;
+  while (factor * level * (level + 1) <= xp) level++;
+  const start = factor * (level - 1) * level;
+  const next = factor * level * (level + 1);
+  return { level, xp, into: xp - start, needed: next - start, next };
+}
+var playerLevel = (credits) => levelFrom(credits, 50);
+var exerciseLevel = (xp) => levelFrom(xp, 20);
+var weightLevel = (e1rm) => 1 + Math.floor((e1rm || 0) / KG_PER_WEIGHT_LEVEL);
+function computeProgress(workouts, sets, exercises2) {
+  const ordered = [...workouts].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+  const setsByWorkout = /* @__PURE__ */ new Map();
+  for (const s of sets) {
+    if (!isWorkingSet(s)) continue;
+    if (!setsByWorkout.has(s.workout_id)) setsByWorkout.set(s.workout_id, []);
+    setsByWorkout.get(s.workout_id).push(s);
+  }
+  const perWorkout = /* @__PURE__ */ new Map();
+  const perExercise = /* @__PURE__ */ new Map();
+  let total = 0;
+  for (const w of ordered) {
+    const ws = setsByWorkout.get(w.id) || [];
+    const items = [];
+    if (ws.length) {
+      items.push({ label: "Training abgeschlossen", credits: RULES.workout });
+      items.push({ label: `${ws.length} ${ws.length === 1 ? "Arbeitssatz" : "Arbeitssätze"}`, credits: ws.length * RULES.set });
+    }
+    const byExercise = /* @__PURE__ */ new Map();
+    for (const s of ws) {
+      if (!byExercise.has(s.exercise_id)) byExercise.set(s.exercise_id, []);
+      byExercise.get(s.exercise_id).push(s);
+    }
+    for (const [exId, exSets] of byExercise) {
+      const ex = exercises2.get(exId);
+      const state2 = perExercise.get(exId) || { xp: 0, sessions: 0, last: 0, best: 0 };
+      state2.sessions++;
+      state2.xp += EXERCISE_XP.session;
+      if (ex?.type !== "cardio") {
+        const best = Math.max(0, ...exSets.map((s) => estimate1RM(Number(s.weight_kg) || 0, Number(s.reps) || 0)));
+        const name = ex?.name ?? "Übung";
+        if (state2.sessions > 1 && best > state2.last + 1e-9) {
+          items.push({ label: `${name} gesteigert`, credits: RULES.improvement });
+          state2.xp += EXERCISE_XP.improvement;
+        }
+        if (state2.sessions > 1 && best > state2.best + 1e-9) {
+          items.push({ label: `Neuer Rekord: ${name}`, credits: RULES.record });
+          state2.xp += EXERCISE_XP.record;
+        }
+        state2.last = best;
+        state2.best = Math.max(state2.best, best);
+      }
+      perExercise.set(exId, state2);
+    }
+    const credits = items.reduce((sum, i) => sum + i.credits, 0);
+    perWorkout.set(w.id, { credits, before: total, after: total + credits, items });
+    total += credits;
+  }
+  return { total, perWorkout, perExercise };
+}
+
 // js/theme.js
 var KEY = "gym-tracker-theme";
 var SCHEME_KEY = "gym-tracker-scheme";
@@ -1596,7 +1698,7 @@ function initTheme(onChange) {
 var view = document.getElementById("view");
 var nav = document.getElementById("nav");
 var DRAFT_KEY = "gym-tracker-draft";
-var APP_VERSION = "2026-09-30 · 11 (App-Symbol)";
+var APP_VERSION = "2026-10-01 · 12 (Credits & Level)";
 var api = null;
 var user = null;
 var exercises = [];
@@ -1797,16 +1899,26 @@ async function renderDashboard() {
   const levels = strengthLevels(datedSets(workouts, sets), exerciseMap(), todayISO());
   const thisWeek = weeks[weeks.length - 1];
   const lastWeight = weights[weights.length - 1];
+  const progress = computeProgress(workouts, sets, exerciseMap());
+  const player = playerLevel(progress.total);
   view.innerHTML = `
     ${api.mode === "local" ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
          Sichere sie regelmäßig über <a href="#/backup">Backup</a>.</p>` : ""}
-    <div class="streak" title="Wochen in Folge mit mindestens einem Training">
-      <span class="streak-label">Serie</span>
-      <span class="streak-value">${FLAME}<strong>${streak}</strong></span>
-      <span class="streak-hint">${streak === 1 ? "Woche" : "Wochen"} in Folge mit Training</span>
+    <div class="hero-row">
+      <div class="streak" title="Wochen in Folge mit mindestens einem Training">
+        <span class="streak-label">Serie</span>
+        <span class="streak-value">${FLAME}<strong>${streak}</strong></span>
+        <span class="streak-hint">${streak === 1 ? "Woche" : "Wochen"} in Folge</span>
+      </div>
+      <div class="player-level">
+        <span class="streak-label">Level</span>
+        <span class="streak-value"><span class="level-badge">${player.level}</span><strong>${fmt(progress.total, 0)}</strong><small>Credits</small></span>
+        ${levelBar(player, "Credits")}
+      </div>
     </div>
     <a class="bodygraph-link" href="#/koerper" aria-label="Körpergraph öffnen">${bodySvg(levels, esc, { interactive: false })}</a>
     <a class="btn primary block big" href="#/workouts">Workout starten</a>
+    ${CREDITS_RULES_HTML}
     <h2>Diese Woche</h2>
     <div class="tiles">
       <div class="tile"><span class="tile-value">${thisWeek.workouts}</span><span class="tile-label">Trainings</span></div>
@@ -1859,11 +1971,19 @@ async function renderHistory() {
   view.innerHTML = `<h2>Verlauf</h2>${workoutList(workouts, sets) || '<p class="muted">Noch keine Trainings erfasst.</p>'}`;
 }
 async function renderWorkoutDetail(id) {
-  const w = await api.getWorkout(id);
+  const [w, allWorkouts, allSets] = await Promise.all([api.getWorkout(id), api.listWorkouts(), api.listSets()]);
+  const earned = computeProgress(allWorkouts, allSets, exerciseMap()).perWorkout.get(id);
+  const levelBefore = earned ? playerLevel(earned.before).level : 1;
+  const levelAfter = earned ? playerLevel(earned.after).level : 1;
   const groups = groupSets(w.sets);
   view.innerHTML = `
     <p><a href="#/verlauf" class="link">← Verlauf</a></p>
     <h2>${fmtDate(w.date)}</h2>
+    ${earned?.credits ? `<div class="card credits-card">
+          <div class="credits-total">+${earned.credits} <small>Credits</small></div>
+          ${levelAfter > levelBefore ? `<p class="level-up">Level-Up! Du bist jetzt Level ${levelAfter}.</p>` : ""}
+          <ul class="credit-items">${earned.items.map((i) => `<li><span>${esc(i.label)}</span><strong>+${i.credits}</strong></li>`).join("")}</ul>
+        </div>` : ""}
     ${w.notes ? `<div class="card notes">${esc(w.notes)}</div>` : ""}
     ${groups.map(({ exercise, sets }) => {
     const ex = exerciseById(exercise);
@@ -1892,6 +2012,20 @@ async function renderWorkoutDetail(id) {
     }
   };
 }
+function levelBar(l, unit) {
+  const pct = Math.min(100, Math.round(l.into / l.needed * 100));
+  return `<div class="xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${l.needed}" aria-valuenow="${l.into}"
+    aria-label="${l.into} von ${l.needed} ${unit} bis Level ${l.level + 1}"><span style="width:${pct}%"></span></div>
+    <span class="xp-hint">${fmt(l.into, 0)} / ${fmt(l.needed, 0)} ${unit} bis Level ${l.level + 1}</span>`;
+}
+var CREDITS_RULES_HTML = `<details class="rules"><summary>Wie bekomme ich Credits?</summary><ul>
+  <li>+${RULES.workout} pro Training</li>
+  <li>+${RULES.set} pro Arbeitssatz (Aufwärmsätze zählen nicht)</li>
+  <li>+${RULES.improvement} pro Übung, die stärker ist als beim letzten Mal (geschätztes 1RM)</li>
+  <li>+${RULES.record} zusätzlich für einen neuen Rekord bei einer Übung</li>
+</ul><p>Jedes Level braucht etwas mehr Credits als das vorige. Übungs-Level steigen, je öfter du eine Übung machst
+und je häufiger du dich dabei steigerst. Das Gewichts-Level zeigt, wie schwer du bewegst:
+1 Level pro ${KG_PER_WEIGHT_LEVEL} kg geschätztem Maximalgewicht.</p></details>`;
 function datedSets(workouts, sets) {
   const dateOf = new Map(workouts.map((w) => [w.id, w.date]));
   return sets.map((x) => ({ ...x, date: dateOf.get(x.workout_id) })).filter((x) => x.date);
@@ -2470,11 +2604,23 @@ async function renderProgress() {
   }
   if (!used.some((e) => e.id === selected)) selected = used[0].id;
   const records = personalRecords(dated, exerciseMap());
+  const progress = computeProgress(workouts, sets, exerciseMap());
+  const levelOf = (exId) => {
+    const st = progress.perExercise.get(exId) || { xp: 0, sessions: 0, best: 0 };
+    return { st, ex: exerciseLevel(st.xp), w: st.best > 0 ? weightLevel(st.best) : null };
+  };
   view.innerHTML = `
     <h2>Fortschritt</h2>
     <div class="card">
       <label>Übung<select id="p-exercise">${used.map((e) => `<option value="${e.id}" ${e.id === selected ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</select></label>
       <div id="p-body"></div>
+    </div>
+    <h2>Level pro Übung</h2>
+    <div class="card scroll-x"><table class="table">
+      <thead><tr><th>Übung</th><th>Übungs-Level</th><th>Gewichts-Level</th><th>Trainings</th></tr></thead>
+      <tbody>${used.map((e) => ({ e, l: levelOf(e.id) })).sort((a, b) => b.l.st.xp - a.l.st.xp || a.e.name.localeCompare(b.e.name, "de")).map(({ e, l }) => `<tr><td>${esc(e.name)}</td><td><span class="level-badge small-badge">${l.ex.level}</span></td>
+          <td>${l.w ? `<span class="level-badge small-badge weight">${l.w}</span>` : "–"}</td><td>${l.st.sessions}</td></tr>`).join("")}</tbody></table>
+      ${CREDITS_RULES_HTML}
     </div>
     <h2>Persönliche Rekorde</h2>
     ${recordsHtml(records)}`;
@@ -2492,7 +2638,15 @@ async function renderProgress() {
       makeChart(body.querySelector("#p-c1"), "line", labels, [{ label: "Dauer", data: rows.map((r) => r.duration), color: cssVar("--series-1") }], "min");
       makeChart(body.querySelector("#p-c2"), "line", labels, [{ label: "Distanz", data: rows.map((r) => r.distance), color: cssVar("--series-1") }], "km");
     } else {
+      const l = levelOf(selected);
       body.innerHTML = `
+        <div class="level-row">
+          <div><span class="streak-label">Übungs-Level</span>
+            <span class="streak-value"><span class="level-badge">${l.ex.level}</span></span>${levelBar(l.ex, "XP")}</div>
+          <div><span class="streak-label">Gewichts-Level</span>
+            <span class="streak-value"><span class="level-badge weight">${l.w ?? 1}</span></span>
+            <span class="xp-hint">bestes gesch. 1RM ${fmt(l.st.best)} kg · nächstes Level ab ${fmt((l.w ?? 1) * KG_PER_WEIGHT_LEVEL, 0)} kg</span></div>
+        </div>
         <h3>Kraftentwicklung</h3>
         <p class="muted small">Geschätztes 1RM nach Epley-Formel: Gewicht × (1 + Wdh. / 30)</p>
         <div class="chart"><canvas id="p-c1"></canvas></div>

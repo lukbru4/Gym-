@@ -4,12 +4,13 @@ import { MUSCLES, MUSCLE_NAMES, LEVELS, musclesOf, strengthLevels, bodySvg } fro
 import { REST_OPTIONS, getDefaultRest, setDefaultRest, fmtDuration, startRest, stop as stopRest, initTimer } from './timer.js';
 import { STARTER_TEMPLATES } from './starter-templates.js';
 import { initUpdateCheck, hardReload } from './update.js';
+import { RULES, KG_PER_WEIGHT_LEVEL, computeProgress, playerLevel, exerciseLevel, weightLevel } from './xp.js';
 import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setScheme, initTheme } from './theme.js';
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-09-30 · 11 (App-Symbol)'; // muss zu version.json passen (npm run build)
+const APP_VERSION = '2026-10-01 · 12 (Credits & Level)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -246,19 +247,29 @@ async function renderDashboard() {
   const levels = strengthLevels(datedSets(workouts, sets), exerciseMap(), todayISO());
   const thisWeek = weeks[weeks.length - 1];
   const lastWeight = weights[weights.length - 1];
+  const progress = computeProgress(workouts, sets, exerciseMap());
+  const player = playerLevel(progress.total);
 
   view.innerHTML = `
     ${api.mode === 'local'
       ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
          Sichere sie regelmäßig über <a href="#/backup">Backup</a>.</p>`
       : ''}
-    <div class="streak" title="Wochen in Folge mit mindestens einem Training">
-      <span class="streak-label">Serie</span>
-      <span class="streak-value">${FLAME}<strong>${streak}</strong></span>
-      <span class="streak-hint">${streak === 1 ? 'Woche' : 'Wochen'} in Folge mit Training</span>
+    <div class="hero-row">
+      <div class="streak" title="Wochen in Folge mit mindestens einem Training">
+        <span class="streak-label">Serie</span>
+        <span class="streak-value">${FLAME}<strong>${streak}</strong></span>
+        <span class="streak-hint">${streak === 1 ? 'Woche' : 'Wochen'} in Folge</span>
+      </div>
+      <div class="player-level">
+        <span class="streak-label">Level</span>
+        <span class="streak-value"><span class="level-badge">${player.level}</span><strong>${fmt(progress.total, 0)}</strong><small>Credits</small></span>
+        ${levelBar(player, 'Credits')}
+      </div>
     </div>
     <a class="bodygraph-link" href="#/koerper" aria-label="Körpergraph öffnen">${bodySvg(levels, esc, { interactive: false })}</a>
     <a class="btn primary block big" href="#/workouts">Workout starten</a>
+    ${CREDITS_RULES_HTML}
     <h2>Diese Woche</h2>
     <div class="tiles">
       <div class="tile"><span class="tile-value">${thisWeek.workouts}</span><span class="tile-label">Trainings</span></div>
@@ -319,11 +330,21 @@ async function renderHistory() {
 }
 
 async function renderWorkoutDetail(id) {
-  const w = await api.getWorkout(id);
+  const [w, allWorkouts, allSets] = await Promise.all([api.getWorkout(id), api.listWorkouts(), api.listSets()]);
+  const earned = computeProgress(allWorkouts, allSets, exerciseMap()).perWorkout.get(id);
+  const levelBefore = earned ? playerLevel(earned.before).level : 1;
+  const levelAfter = earned ? playerLevel(earned.after).level : 1;
   const groups = groupSets(w.sets);
   view.innerHTML = `
     <p><a href="#/verlauf" class="link">← Verlauf</a></p>
     <h2>${fmtDate(w.date)}</h2>
+    ${earned?.credits
+      ? `<div class="card credits-card">
+          <div class="credits-total">+${earned.credits} <small>Credits</small></div>
+          ${levelAfter > levelBefore ? `<p class="level-up">Level-Up! Du bist jetzt Level ${levelAfter}.</p>` : ''}
+          <ul class="credit-items">${earned.items.map((i) => `<li><span>${esc(i.label)}</span><strong>+${i.credits}</strong></li>`).join('')}</ul>
+        </div>`
+      : ''}
     ${w.notes ? `<div class="card notes">${esc(w.notes)}</div>` : ''}
     ${groups
       .map(({ exercise, sets }) => {
@@ -360,6 +381,22 @@ async function renderWorkoutDetail(id) {
     }
   };
 }
+
+function levelBar(l, unit) {
+  const pct = Math.min(100, Math.round((l.into / l.needed) * 100));
+  return `<div class="xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${l.needed}" aria-valuenow="${l.into}"
+    aria-label="${l.into} von ${l.needed} ${unit} bis Level ${l.level + 1}"><span style="width:${pct}%"></span></div>
+    <span class="xp-hint">${fmt(l.into, 0)} / ${fmt(l.needed, 0)} ${unit} bis Level ${l.level + 1}</span>`;
+}
+
+const CREDITS_RULES_HTML = `<details class="rules"><summary>Wie bekomme ich Credits?</summary><ul>
+  <li>+${RULES.workout} pro Training</li>
+  <li>+${RULES.set} pro Arbeitssatz (Aufwärmsätze zählen nicht)</li>
+  <li>+${RULES.improvement} pro Übung, die stärker ist als beim letzten Mal (geschätztes 1RM)</li>
+  <li>+${RULES.record} zusätzlich für einen neuen Rekord bei einer Übung</li>
+</ul><p>Jedes Level braucht etwas mehr Credits als das vorige. Übungs-Level steigen, je öfter du eine Übung machst
+und je häufiger du dich dabei steigerst. Das Gewichts-Level zeigt, wie schwer du bewegst:
+1 Level pro ${KG_PER_WEIGHT_LEVEL} kg geschätztem Maximalgewicht.</p></details>`;
 
 // Sätze mit dem Datum ihres Trainings (für Kraft-Stufen und Fortschritt)
 function datedSets(workouts, sets) {
@@ -1037,6 +1074,11 @@ async function renderProgress() {
   if (!used.some((e) => e.id === selected)) selected = used[0].id;
 
   const records = personalRecords(dated, exerciseMap());
+  const progress = computeProgress(workouts, sets, exerciseMap());
+  const levelOf = (exId) => {
+    const st = progress.perExercise.get(exId) || { xp: 0, sessions: 0, best: 0 };
+    return { st, ex: exerciseLevel(st.xp), w: st.best > 0 ? weightLevel(st.best) : null };
+  };
 
   view.innerHTML = `
     <h2>Fortschritt</h2>
@@ -1045,6 +1087,17 @@ async function renderProgress() {
         .map((e) => `<option value="${e.id}" ${e.id === selected ? 'selected' : ''}>${esc(e.name)}</option>`)
         .join('')}</select></label>
       <div id="p-body"></div>
+    </div>
+    <h2>Level pro Übung</h2>
+    <div class="card scroll-x"><table class="table">
+      <thead><tr><th>Übung</th><th>Übungs-Level</th><th>Gewichts-Level</th><th>Trainings</th></tr></thead>
+      <tbody>${used
+        .map((e) => ({ e, l: levelOf(e.id) }))
+        .sort((a, b) => b.l.st.xp - a.l.st.xp || a.e.name.localeCompare(b.e.name, 'de'))
+        .map(({ e, l }) => `<tr><td>${esc(e.name)}</td><td><span class="level-badge small-badge">${l.ex.level}</span></td>
+          <td>${l.w ? `<span class="level-badge small-badge weight">${l.w}</span>` : '–'}</td><td>${l.st.sessions}</td></tr>`)
+        .join('')}</tbody></table>
+      ${CREDITS_RULES_HTML}
     </div>
     <h2>Persönliche Rekorde</h2>
     ${recordsHtml(records)}`;
@@ -1063,7 +1116,15 @@ async function renderProgress() {
       makeChart(body.querySelector('#p-c1'), 'line', labels, [{ label: 'Dauer', data: rows.map((r) => r.duration), color: cssVar('--series-1') }], 'min');
       makeChart(body.querySelector('#p-c2'), 'line', labels, [{ label: 'Distanz', data: rows.map((r) => r.distance), color: cssVar('--series-1') }], 'km');
     } else {
+      const l = levelOf(selected);
       body.innerHTML = `
+        <div class="level-row">
+          <div><span class="streak-label">Übungs-Level</span>
+            <span class="streak-value"><span class="level-badge">${l.ex.level}</span></span>${levelBar(l.ex, 'XP')}</div>
+          <div><span class="streak-label">Gewichts-Level</span>
+            <span class="streak-value"><span class="level-badge weight">${l.w ?? 1}</span></span>
+            <span class="xp-hint">bestes gesch. 1RM ${fmt(l.st.best)} kg · nächstes Level ab ${fmt(((l.w ?? 1)) * KG_PER_WEIGHT_LEVEL, 0)} kg</span></div>
+        </div>
         <h3>Kraftentwicklung</h3>
         <p class="muted small">Geschätztes 1RM nach Epley-Formel: Gewicht × (1 + Wdh. / 30)</p>
         <div class="chart"><canvas id="p-c1"></canvas></div>
