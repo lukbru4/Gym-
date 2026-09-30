@@ -33,7 +33,14 @@
 <body>
   <header class="topbar">
     <h1><a href="#/">🏋️ Level Up</a></h1>
-    <button class="link" id="logout" hidden>Abmelden</button>
+    <button class="menu-btn" id="menu-btn" aria-label="Menü" aria-expanded="false" aria-controls="menu" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="menu" id="menu" hidden>
+      <a href="#/konto">Konto & Einstellungen</a>
+      <a href="#/backup">Backup</a>
+      <button id="menu-signout" hidden>Abmelden</button>
+    </div>
   </header>
   <div id="update-banner" class="update-banner" role="status" hidden>
     <span>Neue Version verfügbar <small class="update-version"></small></span>

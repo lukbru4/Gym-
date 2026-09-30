@@ -11,7 +11,7 @@ import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setSchem
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-10-01 · 14 (Konto, Server-Credits)'; // muss zu version.json passen (npm run build)
+const APP_VERSION = '2026-10-01 · 15 (Menü, Konto-Seite)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -139,6 +139,7 @@ const routes = [
   [/^#\/koerper$/, renderBody],
   [/^#\/gewicht$/, () => void (location.hash = '#/koerper')],
   [/^#\/backup$/, renderBackup],
+  [/^#\/konto$/, renderAccount],
 ];
 
 async function route() {
@@ -147,7 +148,7 @@ async function route() {
   viewCleanup = null;
   // Ansicht-spezifische Handler zurücksetzen
   view.oninput = view.onclick = view.onchange = view.onsubmit = null;
-  document.getElementById('logout').hidden = !user;
+  document.getElementById('menu-btn').hidden = !user;
   if (!user) return renderAuth();
 
   const hash = location.hash || '#/';
@@ -266,7 +267,7 @@ async function renderDashboard() {
       : ''}
     ${api.mode === 'local'
       ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
-         Sichere sie regelmäßig über <a href="#/backup">Backup</a>.</p>`
+         Sichere sie regelmäßig über ☰ → <a href="#/backup">Backup</a>.</p>`
       : ''}
     <div class="hero-row">
       <div class="streak" title="Wochen in Folge mit mindestens einem Training">
@@ -968,6 +969,73 @@ async function offerTemplateUpdate(state) {
 }
 
 // ---------------------------------------------------------------------------
+// Konto & Einstellungen (über das Menü oben rechts)
+// ---------------------------------------------------------------------------
+async function renderAccount() {
+  view.innerHTML = `
+    <h2>Konto & Einstellungen</h2>
+    <div class="card account">
+      <h3>Konto</h3>
+      ${api.mode === 'cloud'
+        ? `<p class="small">Angemeldet als <strong>${esc(user?.email ?? '')}</strong></p>
+           <div class="row"><button class="btn grow" id="sign-out">Abmelden</button>
+           <button class="btn danger grow" id="delete-account">Konto löschen</button></div>
+           <p class="muted small">„Konto löschen“ entfernt dein Konto und alle deine Trainings, Vorlagen und
+           Einträge endgültig vom Server.</p>`
+        : `<p class="muted small">Lokaler Modus ohne Konto: Deine Daten liegen nur in diesem Browser.</p>
+           <button class="btn danger block" id="delete-local">Alle Daten löschen</button>`}
+    </div>
+    <div class="card">
+      <h3>Stil</h3>
+      <label>Farbschema
+        <select id="scheme">${SCHEMES.map(([id, label]) => `<option value="${id}" ${id === getScheme() ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>
+      </label>
+      <label>Hell / Dunkel
+        <select id="theme-mode">${THEME_OPTIONS.map(([id, label]) => `<option value="${id}" ${id === getThemeMode() ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>
+      </label>
+    </div>
+    <div class="card">
+      <h3>App</h3>
+      <p class="muted small">App-Version: ${esc(APP_VERSION)}</p>
+      <button class="btn block" id="hard-reload">App aktualisieren</button>
+      <p class="muted small">Lädt die neueste Version vom Server. Deine Trainings bleiben erhalten.</p>
+    </div>
+    <div class="card">
+      <h3>Daten</h3>
+      <a class="btn block" href="#/backup">Backup</a>
+    </div>`;
+
+  view.querySelector('#theme-mode').onchange = (e) => setThemeMode(e.target.value);
+  view.querySelector('#scheme').onchange = (e) => setScheme(e.target.value);
+  view.querySelector('#hard-reload').onclick = hardReload;
+  const confirmDelete = (what) =>
+    prompt(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen:`)?.trim().toUpperCase() === 'LÖSCHEN';
+  view.querySelector('#sign-out')?.addEventListener('click', () => api.signOut());
+  view.querySelector('#delete-account')?.addEventListener('click', async (e) => {
+    if (!confirmDelete('Das Löschen deines Kontos')) return;
+    e.target.disabled = true;
+    try {
+      await api.deleteAccount();
+      clearDraft();
+    } catch (err) {
+      e.target.disabled = false;
+      showError(err);
+    }
+  });
+  view.querySelector('#delete-local')?.addEventListener('click', async () => {
+    if (!confirmDelete('Das Löschen aller Daten')) return;
+    try {
+      api.deleteAllData();
+      exercises = await api.listExercises();
+      clearDraft();
+      location.hash = '#/';
+    } catch (err) {
+      showError(err);
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Workouts: Vorlagen auswählen und starten
 // ---------------------------------------------------------------------------
 const hasDraft = () => Boolean(loadDraft()?.blocks.length);
@@ -1017,58 +1085,9 @@ async function renderWorkouts() {
       <p class="muted small">Gilt für alle Übungen, bei denen du keine eigene Pause eingestellt hast.
       Die Pause pro Übung stellst du in der Vorlage oder direkt im Training ein.</p>
     </div>
-    <div class="card">
-      <label>Farbschema
-        <select id="scheme">${SCHEMES.map(([id, label]) => `<option value="${id}" ${id === getScheme() ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>
-      </label>
-      <label>Hell / Dunkel
-        <select id="theme-mode">${THEME_OPTIONS.map(([id, label]) => `<option value="${id}" ${id === getThemeMode() ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>
-      </label>
-      <p class="muted small">App-Version: ${esc(APP_VERSION)}</p>
-      <button class="btn block" id="hard-reload">App aktualisieren</button>
-      <p class="muted small">Lädt die neueste Version vom Server. Deine Trainings bleiben erhalten.</p>
-    </div>
-    <div class="card account">
-      <h3>Konto</h3>
-      ${api.mode === 'cloud'
-        ? `<p class="small">Angemeldet als <strong>${esc(user?.email ?? '')}</strong></p>
-           <div class="row"><button class="btn grow" id="sign-out">Abmelden</button>
-           <button class="btn danger grow" id="delete-account">Konto löschen</button></div>
-           <p class="muted small">„Konto löschen“ entfernt dein Konto und alle deine Trainings, Vorlagen und
-           Einträge endgültig vom Server.</p>`
-        : `<p class="muted small">Lokaler Modus ohne Konto: Deine Daten liegen nur in diesem Browser.</p>
-           <button class="btn danger block" id="delete-local">Alle Daten löschen</button>`}
     </div>`;
 
   view.querySelector('#default-rest').onchange = (e) => setDefaultRest(Number(e.target.value));
-  view.querySelector('#theme-mode').onchange = (e) => setThemeMode(e.target.value);
-  view.querySelector('#scheme').onchange = (e) => setScheme(e.target.value);
-  view.querySelector('#hard-reload').onclick = hardReload;
-  const confirmDelete = (what) =>
-    prompt(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen:`)?.trim().toUpperCase() === 'LÖSCHEN';
-  view.querySelector('#sign-out')?.addEventListener('click', () => api.signOut());
-  view.querySelector('#delete-account')?.addEventListener('click', async (e) => {
-    if (!confirmDelete('Das Löschen deines Kontos')) return;
-    e.target.disabled = true;
-    try {
-      await api.deleteAccount();
-      clearDraft();
-    } catch (err) {
-      e.target.disabled = false;
-      showError(err);
-    }
-  });
-  view.querySelector('#delete-local')?.addEventListener('click', async () => {
-    if (!confirmDelete('Das Löschen aller Daten')) return;
-    try {
-      api.deleteAllData();
-      exercises = await api.listExercises();
-      clearDraft();
-      location.hash = '#/';
-    } catch (err) {
-      showError(err);
-    }
-  });
   view.querySelector('#empty-workout').onclick = () => {
     if (hasDraft() && !confirm('Es läuft bereits ein Training. Verwerfen und leer neu starten?')) return;
     saveDraft({ mode: 'live', id: null, template_id: null, name: '', date: todayISO(), notes: '', started_at: Date.now(), blocks: [] });
@@ -1438,12 +1457,10 @@ async function init() {
     console.error(err);
     return renderStartError(err);
   }
-  const headerBtn = document.getElementById('logout');
+  setupMenu();
   if (api.mode === 'local') {
     user = await api.getUser();
     exercises = await api.listExercises();
-    headerBtn.textContent = 'Backup';
-    headerBtn.onclick = () => (location.hash = '#/backup');
   } else {
     user = await api.getUser();
     if (user) exercises = await api.listExercises();
@@ -1458,10 +1475,31 @@ async function init() {
         route();
       }, 0);
     });
-    headerBtn.onclick = () => api.signOut();
+    document.getElementById('menu-signout').hidden = false;
   }
   window.addEventListener('hashchange', route);
   route();
+}
+
+// Menü oben rechts (☰): Konto & Einstellungen, Backup, Abmelden
+function setupMenu() {
+  const btn = document.getElementById('menu-btn');
+  const menu = document.getElementById('menu');
+  const setOpen = (open) => {
+    menu.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+  };
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    setOpen(menu.hidden);
+  };
+  document.addEventListener('click', (e) => !menu.hidden && !menu.contains(e.target) && setOpen(false));
+  document.addEventListener('keydown', (e) => e.key === 'Escape' && setOpen(false));
+  window.addEventListener('hashchange', () => setOpen(false));
+  document.getElementById('menu-signout').onclick = () => {
+    setOpen(false);
+    api.signOut();
+  };
 }
 
 init().catch(showError);

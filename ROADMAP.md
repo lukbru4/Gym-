@@ -7,6 +7,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Credits serverseitig berechnen – `credits_earned()` / `my_credits()`, gleiche Regeln wie `js/xp.js`
 - [x] Lokale Daten ins Konto übertragen (abbruchsicher, keine Doppelten)
 - [x] Lokaler Modus: „Alle Daten löschen“
+- [x] Menü ☰ oben rechts: Konto & Einstellungen (Konto, Stil, App-Update), Backup, Abmelden
 - [ ] Supabase-Projekt anlegen und `js/config.js` eintragen (**Lukas**)
 - [ ] Anmelden mit Apple & Google (braucht Apple-Developer-Konto bzw. Google-Cloud-Projekt)
 
