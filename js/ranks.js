@@ -42,21 +42,20 @@ export function overallPoints(exercisePoints) {
   return top.length ? Math.round(top.reduce((s, x) => s + x, 0) / top.length) : 0;
 }
 
-// Eigenes Abzeichen: Sechseck in der Stufenfarbe, Stern, ab Platin Flügel,
-// Anzahl der Punkte unten = Unterstufe (III = 1, II = 2, I = 3).
+// Abzeichen im Neon-Stil: leuchtendes Schild in der Stufenfarbe, darin die Unterstufe (III, II, I).
+// Ab Platin kommt ein zweiter äußerer Rahmen dazu.
 export function badgeSvg(rank, size = 72) {
   const c = rank.tier.color;
   const tierIndex = TIERS.indexOf(rank.tier);
-  const n = ['III', 'II', 'I'].indexOf(rank.division) + 1; // Punkte unten: III = 1, II = 2, I = 3
-  const wings = tierIndex >= 3
-    ? `<path d="M22 44 C8 40 3 30 4 20 C10 28 16 31 24 32 Z M78 44 C92 40 97 30 96 20 C90 28 84 31 76 32 Z" fill="${c}" opacity="0.75"/>`
+  const outer = tierIndex >= 3
+    ? `<path d="M50 1 L93 15 V48 C93 76 74 92 50 99 C26 92 7 76 7 48 V15 Z" fill="none" stroke="${c}" stroke-width="1.6" opacity="0.7"/>`
     : '';
-  const dots = Array.from({ length: n }, (_, i) => `<circle cx="${50 + (i - (n - 1) / 2) * 9}" cy="93" r="3" fill="${c}"/>`).join('');
-  return `<svg class="rank-badge" width="${size}" height="${size}" viewBox="0 0 100 100" role="img" aria-label="Rang ${rank.label}">
-    ${wings}
-    <path d="M50 8 L84 27 L84 65 L50 84 L16 65 L16 27 Z" fill="${c}"/>
-    <path d="M50 17 L76 32 L76 60 L50 75 L24 60 L24 32 Z" fill="#ffffff" opacity="0.28"/>
-    <path d="M50 30 L55.9 42.1 L69 43.9 L59.5 53.1 L61.8 66.2 L50 60 L38.2 66.2 L40.5 53.1 L31 43.9 L44.1 42.1 Z" fill="#ffffff" opacity="0.95"/>
-    ${dots}
+  return `<svg class="rank-badge" width="${size}" height="${size}" viewBox="0 0 100 100" role="img" aria-label="Rang ${rank.label}"
+    style="overflow:visible;filter:drop-shadow(0 0 4px ${c})">
+    ${outer}
+    <path d="M50 8 L86 19 V48 C86 71 70 85 50 92 C30 85 14 71 14 48 V19 Z" fill="#0b0d10" stroke="${c}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M50 18 L77 26 V48 C77 65 65 76 50 82 C35 76 23 65 23 48 V26 Z" fill="none" stroke="${c}" stroke-width="1.2" opacity="0.45"/>
+    <text x="50" y="${rank.division === 'III' ? 61 : 62}" text-anchor="middle" font-size="${rank.division === 'III' ? 25 : 29}" font-weight="900"
+      font-family="system-ui, sans-serif" fill="${c}">${rank.division}</text>
   </svg>`;
 }

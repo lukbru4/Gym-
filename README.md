@@ -26,7 +26,7 @@ Hinweis: Lokale Daten werden beim Umstieg auf die Cloud nicht automatisch übern
 - **Live-Training.** Sätze abhaken (✓), Spalte „Vorherig“ mit den Werten vom letzten Mal und Aufwärmsätze („A“, antippen zum Umschalten).
 - **Werte übernehmen.** Leere Felder übernehmen beim Abhaken den Vorschlag. Nach dem Training kann die Vorlage die Werte von heute übernehmen.
 - **Pause-Timer.** Nach jedem abgehakten Satz startet die Pause, mit Ton und Vibration am Ende. Die Standard-Pause stellst du auf der Seite „Workouts“ ein, eine eigene Pause pro Übung in der Vorlage oder im Training.
-- **Körpergraph.** Eine anatomische Figur von vorne und hinten, bei der alle Muskeln umrandet sind. Sie zeigt pro Muskel eine Kraft-Stufe von 1 bis 5. Die Stufe gibt an, wie stark dein geschätztes 1RM seit dem ersten Training gestiegen ist. Die Formel steht in der App.
+- **Körpergraph.** Eine Neon-Drahtgitter-Figur von vorne und hinten; trainierte Muskeln leuchten, je höher die Stufe, desto heller. Dazu ein Muskel-Radar mit allen 12 Muskelgruppen. Sie zeigt pro Muskel eine Kraft-Stufe von 1 bis 5. Die Stufe gibt an, wie stark dein geschätztes 1RM seit dem ersten Training gestiegen ist. Die Formel steht in der App.
 - **Ohne Einrichtung nutzbar.** Im lokalen Modus liegen die Daten im Browser, mit Backup-Export und -Import.
 - **Login im Cloud-Modus.** Mehrere Personen können sich registrieren. Jede Person sieht nur ihre eigenen Daten.
 - **Krafttraining.** Pro Übung trägst du Sätze mit Wiederholungen und Gewicht ein. Komma und Punkt funktionieren beide, z. B. `62,5`.
@@ -111,7 +111,7 @@ Alternativ geht auch `python3 -m http.server`. Die Seite muss über einen Webser
 | `js/backend-local.js` | Lokaler Speicher im Browser inkl. Backup |
 | `js/backend-supabase.js` | Cloud-Speicher über Supabase (Login, Datenbank) |
 | `js/stats.js` | Reine Rechenfunktionen (getestet in `tests/`) |
-| `js/muscles.js` | Muskelgruppen, Kraft-Stufe, Körpergraph (SVG) |
+| `js/muscles.js` | Muskelgruppen, Kraft-Stufe, Körpergraph und Muskel-Radar (SVG) |
 | `js/timer.js` | Pause-Timer und Standard-Pause |
 | `js/theme.js` | Hell/Dunkel nach Uhrzeit oder Einstellung |
 | `js/starter-templates.js` | Startvorlagen Push & Pull |

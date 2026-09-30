@@ -18,6 +18,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Profil mit Avatar, Kacheln und Trainings-Kalender
 - [x] Aufgaben (täglich/wöchentlich) mit Credits – auch serverseitig berechnet
 - [x] Medaillen für Meilensteine
+- [x] Eigenes Design statt Liftoff-Look: Neon-Körpergraph, Muskel-Radar, Schild-Abzeichen, Neon-Avatar
 - [ ] Fotos im Kalender (braucht Datei-Upload)
 
 ## Phase 2 – Code-Umbau

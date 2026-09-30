@@ -98,10 +98,10 @@ export function strengthLevels(sets, exercises, today, recentDays = 30) {
 }
 
 // ---------------------------------------------------------------------------
-// Anatomische Körperfigur (vorne + hinten) als SVG, 200 × 460 pro Figur.
+// Körperfigur (vorne + hinten) als Neon-Drahtgitter, 200 × 460 pro Figur.
 // Gezeichnet wird die linke Bildhälfte; die rechte entsteht durch Spiegeln an x = 100.
-// Stil: heller Körper, alle Muskeln mit feinen hellen Linien umrandet; untrainierte
-// Muskeln in Körperfarbe, trainierte in der Farbe ihrer Stufe (--level-1 … --level-5).
+// Stil: nur leuchtende Umrisse auf dunklem Grund, ohne Gesicht. Trainierte Muskeln
+// glühen in der Neonfarbe des Farbschemas – je höher die Stufe, desto heller (--glow-1 … --glow-5).
 // ---------------------------------------------------------------------------
 const MIRROR = 'matrix(-1 0 0 1 200 0)';
 const both = (...ds) => ds.map((d) => `<path d="${d}"/><path d="${d}" transform="${MIRROR}"/>`).join('');
@@ -119,20 +119,7 @@ const OUTLINE = `M101 70 L90 70 C90 84 89 90 88 94 C80 100 66 104 56 104 C40 106
   C94 408 96 392 97 380 C98 370 96 362 95 356 C95 350 96 342 97 336 C99 316 100 290 100 262
   L101 262 Z`;
 
-const HEAD = '<ellipse cx="100" cy="46" rx="29" ry="33"/><ellipse cx="71" cy="52" rx="6.5" ry="9.5"/><ellipse cx="129" cy="52" rx="6.5" ry="9.5"/>';
-const COWLICK = 'M99 8 C98 1 104 -2 109 2 C105 2 102 4 99 8 Z';
-const HAIR_FRONT = `<path d="M71 46 C65 18 83 4 101 5 C121 5 137 19 130 46 C128 37 124 31 118 28
-  C117 33 112 36 107 32 C104 37 97 38 94 33 C90 36 84 36 82 31 C77 34 73 39 71 46 Z
-  M71 46 C69 52 70 58 72 61 C72 55 73 50 75 46 Z M129 46 C131 52 130 58 128 61 C128 55 127 50 125 46 Z ${COWLICK}"/>`;
-const HAIR_BACK = `<path d="M68 56 C62 22 82 4 100 4 C120 4 140 22 132 56 C130 70 119 80 109 83 L91 83
-  C81 80 70 70 68 56 Z ${COWLICK}"/>`;
-const FACE = `<path class="brow" d="M82 39 Q89 35 96 38.5 M104 38.5 Q111 35 118 39"/>
-  <ellipse class="shine" cx="89" cy="49" rx="5.2" ry="5.8"/><ellipse class="shine" cx="111" cy="49" rx="5.2" ry="5.8"/>
-  <ellipse cx="90" cy="50" rx="3.2" ry="3.8"/><ellipse cx="110" cy="50" rx="3.2" ry="3.8"/>
-  <circle class="shine" cx="91.2" cy="48.6" r="1.1"/><circle class="shine" cx="111.2" cy="48.6" r="1.1"/>
-  <path class="brow" d="M100 55 Q98 60 101 61"/>
-  <path d="M87 64 Q100 79 113 64 Q100 68.5 87 64 Z"/>
-  <path class="shine" d="M89.5 65 Q100 69 110.5 65 L110 67.2 Q100 71.4 90 67.2 Z"/>`;
+const HEAD = '<ellipse cx="100" cy="44" rx="27" ry="32"/>';
 
 const DELTOID = 'M56 104 C40 106 28 116 26 132 C25 142 28 150 33 156 C38 142 44 128 52 118 C58 112 60 106 56 104 Z';
 const FOREARMS = [
@@ -201,28 +188,67 @@ const BACK = {
 };
 const BACK_LINES = both('M101 84 L101 262');
 
-function figure({ parts, neutral, lines, hair, face }, levels, offsetX, esc, interactive = true) {
+function figure({ parts, neutral, lines }, levels, offsetX, esc, interactive = true) {
   const shapes = Object.entries(parts)
     .map(([m, svg]) => {
       const r = levels.get(m);
       const title = `${MUSCLE_NAMES.get(m)}: ${r.level ? `Stufe ${r.level}` : 'noch nicht trainiert'}`;
+      const cls = `muscle lv-${r.level}`;
       return interactive
-        ? `<g class="muscle" data-muscle="${m}" fill="var(--level-${r.level})" tabindex="0" role="img" aria-label="${esc(title)}"><title>${esc(title)}</title>${svg}</g>`
-        : `<g class="muscle static" data-muscle="${m}" fill="var(--level-${r.level})">${svg}</g>`;
+        ? `<g class="${cls}" data-muscle="${m}" tabindex="0" role="img" aria-label="${esc(title)}"><title>${esc(title)}</title>${svg}</g>`
+        : `<g class="${cls} static" data-muscle="${m}">${svg}</g>`;
     })
     .join('');
   return `<g transform="translate(${offsetX} 0)">
     <g class="body-base">${both(OUTLINE)}${HEAD}</g>
-    <g class="body-hair">${hair}</g>
-    ${face ? `<g class="body-face">${face}</g>` : ''}
     <g class="body-neutral">${neutral}</g>${shapes}
     <g class="body-lines">${lines}</g>
   </g>`;
 }
 
+// Leuchten für die höheren Stufen (per CSS über filter: url(#neon-glow) eingesetzt)
+const GLOW_FILTER = `<defs><filter id="neon-glow" x="-30%" y="-30%" width="160%" height="160%">
+  <feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+
 export function bodySvg(levels, esc, { interactive = true } = {}) {
-  return `<div class="bodygraph-panel"><svg class="bodygraph" viewBox="0 -4 470 464" role="group" aria-label="Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten">
-    ${figure({ parts: FRONT, neutral: FRONT_NEUTRAL, lines: FRONT_LINES, hair: HAIR_FRONT, face: FACE }, levels, 0, esc, interactive)}
-    ${figure({ parts: BACK, neutral: BACK_NEUTRAL, lines: BACK_LINES, hair: HAIR_BACK }, levels, 270, esc, interactive)}
+  return `<div class="bodygraph-panel"><svg class="bodygraph" viewBox="0 6 470 454" role="group" aria-label="Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten">
+    ${GLOW_FILTER}
+    ${figure({ parts: FRONT, neutral: FRONT_NEUTRAL, lines: FRONT_LINES }, levels, 0, esc, interactive)}
+    ${figure({ parts: BACK, neutral: BACK_NEUTRAL, lines: BACK_LINES }, levels, 270, esc, interactive)}
+  </svg></div>`;
+}
+
+// Muskel-Radar: Netzdiagramm aller 12 Muskelgruppen, je weiter außen, desto höher die Stufe.
+const SHORT_NAMES = {
+  oberer_ruecken: 'Ob. Rücken', unterer_ruecken: 'Unt. Rücken',
+  quadrizeps: 'Beine vorne', beinbeuger: 'Beine hinten',
+};
+export function radarSvg(levels, esc) {
+  const n = MUSCLES.length;
+  const cx = 250, cy = 200, R = 130;
+  const pt = (i, r) => {
+    const a = -Math.PI / 2 + (2 * Math.PI * i) / n;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  };
+  const xy = ([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
+  const radius = (id) => (R * Math.max(0.04, levels.get(id).level / 5));
+  let grid = '';
+  for (let k = 1; k <= 5; k++) grid += `<polygon points="${MUSCLES.map((_, i) => xy(pt(i, (R * k) / 5))).join(' ')}"/>`;
+  grid += MUSCLES.map((_, i) => { const [x, y] = pt(i, R); return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`; }).join('');
+  const shape = MUSCLES.map(([id], i) => xy(pt(i, radius(id)))).join(' ');
+  const dots = MUSCLES.map(([id], i) => { const [x, y] = pt(i, radius(id)); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"/>`; }).join('');
+  const labels = MUSCLES.map(([id, name], i) => {
+    const [x, y] = pt(i, R + 24);
+    const anchor = Math.abs(x - cx) < 8 ? 'middle' : x < cx ? 'end' : 'start';
+    const lv = levels.get(id).level;
+    return `<text x="${x.toFixed(1)}" y="${(y + 5).toFixed(1)}" text-anchor="${anchor}" class="${lv ? 'on' : ''}">${esc(SHORT_NAMES[id] || name)}${lv ? ` · ${lv}` : ''}</text>`;
+  }).join('');
+  const summary = MUSCLES.map(([id, name]) => `${name} ${levels.get(id).level}`).join(', ');
+  return `<div class="bodygraph-panel"><svg class="radar" viewBox="-40 0 580 400" role="img" aria-label="${esc(`Muskel-Radar (Stufe 0–5): ${summary}`)}">
+    ${GLOW_FILTER}
+    <g class="radar-grid">${grid}</g>
+    <polygon class="radar-shape" points="${shape}"/>
+    <g class="radar-dots">${dots}</g>
+    <g class="radar-labels">${labels}</g>
   </svg></div>`;
 }

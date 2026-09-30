@@ -1,6 +1,6 @@
 import { createBackend } from './api.js';
 import { todayISO, weeklySummary, exerciseProgress, personalRecords, setVolume, weekStreak } from './stats.js';
-import { MUSCLES, MUSCLE_NAMES, LEVELS, musclesOf, strengthLevels, bodySvg } from './muscles.js';
+import { MUSCLES, MUSCLE_NAMES, LEVELS, musclesOf, strengthLevels, bodySvg, radarSvg } from './muscles.js';
 import { REST_OPTIONS, getDefaultRest, setDefaultRest, fmtDuration, startRest, stop as stopRest, initTimer } from './timer.js';
 import { STARTER_TEMPLATES } from './starter-templates.js';
 import { initUpdateCheck, hardReload } from './update.js';
@@ -13,7 +13,7 @@ import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setSchem
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-10-02 · 16 (Ränge, Profil, Aufgaben)'; // muss zu version.json passen (npm run build)
+const APP_VERSION = '2026-10-02 · 17 (Neon-Körpergraph, Muskel-Radar)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -1222,17 +1222,19 @@ async function renderMedals() {
       .join('')}</div>`;
 }
 
-function avatarSvg() {
-  return `<svg class="avatar" viewBox="0 0 200 170" role="img" aria-label="Avatar">
-    <path d="M40 170 C40 128 62 112 100 112 C138 112 160 128 160 170 Z" fill="#f2c9a0"/>
-    <path d="M62 170 C62 136 76 120 100 120 C124 120 138 136 138 170 Z" fill="var(--accent)"/>
-    <rect x="88" y="92" width="24" height="26" rx="8" fill="#e8b98c"/>
-    <ellipse cx="100" cy="62" rx="34" ry="38" fill="#f2c9a0"/>
-    <ellipse cx="66" cy="66" rx="7" ry="10" fill="#f2c9a0"/><ellipse cx="134" cy="66" rx="7" ry="10" fill="#f2c9a0"/>
-    <path d="M65 58 C58 24 82 14 102 16 C124 17 142 30 135 58 C132 46 124 38 114 36 C110 42 102 44 96 40 C90 44 82 44 79 38 C72 42 67 48 65 58 Z" fill="#3b2f2a"/>
-    <ellipse cx="88" cy="64" rx="6" ry="7" fill="#fff"/><ellipse cx="112" cy="64" rx="6" ry="7" fill="#fff"/>
-    <ellipse cx="89" cy="65" rx="3.4" ry="4.2" fill="#1d1d1d"/><ellipse cx="113" cy="65" rx="3.4" ry="4.2" fill="#1d1d1d"/>
-    <path d="M86 80 Q100 94 114 80 Q100 84 86 80 Z" fill="#8a2f2f"/><path d="M88 80.6 Q100 84.4 112 80.6 L111.6 82.6 Q100 86.4 88.4 82.6 Z" fill="#fff"/>
+// Profilbild im Neon-Stil: Büste als leuchtender Umriss, ohne Gesicht, mit Level auf der Brust.
+function avatarSvg(level) {
+  return `<svg class="avatar" viewBox="0 0 200 170" role="img" aria-label="Avatar, Level ${level}">
+    <defs><filter id="avatar-glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <rect width="200" height="170" fill="var(--neon-bg)"/>
+    <g fill="none" stroke="var(--neon)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" filter="url(#avatar-glow)">
+      <ellipse cx="100" cy="54" rx="27" ry="32"/>
+      <path d="M88 84 C89 92 88 98 86 102 M112 84 C111 92 112 98 114 102"/>
+      <path d="M30 170 C32 132 50 112 86 102 C94 108 106 108 114 102 C150 112 168 132 170 170"/>
+      <path d="M58 122 C70 134 90 138 100 132 C110 138 130 134 142 122" opacity="0.55"/>
+    </g>
+    <text x="100" y="160" text-anchor="middle" font-size="17" font-weight="900" fill="var(--neon)" letter-spacing="1">LV ${level}</text>
   </svg>`;
 }
 
@@ -1271,7 +1273,7 @@ async function renderProfile() {
   view.innerHTML = `
     <div class="profile-hero">
       <div class="profile-top"><h2>${esc(displayName())}</h2>${badgeSvg(g.overall, 72)}</div>
-      ${avatarSvg()}
+      ${avatarSvg(g.player.level)}
       <p class="muted small center">Level ${g.player.level} · ${esc(g.overall.label)} · ${fmt(g.credits, 0)} Credits</p>
     </div>
     <div class="tile-grid">
@@ -1550,8 +1552,8 @@ async function renderBody() {
     <div class="card">
       ${bodySvg(levels, esc)}
       <ul class="legend" aria-label="Legende">
-        <li><span class="swatch" style="background:var(--level-0)"></span>nicht trainiert</li>
-        ${LEVELS.map((l) => `<li><span class="swatch" style="background:var(--level-${l.level})"></span>Stufe ${l.level}: ${l.label}</li>`).join('')}
+        <li><span class="swatch" style="background:var(--neon-bg)"></span>nicht trainiert</li>
+        ${LEVELS.map((l) => `<li><span class="swatch" style="background:var(--glow-${l.level})"></span>Stufe ${l.level}: ${l.label}</li>`).join('')}
       </ul>
       <p class="muted small">Kraft-Stufe = wie stark dein geschätztes 1RM (Epley) seit deinem ersten Training
       gestiegen ist: bester Wert der letzten 30 Tage gegenüber dem ersten Training, gemittelt über alle Übungen
@@ -1565,6 +1567,12 @@ async function renderBody() {
             .join('')}</tbody></table></details>`
         : '<p class="muted">Sobald du Krafttrainings gespeichert hast, färbt sich der Körper ein.</p>'}
       <p id="muscle-detail" class="notice small" hidden></p>
+    </div>
+    <div class="card">
+      <h3>Muskel-Radar</h3>
+      ${radarSvg(levels, esc)}
+      <p class="muted small">Alle 12 Muskelgruppen auf einen Blick: je weiter außen der Punkt, desto höher die Kraft-Stufe (0–5).
+      So siehst du schnell, welche Bereiche du vernachlässigst.</p>
     </div>
     ${unassigned.length
       ? `<div class="card"><h3>Übungen ohne Muskelzuordnung</h3>
