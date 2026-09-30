@@ -3,12 +3,13 @@ import { todayISO, weeklySummary, exerciseProgress, personalRecords, setVolume, 
 import { MUSCLES, MUSCLE_NAMES, LEVELS, musclesOf, strengthLevels, bodySvg } from './muscles.js';
 import { REST_OPTIONS, getDefaultRest, setDefaultRest, fmtDuration, startRest, stop as stopRest, initTimer } from './timer.js';
 import { STARTER_TEMPLATES } from './starter-templates.js';
+import { initUpdateCheck, hardReload } from './update.js';
 import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setScheme, initTheme } from './theme.js';
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-09-30 · 8 (Serie + Körpergraph auf Start)';
+const APP_VERSION = '2026-09-30 · 9 (Update-Knopf)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -959,11 +960,15 @@ async function renderWorkouts() {
       <label>Hell / Dunkel
         <select id="theme-mode">${THEME_OPTIONS.map(([id, label]) => `<option value="${id}" ${id === getThemeMode() ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>
       </label>
+      <p class="muted small">App-Version: ${esc(APP_VERSION)}</p>
+      <button class="btn block" id="hard-reload">App aktualisieren</button>
+      <p class="muted small">Lädt die neueste Version vom Server. Deine Trainings bleiben erhalten.</p>
     </div>`;
 
   view.querySelector('#default-rest').onchange = (e) => setDefaultRest(Number(e.target.value));
   view.querySelector('#theme-mode').onchange = (e) => setThemeMode(e.target.value);
   view.querySelector('#scheme').onchange = (e) => setScheme(e.target.value);
+  view.querySelector('#hard-reload').onclick = hardReload;
   view.querySelector('#empty-workout').onclick = () => {
     if (hasDraft() && !confirm('Es läuft bereits ein Training. Verwerfen und leer neu starten?')) return;
     saveDraft({ mode: 'live', id: null, template_id: null, name: '', date: todayISO(), notes: '', started_at: Date.now(), blocks: [] });
@@ -1302,6 +1307,7 @@ async function init() {
   // Diagramme lesen ihre Farben beim Zeichnen – nach einem Designwechsel neu zeichnen
   initTheme(() => charts.length && route());
   initTimer(document.getElementById('rest-timer'));
+  initUpdateCheck(APP_VERSION, document.getElementById('update-banner'));
   try {
     api = await createBackend();
   } catch (err) {

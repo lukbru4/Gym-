@@ -626,6 +626,14 @@ form.assign { padding: 10px 0; border-top: 1px solid var(--border); }
 .legend li { display: inline-flex; align-items: center; gap: 6px; }
 .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 
+.update-banner {
+  position: sticky; top: 0; z-index: 12;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; background: var(--accent); color: var(--accent-text); font-weight: 600;
+}
+.update-banner small { display: block; font-weight: 400; opacity: 0.85; }
+.update-banner .btn { background: var(--surface); color: var(--text); border-color: transparent; margin: 0; }
+
 /* Serie + Körpergraph auf der Startseite */
 .streak { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 12px; }
 .streak-label { font-size: 0.9rem; color: var(--text-secondary); }
@@ -1460,6 +1468,50 @@ var STARTER_TEMPLATES = [
   }
 ];
 
+// js/update.js
+var CHECK_EVERY_MS = 5 * 60 * 1e3;
+var lastCheck = 0;
+async function fetchServerVersion() {
+  try {
+    const res = await fetch(`./version.json?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.version === "string" ? data.version : null;
+  } catch {
+    return null;
+  }
+}
+async function hardReload() {
+  try {
+    const regs = await navigator.serviceWorker?.getRegistrations() || [];
+    await Promise.all(regs.map((r) => r.unregister()));
+  } catch {
+  }
+  try {
+    const keys = await globalThis.caches?.keys() || [];
+    await Promise.all(keys.map((k) => caches.delete(k)));
+  } catch {
+  }
+  const url = new URL(location.href);
+  url.searchParams.set("v", Date.now());
+  location.replace(url.toString());
+}
+function initUpdateCheck(currentVersion, banner) {
+  const check = async (force = false) => {
+    if (!force && Date.now() - lastCheck < CHECK_EVERY_MS) return;
+    lastCheck = Date.now();
+    const server = await fetchServerVersion();
+    if (server && server !== currentVersion) {
+      banner.querySelector(".update-version").textContent = server;
+      banner.hidden = false;
+    }
+  };
+  banner.querySelector("button").onclick = hardReload;
+  document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && check());
+  window.addEventListener("pageshow", () => check());
+  check(true);
+}
+
 // js/theme.js
 var KEY = "gym-tracker-theme";
 var SCHEME_KEY = "gym-tracker-scheme";
@@ -1539,7 +1591,7 @@ function initTheme(onChange) {
 var view = document.getElementById("view");
 var nav = document.getElementById("nav");
 var DRAFT_KEY = "gym-tracker-draft";
-var APP_VERSION = "2026-09-30 · 8 (Serie + Körpergraph auf Start)";
+var APP_VERSION = "2026-09-30 · 9 (Update-Knopf)";
 var api = null;
 var user = null;
 var exercises = [];
@@ -2347,10 +2399,14 @@ async function renderWorkouts() {
       <label>Hell / Dunkel
         <select id="theme-mode">${THEME_OPTIONS.map(([id, label]) => `<option value="${id}" ${id === getThemeMode() ? "selected" : ""}>${esc(label)}</option>`).join("")}</select>
       </label>
+      <p class="muted small">App-Version: ${esc(APP_VERSION)}</p>
+      <button class="btn block" id="hard-reload">App aktualisieren</button>
+      <p class="muted small">Lädt die neueste Version vom Server. Deine Trainings bleiben erhalten.</p>
     </div>`;
   view.querySelector("#default-rest").onchange = (e) => setDefaultRest(Number(e.target.value));
   view.querySelector("#theme-mode").onchange = (e) => setThemeMode(e.target.value);
   view.querySelector("#scheme").onchange = (e) => setScheme(e.target.value);
+  view.querySelector("#hard-reload").onclick = hardReload;
   view.querySelector("#empty-workout").onclick = () => {
     if (hasDraft() && !confirm("Es läuft bereits ein Training. Verwerfen und leer neu starten?")) return;
     saveDraft({ mode: "live", id: null, template_id: null, name: "", date: todayISO(), notes: "", started_at: Date.now(), blocks: [] });
@@ -2632,6 +2688,7 @@ async function renderBackup() {
 async function init() {
   initTheme(() => charts.length && route());
   initTimer(document.getElementById("rest-timer"));
+  initUpdateCheck(APP_VERSION, document.getElementById("update-banner"));
   try {
     api = await createBackend();
   } catch (err) {
@@ -2674,6 +2731,10 @@ if ("serviceWorker" in navigator && !window.GYM_STANDALONE) {
     <h1><a href="#/">🏋️ Gym Tracker</a></h1>
     <button class="link" id="logout" hidden>Abmelden</button>
   </header>
+  <div id="update-banner" class="update-banner" role="status" hidden>
+    <span>Neue Version verfügbar <small class="update-version"></small></span>
+    <button class="btn small-btn primary">Aktualisieren</button>
+  </div>
   <main id="view" class="container"><p class="muted center">Lädt …</p></main>
   <nav id="nav" class="bottom-nav" hidden>
     <a href="#/"><span aria-hidden="true">🏠</span>Start</a>

@@ -25,7 +25,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - name: gym-tracker.html ist aktuell
-        run: npm run build && git diff --exit-code gym-tracker.html
+        run: npm run build && git diff --exit-code gym-tracker.html version.json
 
   deploy:
     needs: test

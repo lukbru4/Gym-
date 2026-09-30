@@ -84,6 +84,8 @@ Supabase verschickt nach der Registrierung standardmäßig eine Bestätigungs-E-
 
 Öffne die Seite im Browser. Auf dem iPhone wählst du in Safari **Teilen → Zum Home-Bildschirm**, auf Android in Chrome **Menü → App installieren** bzw. **Zum Startbildschirm hinzufügen**.
 
+Neue Versionen erkennt die App selbst: Oben erscheint dann „Neue Version verfügbar“. Außerdem gibt es unter Workouts den Knopf **„App aktualisieren“**. Er ist wichtig für die App auf dem Home-Bildschirm, weil die keinen Neuladen-Knopf hat.
+
 > Die App-Oberfläche lädt auch offline. Zum Laden und Speichern der Trainings braucht die App aber Internet.
 > Ein angefangenes Training bleibt trotzdem als Entwurf auf dem Gerät gespeichert.
 

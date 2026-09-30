@@ -603,6 +603,14 @@ form.assign { padding: 10px 0; border-top: 1px solid var(--border); }
 .legend li { display: inline-flex; align-items: center; gap: 6px; }
 .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 
+.update-banner {
+  position: sticky; top: 0; z-index: 12;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; background: var(--accent); color: var(--accent-text); font-weight: 600;
+}
+.update-banner small { display: block; font-weight: 400; opacity: 0.85; }
+.update-banner .btn { background: var(--surface); color: var(--text); border-color: transparent; margin: 0; }
+
 /* Serie + Körpergraph auf der Startseite */
 .streak { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 12px; }
 .streak-label { font-size: 0.9rem; color: var(--text-secondary); }

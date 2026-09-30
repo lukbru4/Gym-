@@ -38,4 +38,9 @@ ${js}</script>`
 );
 
 await writeFile(new URL('gym-tracker.html', root), html);
+
+// version.json für die Update-Prüfung der App (js/update.js)
+const version = (await read('js/app.js')).match(/const APP_VERSION = '([^']+)'/)[1];
+await writeFile(new URL('version.json', root), `${JSON.stringify({ version })}\n`);
+console.log(`version.json: ${version}`);
 console.log(`gym-tracker.html geschrieben (${(html.length / 1024).toFixed(0)} KB)`);
