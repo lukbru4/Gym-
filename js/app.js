@@ -1,6 +1,6 @@
 import { createBackend } from './api.js';
 import { todayISO, weeklySummary, exerciseProgress, personalRecords, setVolume, weekStreak } from './stats.js';
-import { MUSCLES, MUSCLE_NAMES, LEVELS, musclesOf, strengthLevels, bodySvg, radarSvg } from './muscles.js';
+import { MUSCLES, MUSCLE_NAMES, LEVELS, CATEGORIES, musclesOf, strengthLevels, filterExercises, bodySvg, radarSvg } from './muscles.js';
 import { REST_OPTIONS, getDefaultRest, setDefaultRest, fmtDuration, startRest, stop as stopRest, initTimer } from './timer.js';
 import { STARTER_TEMPLATES } from './starter-templates.js';
 import { initUpdateCheck, hardReload } from './update.js';
@@ -13,7 +13,7 @@ import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setSchem
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-10-02 · 20 (Kein Reinzoomen bei Textfeldern)'; // muss zu version.json passen (npm run build)
+const APP_VERSION = '2026-10-02 · 21 (Übungssuche mit Kategorien)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -641,6 +641,67 @@ function muscleChips(name, selected = []) {
   ).join('')}</fieldset>`;
 }
 
+// Übungsauswahl als eigene Vollbild-Seite: Suche + Kategorien (Brust, Rücken, …).
+// added: Set der Übungs-IDs, die schon im Training sind; onPick(ex); onNew(suchtext)
+function openExercisePicker({ added = new Set(), onPick, onNew }) {
+  let category = 'alle';
+  let query = '';
+  const el = document.createElement('div');
+  el.className = 'picker';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  el.setAttribute('aria-label', 'Übung wählen');
+  el.innerHTML = `
+    <div class="picker-head">
+      <h2>Übung wählen</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Schließen">✕</button>
+    </div>
+    <input type="search" class="picker-search" placeholder="Übung suchen …" aria-label="Übung suchen" autocomplete="off" enterkeyhint="search">
+    <div class="picker-cats" role="tablist" aria-label="Kategorie">${CATEGORIES.map(
+      ([id, label]) => `<button type="button" class="picker-cat" role="tab" data-cat="${id}">${esc(label)}</button>`
+    ).join('')}</div>
+    <ul class="picker-list"></ul>`;
+  const list = el.querySelector('.picker-list');
+  const muscleText = (ex) =>
+    ex.type === 'cardio' ? 'Cardio' : musclesOf(ex).map((m) => MUSCLE_NAMES.get(m)).join(', ') || 'Keine Muskeln zugeordnet';
+  const render = () => {
+    el.querySelectorAll('.picker-cat').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.cat === category)));
+    const found = filterExercises(exercises, { query, category });
+    list.innerHTML = `${found
+      .map(
+        (ex) => `<li><button type="button" class="picker-item" data-id="${ex.id}">
+          <span class="picker-name">${esc(ex.name)}${ex.user_id ? ' <span class="muted">★</span>' : ''}</span>
+          <span class="picker-sub">${esc(muscleText(ex))}</span>
+          ${added.has(ex.id) ? '<span class="picker-added">✓ drin</span>' : ''}
+        </button></li>`
+      )
+      .join('')}
+      ${found.length ? '' : '<li class="muted picker-empty">Keine Übung gefunden.</li>'}
+      <li><button type="button" class="picker-item picker-new" data-new>
+        <span class="picker-name">+ ${query.trim() ? `„${esc(query.trim())}“ als eigene Übung anlegen` : 'Eigene Übung anlegen'}</span>
+      </button></li>`;
+  };
+  const close = () => {
+    el.remove();
+    document.body.classList.remove('picker-open');
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = (e) => e.key === 'Escape' && close();
+  el.addEventListener('click', (e) => {
+    if (e.target.closest('[data-close]')) return close();
+    const cat = e.target.closest('[data-cat]');
+    if (cat) { category = cat.dataset.cat; return render(); }
+    if (e.target.closest('[data-new]')) { close(); return onNew(query.trim()); }
+    const item = e.target.closest('[data-id]');
+    if (item) { close(); onPick(exerciseById(item.dataset.id)); }
+  });
+  el.querySelector('.picker-search').addEventListener('input', (e) => { query = e.target.value; render(); });
+  document.addEventListener('keydown', onKey);
+  render();
+  document.body.append(el);
+  document.body.classList.add('picker-open');
+}
+
 // mode: 'live' (Training durchführen), 'edit' (gespeichertes Training ändern), 'template' (Vorlage)
 async function renderEditor(mode, id = null) {
   let state;
@@ -671,18 +732,6 @@ async function renderEditor(mode, id = null) {
   const persist = () => live && saveDraft(state);
   persist();
 
-  const exerciseOptions = () => {
-    const opts = (type) =>
-      exercises
-        .filter((e) => e.type === type)
-        .map((e) => `<option value="${e.id}">${esc(e.name)}${e.user_id ? ' ★' : ''}</option>`)
-        .join('');
-    return `<option value="">Übung wählen …</option>
-      <optgroup label="Kraft">${opts('strength')}</optgroup>
-      <optgroup label="Cardio">${opts('cardio')}</optgroup>
-      <option value="new">+ Eigene Übung anlegen …</option>`;
-  };
-
   const title = { live: state.name || 'Training', edit: 'Training bearbeiten', template: state.id ? 'Vorlage bearbeiten' : 'Neue Vorlage' }[mode];
 
   const draw = () => {
@@ -695,8 +744,9 @@ async function renderEditor(mode, id = null) {
       ${mode === 'edit' ? `<div class="card"><label>Datum<input type="date" id="w-date" value="${esc(state.date)}" required></label></div>` : ''}
       ${state.blocks.map(blockHtml).join('')}
       <div class="card">
-        <label>Übung hinzufügen<select id="add-exercise">${exerciseOptions()}</select></label>
+        <button class="btn primary block" type="button" id="add-exercise">+ Übung hinzufügen</button>
         <form id="new-exercise" class="inline-form" hidden>
+          <h3>Eigene Übung anlegen</h3>
           <input type="text" name="name" placeholder="Name der Übung" maxlength="80" required>
           <select name="type"><option value="strength">Kraft</option><option value="cardio">Cardio</option></select>
           ${muscleChips('muscle')}
@@ -792,6 +842,7 @@ async function renderEditor(mode, id = null) {
   };
 
   view.onclick = async (e) => {
+    if (e.target.closest('#add-exercise')) return pickExercise();
     const t = e.target.closest('[data-action], #save, #cancel, #delete-template');
     if (!t) return;
     const b = Number(t.dataset.b);
@@ -871,16 +922,20 @@ async function renderEditor(mode, id = null) {
       state.blocks[t.dataset.restB].rest_seconds = t.value ? Number(t.value) : null;
       return persist();
     }
-    if (t.id !== 'add-exercise') return;
-    const form = view.querySelector('#new-exercise');
-    if (t.value === 'new') {
-      form.hidden = false;
-      form.querySelector('input').focus();
-      return;
-    }
-    if (!t.value) return;
-    addBlock(exerciseById(t.value));
   };
+
+  const pickExercise = () =>
+    openExercisePicker({
+      added: new Set(state.blocks.map((b) => b.exercise_id)),
+      onPick: (ex) => addBlock(ex),
+      onNew: (name) => {
+        const form = view.querySelector('#new-exercise');
+        form.hidden = false;
+        form.querySelector('input[name=name]').value = name;
+        form.scrollIntoView({ block: 'center' });
+        form.querySelector('input[name=name]').focus();
+      },
+    });
 
   function addBlock(ex) {
     const prevSets = prev.get(ex.id);

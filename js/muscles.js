@@ -252,3 +252,49 @@ export function radarSvg(levels, esc) {
     <g class="radar-labels">${labels}</g>
   </svg></div>`;
 }
+
+// ---------------------------------------------------------------------------
+// Kategorien für die Übungsauswahl (Suche + Filter)
+// ---------------------------------------------------------------------------
+export const CATEGORIES = [
+  ['alle', 'Alle'],
+  ['brust', 'Brust'],
+  ['ruecken', 'Rücken'],
+  ['schultern', 'Schultern'],
+  ['arme', 'Arme'],
+  ['bauch', 'Bauch'],
+  ['beine', 'Beine'],
+  ['cardio', 'Cardio'],
+  ['eigene', 'Eigene'],
+];
+const CATEGORY_OF_MUSCLE = {
+  brust: 'brust',
+  oberer_ruecken: 'ruecken', lat: 'ruecken', unterer_ruecken: 'ruecken',
+  schultern: 'schultern',
+  bizeps: 'arme', trizeps: 'arme',
+  bauch: 'bauch',
+  quadrizeps: 'beine', beinbeuger: 'beine', waden: 'beine', gesaess: 'beine',
+};
+
+// Kategorien einer Übung (eine Übung kann in mehreren stehen, z. B. Dips: Arme + Brust)
+export function exerciseCategories(ex) {
+  const cats = new Set();
+  if (ex.type === 'cardio') cats.add('cardio');
+  for (const m of musclesOf(ex)) if (CATEGORY_OF_MUSCLE[m]) cats.add(CATEGORY_OF_MUSCLE[m]);
+  if (ex.user_id) cats.add('eigene');
+  return cats;
+}
+
+// Kleinschreibung ohne Akzente/Umlaute-Punkte: „drucken“ findet „Drücken“
+const normalize = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
+
+// Filtert nach Kategorie und Suchtext. Jedes Suchwort muss im Namen oder in einem Muskelnamen vorkommen.
+export function filterExercises(exercises, { query = '', category = 'alle' } = {}) {
+  const words = normalize(query).split(/\s+/).filter(Boolean);
+  return exercises.filter((ex) => {
+    if (category !== 'alle' && !exerciseCategories(ex).has(category)) return false;
+    if (!words.length) return true;
+    const hay = normalize([ex.name, ...musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m)].join(' '));
+    return words.every((w) => hay.includes(w));
+  });
+}

@@ -40,3 +40,25 @@ test('Ohne Training in den letzten 30 Tagen zählt das letzte Training', () => {
   ];
   assert.equal(strengthLevels(sets, exercises, '2026-09-25').get('lat').level, 5); // +100 %
 });
+
+test('Übungsauswahl: Kategorien und Suche', async () => {
+  const { filterExercises, exerciseCategories } = await import('../js/muscles.js');
+  const list = [
+    { id: 1, name: 'Bankdrücken', type: 'strength', user_id: null },
+    { id: 2, name: 'Dips', type: 'strength', user_id: null },
+    { id: 3, name: 'Laufband', type: 'cardio', user_id: null },
+    { id: 4, name: 'Hip Thrust', type: 'strength', user_id: 'u1' },
+    { id: 5, name: 'Latziehen', type: 'strength', user_id: null, muscles: ['lat'] },
+  ];
+  const ids = (o) => filterExercises(list, o).map((e) => e.id);
+  assert.deepEqual([...exerciseCategories(list[1])].sort(), ['arme', 'brust']);
+  assert.deepEqual(ids({}), [1, 2, 3, 4, 5]);
+  assert.deepEqual(ids({ category: 'brust' }), [1, 2]);
+  assert.deepEqual(ids({ category: 'beine' }), [4]);
+  assert.deepEqual(ids({ category: 'eigene' }), [4]);
+  assert.deepEqual(ids({ category: 'cardio' }), [3]);
+  assert.deepEqual(ids({ query: 'drucken' }), [1], 'ohne Umlaut findet Umlaut');
+  assert.deepEqual(ids({ query: 'gesäß' }), [4], 'Suche nach Muskelname');
+  assert.deepEqual(ids({ query: 'latissimus', category: 'ruecken' }), [5], 'Muskelname + Kategorie Rücken');
+  assert.deepEqual(ids({ query: 'xyz' }), []);
+});
