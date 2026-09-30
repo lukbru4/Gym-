@@ -1,6 +1,6 @@
 {
-  "name": "Gym Tracker",
-  "short_name": "Gym",
+  "name": "Level Up – Gym Tracker",
+  "short_name": "Level Up",
   "description": "Trainings, Fortschritt und Körpergewicht tracken",
   "start_url": "./",
   "scope": "./",

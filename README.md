@@ -1,4 +1,4 @@
-# 🏋️ Gym Tracker
+# 🏋️ Level Up – Gym Tracker
 
 Eine Web-App, mit der du deine Trainings im Gym erfassen und auswerten kannst. Sie ist fürs Handy gebaut und lässt sich dort auch wie eine App installieren.
 
