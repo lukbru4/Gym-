@@ -84,6 +84,12 @@ alter table public.sets         enable row level security;
 alter table public.body_weights enable row level security;
 alter table public.templates    enable row level security;
 
+-- Zugriff für angemeldete Nutzer ausdrücklich erlauben (welche Zeilen, regeln die Policies unten).
+-- Nötig, falls beim Anlegen des Projekts „neue Tabellen automatisch freigeben“ ausgeschaltet wurde.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.exercises, public.workouts, public.sets,
+  public.body_weights, public.templates to authenticated;
+
 drop policy if exists "exercises read"   on public.exercises;
 drop policy if exists "exercises insert" on public.exercises;
 drop policy if exists "exercises update" on public.exercises;
