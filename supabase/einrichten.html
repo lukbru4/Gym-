@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supabase einrichten</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f6f6f4; --surface: #fff; --text: #0b0b0b; --muted: #52514e; --border: #e2e1dc; --accent: #3d7a00; --ok: #16a34a; --err: #c93a39; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111; --surface: #1a1a19; --text: #fff; --muted: #c3c2b7; --border: #2f2f2d; --accent: #b8f000; --ok: #5ee08e; --err: #e66767; } }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 8px; }
+  ol { padding-left: 20px; }
+  button { width: 100%; min-height: 56px; border: 0; border-radius: 14px; background: var(--accent); color: #0b0b0b; font: 800 1.15rem system-ui, sans-serif; cursor: pointer; }
+  button:disabled { opacity: 0.5; }
+  #status { min-height: 1.5em; margin: 10px 0; font-weight: 700; }
+  #status.ok { color: var(--ok); } #status.err { color: var(--err); }
+  textarea { width: 100%; box-sizing: border-box; height: 220px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: 12px/1.4 ui-monospace, monospace; padding: 8px; }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Supabase einrichten</h1>
+  <ol>
+    <li>Tippe unten auf <strong>„SQL kopieren“</strong>.</li>
+    <li>Wechsle zu Supabase → <strong>SQL Editor</strong>, leere das Textfeld und füge ein (Finger gedrückt halten → <strong>Einsetzen</strong>).</li>
+    <li>Tippe auf <strong>Run</strong> und bei der Warnung auf <strong>Run query</strong>.</li>
+  </ol>
+  <button id="copy" disabled>SQL wird geladen …</button>
+  <p id="status" role="status"></p>
+  <p class="muted" id="info"></p>
+  <textarea id="sql" readonly aria-label="SQL-Skript"></textarea>
+</main>
+<script>
+  const btn = document.getElementById('copy');
+  const status = document.getElementById('status');
+  const area = document.getElementById('sql');
+  const say = (text, cls) => { status.textContent = text; status.className = cls || ''; };
+
+  fetch('schema.sql', { cache: 'no-cache' })
+    .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then((sql) => {
+      area.value = sql;
+      const lines = sql.trimEnd().split('\n');
+      document.getElementById('info').textContent =
+        `${lines.length} Zeilen. Letzte Zeile: ${lines[lines.length - 1]}`;
+      btn.disabled = false;
+      btn.textContent = 'SQL kopieren';
+    })
+    .catch((e) => say('Konnte das Skript nicht laden (' + e.message + '). Bitte Seite neu laden.', 'err'));
+
+  // Fallback für ältere Browser: Text markieren und kopieren
+  function legacyCopy() {
+    area.focus();
+    area.setSelectionRange(0, area.value.length);
+    return document.execCommand && document.execCommand('copy');
+  }
+
+  btn.addEventListener('click', () => {
+    const done = () => { say('✓ Kopiert! Jetzt in Supabase einfügen.', 'ok'); btn.textContent = 'Nochmal kopieren'; };
+    const fail = () => {
+      if (legacyCopy()) return done();
+      say('Automatisches Kopieren ging nicht. Das Textfeld unten ist markiert – tippe darauf und wähle „Kopieren“.', 'err');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(area.value).then(done, fail);
+    else fail();
+  });
+</script>
+</body>
+</html>
