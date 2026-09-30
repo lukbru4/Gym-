@@ -6,6 +6,7 @@ const CHECK_EVERY_MS = 5 * 60 * 1000;
 let lastCheck = 0;
 
 export async function fetchServerVersion() {
+  if (location.protocol === 'file:') return null; // direkt geöffnete Datei: kein Server zum Fragen
   try {
     const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return null;

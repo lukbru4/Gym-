@@ -1472,6 +1472,7 @@ var STARTER_TEMPLATES = [
 var CHECK_EVERY_MS = 5 * 60 * 1e3;
 var lastCheck = 0;
 async function fetchServerVersion() {
+  if (location.protocol === "file:") return null;
   try {
     const res = await fetch(`./version.json?t=${Date.now()}`, { cache: "no-store" });
     if (!res.ok) return null;
