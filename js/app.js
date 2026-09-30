@@ -6,12 +6,14 @@ import { STARTER_TEMPLATES } from './starter-templates.js';
 import { initUpdateCheck, hardReload } from './update.js';
 import { readLocalData, migrationDone, migrateToCloud } from './migrate.js';
 import { RULES, KG_PER_WEIGHT_LEVEL, computeProgress, playerLevel, exerciseLevel, weightLevel } from './xp.js';
+import { TIERS, rankFromPoints, overallPoints, badgeSvg } from './ranks.js';
+import { DAILY, WEEKLY, computeQuests, computeMedals, longestStreak } from './quests.js';
 import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setScheme, initTheme } from './theme.js';
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-10-01 · 15 (Menü, Konto-Seite)'; // muss zu version.json passen (npm run build)
+const APP_VERSION = '2026-10-02 · 16 (Ränge, Profil, Aufgaben)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -140,7 +142,58 @@ const routes = [
   [/^#\/gewicht$/, () => void (location.hash = '#/koerper')],
   [/^#\/backup$/, renderBackup],
   [/^#\/konto$/, renderAccount],
+  [/^#\/raenge$/, renderRanks],
+  [/^#\/rekorde$/, renderRecords],
+  [/^#\/freunde$/, renderFriends],
+  [/^#\/profil$/, renderProfile],
+  [/^#\/aufgaben$/, renderQuests],
+  [/^#\/medaillen$/, renderMedals],
 ];
+
+// Welche untere Registerkarte zu welcher Seite gehört
+function sectionOf(hash) {
+  if (/^#\/(workouts|neu|vorlage|start)/.test(hash)) return 'workouts';
+  if (/^#\/(raenge|rekorde|fortschritt|koerper)/.test(hash)) return 'raenge';
+  if (/^#\/(profil|aufgaben|medaillen|verlauf|training|konto|backup)/.test(hash)) return 'profil';
+  if (/^#\/freunde/.test(hash)) return 'freunde';
+  return 'home';
+}
+
+// Spielstand (Credits, Level, Serie, Aufgaben) – einmal pro Seitenaufruf berechnet
+let gamePromise = null;
+const game = () => (gamePromise ??= loadGame());
+async function loadGame() {
+  const [workouts, sets] = await Promise.all([api.listWorkouts(), api.listSets()]);
+  const today = todayISO();
+  const progress = computeProgress(workouts, sets, exerciseMap());
+  const quests = computeQuests(progress.perWorkout, today);
+  const credits = progress.total + quests.total;
+  const strength = [...progress.perExercise.entries()].filter(([id]) => exerciseById(id)?.type !== 'cardio');
+  const overall = rankFromPoints(overallPoints(strength.map(([, st]) => st.xp)));
+  return {
+    workouts, sets, today, progress, quests, credits, overall, strength,
+    player: playerLevel(credits),
+    streak: weekStreak(workouts, today),
+  };
+}
+
+function displayName() {
+  try {
+    const n = localStorage.getItem('gym-tracker-name');
+    if (n) return n;
+  } catch {
+    /* ignorieren */
+  }
+  return api?.mode === 'cloud' && user?.email ? user.email.split('@')[0] : 'Du';
+}
+
+function updateHud(g) {
+  document.getElementById('hud-avatar').textContent = displayName().slice(0, 1).toUpperCase();
+  document.getElementById('hud-level').textContent = `Lv.${g.player.level}`;
+  document.getElementById('hud-xp').style.width = `${Math.round((g.player.into / g.player.needed) * 100)}%`;
+  document.querySelector('#hud-streak strong').textContent = g.streak;
+  document.querySelector('#hud-credits strong').textContent = fmt(g.credits, 0);
+}
 
 async function route() {
   destroyCharts();
@@ -149,15 +202,22 @@ async function route() {
   // Ansicht-spezifische Handler zurücksetzen
   view.oninput = view.onclick = view.onchange = view.onsubmit = null;
   document.getElementById('menu-btn').hidden = !user;
-  if (!user) return renderAuth();
+  if (!user) {
+    for (const id of ['hud-player', 'hud-streak', 'hud-credits', 'subnav']) document.getElementById(id).hidden = true;
+    document.getElementById('app-title').hidden = false;
+    return renderAuth();
+  }
 
   const hash = location.hash || '#/';
   nav.hidden = false;
-  nav.querySelectorAll('a').forEach((a) => {
-    const target = a.getAttribute('href');
-    const section = /^#\/(neu|vorlage|start)/.test(hash) ? '#/workouts' : hash;
-    a.classList.toggle('active', target === '#/' ? section === '#/' || section === '' : section.startsWith(target));
-  });
+  const section = sectionOf(hash);
+  nav.querySelectorAll('a').forEach((a) => a.classList.toggle('active', a.dataset.section === section));
+  const subnav = document.getElementById('subnav');
+  subnav.hidden = section !== 'raenge';
+  subnav.querySelectorAll('a').forEach((a) => a.classList.toggle('active', hash === a.getAttribute('href')));
+  for (const id of ['hud-player', 'hud-streak', 'hud-credits']) document.getElementById(id).hidden = false;
+  document.getElementById('app-title').hidden = true;
+  gamePromise = null;
 
   for (const [re, handler] of routes) {
     const m = hash.match(re);
@@ -165,6 +225,7 @@ async function route() {
       view.innerHTML = '<p class="muted center">Lädt …</p>';
       try {
         await handler(m);
+        game().then(updateHud).catch(() => {});
       } catch (err) {
         view.innerHTML = `<div class="card"><p>Konnte die Daten nicht laden.</p><p class="muted">${esc(err.message)}</p></div>`;
         console.error(err);
@@ -243,14 +304,12 @@ function renderAuth() {
 // Dashboard
 // ---------------------------------------------------------------------------
 async function renderDashboard() {
-  const [workouts, sets, weights] = await Promise.all([api.listWorkouts(), api.listSets(), api.listBodyWeights()]);
+  const [g, weights] = await Promise.all([game(), api.listBodyWeights()]);
+  const { workouts, sets } = g;
   const weeks = weeklySummary(workouts, sets, todayISO(), 8);
-  const streak = weekStreak(workouts, todayISO());
   const levels = strengthLevels(datedSets(workouts, sets), exerciseMap(), todayISO());
   const thisWeek = weeks[weeks.length - 1];
   const lastWeight = weights[weights.length - 1];
-  const progress = computeProgress(workouts, sets, exerciseMap());
-  const player = playerLevel(progress.total);
 
   const localData = api.mode === 'cloud' && user && !migrationDone(user.id) ? readLocalData() : null;
 
@@ -269,18 +328,10 @@ async function renderDashboard() {
       ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
          Sichere sie regelmäßig über ☰ → <a href="#/backup">Backup</a>.</p>`
       : ''}
-    <div class="hero-row">
-      <div class="streak" title="Wochen in Folge mit mindestens einem Training">
-        <span class="streak-label">Serie</span>
-        <span class="streak-value">${FLAME}<strong>${streak}</strong></span>
-        <span class="streak-hint">${streak === 1 ? 'Woche' : 'Wochen'} in Folge</span>
-      </div>
-      <div class="player-level">
-        <span class="streak-label">Level</span>
-        <span class="streak-value"><span class="level-badge">${player.level}</span><strong>${fmt(progress.total, 0)}</strong><small>Credits</small></span>
-        ${levelBar(player, 'Credits')}
-      </div>
-    </div>
+    <a class="card quests-mini" href="#/aufgaben">
+      <div class="block-head"><h3>Heutige Aufgaben</h3><span class="muted small">${g.quests.today.filter((q) => q.done).length} / ${g.quests.today.length}</span></div>
+      ${questRows(g.quests.today)}
+    </a>
     <a class="bodygraph-link" href="#/koerper" aria-label="Körpergraph öffnen">${bodySvg(levels, esc, { interactive: false })}</a>
     <a class="btn primary block big" href="#/workouts">Workout starten</a>
     ${CREDITS_RULES_HTML}
@@ -358,19 +409,23 @@ async function renderHistory() {
 }
 
 async function renderWorkoutDetail(id) {
-  const [w, allWorkouts, allSets] = await Promise.all([api.getWorkout(id), api.listWorkouts(), api.listSets()]);
-  const earned = computeProgress(allWorkouts, allSets, exerciseMap()).perWorkout.get(id);
-  const levelBefore = earned ? playerLevel(earned.before).level : 1;
-  const levelAfter = earned ? playerLevel(earned.after).level : 1;
+  const [w, g] = await Promise.all([api.getWorkout(id), game()]);
+  const earned = g.progress.perWorkout.get(id);
+  // Level-Up nur beim neuesten Training: Stand vorher = heute minus dieses Training und die Aufgaben dieses Tages
+  const latest = [...g.progress.perWorkout.entries()].sort((a, b) => b[1].date.localeCompare(a[1].date) || b[0] - a[0])[0];
+  const questBonus = latest?.[0] === id ? g.quests.byDate.get(earned.date) || 0 : 0;
+  const levelAfter = g.player.level;
+  const levelBefore = latest?.[0] === id ? playerLevel(g.credits - earned.credits - questBonus).level : levelAfter;
   const groups = groupSets(w.sets);
   view.innerHTML = `
     <p><a href="#/verlauf" class="link">← Verlauf</a></p>
     <h2>${fmtDate(w.date)}</h2>
     ${earned?.credits
       ? `<div class="card credits-card">
-          <div class="credits-total">+${earned.credits} <small>Credits</small></div>
+          <div class="credits-total">+${earned.credits + questBonus} <small>Credits</small></div>
           ${levelAfter > levelBefore ? `<p class="level-up">Level-Up! Du bist jetzt Level ${levelAfter}.</p>` : ''}
-          <ul class="credit-items">${earned.items.map((i) => `<li><span>${esc(i.label)}</span><strong>+${i.credits}</strong></li>`).join('')}</ul>
+          <ul class="credit-items">${earned.items.map((i) => `<li><span>${esc(i.label)}</span><strong>+${i.credits}</strong></li>`).join('')}
+          ${questBonus ? `<li><span>Aufgaben erledigt</span><strong>+${questBonus}</strong></li>` : ''}</ul>
         </div>`
       : ''}
     ${w.notes ? `<div class="card notes">${esc(w.notes)}</div>` : ''}
@@ -986,6 +1041,10 @@ async function renderAccount() {
            <button class="btn danger block" id="delete-local">Alle Daten löschen</button>`}
     </div>
     <div class="card">
+      <h3>Profil</h3>
+      <label>Anzeigename<input id="display-name" maxlength="30" value="${esc(displayName())}" autocomplete="nickname"></label>
+    </div>
+    <div class="card">
       <h3>Stil</h3>
       <label>Farbschema
         <select id="scheme">${SCHEMES.map(([id, label]) => `<option value="${id}" ${id === getScheme() ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>
@@ -1005,6 +1064,13 @@ async function renderAccount() {
       <a class="btn block" href="#/backup">Backup</a>
     </div>`;
 
+  view.querySelector('#display-name').onchange = (e) => {
+    try {
+      localStorage.setItem('gym-tracker-name', e.target.value.trim());
+    } catch {
+      /* ignorieren */
+    }
+  };
   view.querySelector('#theme-mode').onchange = (e) => setThemeMode(e.target.value);
   view.querySelector('#scheme').onchange = (e) => setScheme(e.target.value);
   view.querySelector('#hard-reload').onclick = hardReload;
@@ -1033,6 +1099,216 @@ async function renderAccount() {
       showError(err);
     }
   });
+}
+
+// ---------------------------------------------------------------------------
+// Rekorde & Level pro Übung (Ränge → Rekorde)
+// ---------------------------------------------------------------------------
+async function renderRecords() {
+  const g = await game();
+  const dated = datedSets(g.workouts, g.sets);
+  const used = exercises.filter((e) => dated.some((x) => x.exercise_id === e.id));
+  if (!used.length) {
+    view.innerHTML = '<h2>Rekorde</h2><p class="muted">Sobald du Trainings erfasst hast, siehst du hier deine Rekorde.</p>';
+    return;
+  }
+  const records = personalRecords(dated, exerciseMap());
+  const levelOf = (exId) => {
+    const st = g.progress.perExercise.get(exId) || { xp: 0, sessions: 0, best: 0 };
+    return { st, ex: exerciseLevel(st.xp), w: st.best > 0 ? weightLevel(st.best) : null };
+  };
+  view.innerHTML = `
+    <h2>Level pro Übung</h2>
+    <div class="card scroll-x"><table class="table">
+      <thead><tr><th>Übung</th><th>Übungs-Level</th><th>Gewichts-Level</th><th>Trainings</th></tr></thead>
+      <tbody>${used
+        .map((e) => ({ e, l: levelOf(e.id) }))
+        .sort((a, b) => b.l.st.xp - a.l.st.xp || a.e.name.localeCompare(b.e.name, 'de'))
+        .map(({ e, l }) => `<tr><td>${esc(e.name)}</td><td><span class="level-badge small-badge">${l.ex.level}</span></td>
+          <td>${l.w ? `<span class="level-badge small-badge weight">${l.w}</span>` : '–'}</td><td>${l.st.sessions}</td></tr>`)
+        .join('')}</tbody></table>
+      ${CREDITS_RULES_HTML}
+    </div>
+    <h2>Persönliche Rekorde</h2>
+    ${recordsHtml(records)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Ränge, Aufgaben, Medaillen, Profil, Freunde
+// ---------------------------------------------------------------------------
+function questRows(list) {
+  return `<ul class="quest-list">${list
+    .map(
+      (q) => `<li class="${q.done ? 'done' : ''}">
+        <span class="quest-check" aria-hidden="true">${q.done ? '✓' : ''}</span>
+        <span class="quest-main"><span class="quest-label">${esc(q.label)}</span>
+          <span class="xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${q.goal}" aria-valuenow="${q.value}" aria-label="${esc(q.label)}: ${q.value} von ${q.goal}"><span style="width:${Math.round((q.value / q.goal) * 100)}%"></span></span></span>
+        <span class="quest-reward">+${q.reward}</span>
+      </li>`
+    )
+    .join('')}</ul>`;
+}
+
+const RANK_RULES_HTML = `<details class="rules"><summary>Wie funktionieren Ränge?</summary>
+  <p>Jede Übung sammelt Rang-Punkte: +10 pro Training mit der Übung, +10 wenn du stärker warst als beim letzten Mal
+  (geschätztes 1RM) und +15 für einen neuen Rekord. Der Rang zeigt also deinen eigenen Fortschritt,
+  keinen Vergleich mit anderen. Stufen: ${TIERS.map((t) => t.name).join(' → ')}, jeweils III → II → I.
+  Der Gesamt-Rang ist der Schnitt deiner 5 besten Übungen.</p></details>`;
+
+async function renderRanks() {
+  const g = await game();
+  const levels = strengthLevels(datedSets(g.workouts, g.sets), exerciseMap(), todayISO());
+  const cards = g.strength
+    .map(([id, st]) => ({ ex: exerciseById(id), st, rank: rankFromPoints(st.xp) }))
+    .filter((c) => c.ex)
+    .sort((a, b) => b.st.xp - a.st.xp || a.ex.name.localeCompare(b.ex.name, 'de'));
+  const totalLp = g.strength.reduce((sum, [, st]) => sum + st.xp, 0);
+  view.innerHTML = `
+    <div class="rank-grid">
+      <div class="rank-card overall" style="--tier:${g.overall.tier.color}">
+        <div class="rank-head"><strong>${fmt(totalLp, 0)} RP</strong><span>Gesamt</span></div>
+        ${badgeSvg(g.overall, 84)}
+        <div class="rank-name">${esc(g.overall.label)}</div>
+        ${bodySvg(levels, esc, { interactive: false })}
+      </div>
+      ${cards
+        .map(
+          (c) => `<div class="rank-card" style="--tier:${c.rank.tier.color}">
+            <div class="rank-head"><strong>${esc(c.rank.label)}</strong><span>${c.rank.lp} LP</span></div>
+            ${badgeSvg(c.rank, 84)}
+            <div class="rank-name">${esc(c.ex.name)}</div>
+            <div class="rank-best">Bestes gesch. 1RM ${fmt(c.st.best)} kg · ${plural(c.st.sessions, 'Training', 'Trainings')}</div>
+            <div class="xp-bar tier-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${c.rank.needed}" aria-valuenow="${c.rank.lp}"
+              aria-label="${c.rank.lp} von ${c.rank.needed} LP bis zur nächsten Stufe"><span style="width:${Math.round(c.rank.progress * 100)}%"></span></div>
+          </div>`
+        )
+        .join('')}
+    </div>
+    ${cards.length ? '' : '<p class="muted">Trainiere eine Kraftübung, um deinen ersten Rang zu bekommen.</p>'}
+    ${RANK_RULES_HTML}`;
+}
+
+async function renderQuests() {
+  const g = await game();
+  const earnedToday = g.quests.byDate.get(g.today) || 0;
+  view.innerHTML = `
+    <h2>Aufgaben</h2>
+    <p class="muted small">Erledigte Aufgaben bringen Credits. Heute schon verdient: <strong>+${earnedToday}</strong> ·
+      insgesamt aus Aufgaben: <strong>${fmt(g.quests.total, 0)}</strong> Credits.</p>
+    <div class="card"><div class="block-head"><h3>Täglich</h3><span class="muted small">neu ab Mitternacht</span></div>${questRows(g.quests.today)}</div>
+    <div class="card"><div class="block-head"><h3>Wöchentlich</h3><span class="muted small">neu ab Montag</span></div>${questRows(g.quests.week)}</div>`;
+}
+
+async function renderMedals() {
+  const [g, templates] = await Promise.all([game(), api.listTemplates()]);
+  const medals = computeMedals(g.progress.perWorkout, {
+    maxStreak: longestStreak(g.workouts.map((w) => w.date)),
+    level: g.player.level,
+    templates: templates.length,
+  });
+  const done = medals.filter((m) => m.done).length;
+  view.innerHTML = `
+    <h2>Medaillen</h2>
+    <p class="muted small">${done} von ${medals.length} freigeschaltet.</p>
+    <div class="medal-grid">${medals
+      .map(
+        (m) => `<div class="medal ${m.done ? 'unlocked' : ''}">
+          <span class="medal-icon" aria-hidden="true">${m.done ? '🏅' : '🔒'}</span>
+          <strong>${esc(m.name)}</strong>
+          <span class="muted small">${esc(m.text)}</span>
+          ${m.done && m.date ? `<span class="muted small">${fmtDate(m.date, false)}</span>` : ''}
+        </div>`
+      )
+      .join('')}</div>`;
+}
+
+function avatarSvg() {
+  return `<svg class="avatar" viewBox="0 0 200 170" role="img" aria-label="Avatar">
+    <path d="M40 170 C40 128 62 112 100 112 C138 112 160 128 160 170 Z" fill="#f2c9a0"/>
+    <path d="M62 170 C62 136 76 120 100 120 C124 120 138 136 138 170 Z" fill="var(--accent)"/>
+    <rect x="88" y="92" width="24" height="26" rx="8" fill="#e8b98c"/>
+    <ellipse cx="100" cy="62" rx="34" ry="38" fill="#f2c9a0"/>
+    <ellipse cx="66" cy="66" rx="7" ry="10" fill="#f2c9a0"/><ellipse cx="134" cy="66" rx="7" ry="10" fill="#f2c9a0"/>
+    <path d="M65 58 C58 24 82 14 102 16 C124 17 142 30 135 58 C132 46 124 38 114 36 C110 42 102 44 96 40 C90 44 82 44 79 38 C72 42 67 48 65 58 Z" fill="#3b2f2a"/>
+    <ellipse cx="88" cy="64" rx="6" ry="7" fill="#fff"/><ellipse cx="112" cy="64" rx="6" ry="7" fill="#fff"/>
+    <ellipse cx="89" cy="65" rx="3.4" ry="4.2" fill="#1d1d1d"/><ellipse cx="113" cy="65" rx="3.4" ry="4.2" fill="#1d1d1d"/>
+    <path d="M86 80 Q100 94 114 80 Q100 84 86 80 Z" fill="#8a2f2f"/><path d="M88 80.6 Q100 84.4 112 80.6 L111.6 82.6 Q100 86.4 88.4 82.6 Z" fill="#fff"/>
+  </svg>`;
+}
+
+function calendarHtml(workouts, month) {
+  const [y, m] = month.split('-').map(Number);
+  const first = new Date(Date.UTC(y, m - 1, 1));
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const offset = (first.getUTCDay() + 6) % 7; // Montag zuerst
+  const byDate = new Map();
+  for (const w of [...workouts].sort((a, b) => a.id - b.id)) if (!byDate.has(w.date)) byDate.set(w.date, w.id);
+  const cells = [];
+  for (let i = 0; i < offset; i++) cells.push('<span class="cal-day empty"></span>');
+  for (let d = 1; d <= days; d++) {
+    const iso = `${month}-${String(d).padStart(2, '0')}`;
+    const id = byDate.get(iso);
+    const cls = `cal-day${id ? ' trained' : ''}${iso === todayISO() ? ' today' : ''}`;
+    cells.push(id ? `<a class="${cls}" href="#/training/${id}" aria-label="${fmtDate(iso)}: Training">${d}</a>` : `<span class="${cls}">${d}</span>`);
+  }
+  const title = first.toLocaleDateString('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  return `<div class="block-head"><h3>${title}</h3>
+      <span><button class="icon-btn" data-cal="-1" aria-label="Voriger Monat">‹</button><button class="icon-btn" data-cal="1" aria-label="Nächster Monat">›</button></span></div>
+    <div class="cal-grid">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((d) => `<span class="cal-head">${d}</span>`).join('')}${cells.join('')}</div>`;
+}
+
+async function renderProfile() {
+  const [g, templates] = await Promise.all([game(), api.listTemplates()]);
+  const openDaily = g.quests.today.filter((q) => !q.done).length;
+  const medals = computeMedals(g.progress.perWorkout, {
+    maxStreak: longestStreak(g.workouts.map((w) => w.date)),
+    level: g.player.level,
+    templates: templates.length,
+  }).filter((m) => m.done).length;
+  let month = todayISO().slice(0, 7);
+  const tile = (href, icon, label, badge = '') =>
+    `<a class="tile-link" href="${href}"><span class="tile-icon" aria-hidden="true">${icon}</span>${label}${badge ? `<span class="tile-badge">${badge}</span>` : ''}</a>`;
+  view.innerHTML = `
+    <div class="profile-hero">
+      <div class="profile-top"><h2>${esc(displayName())}</h2>${badgeSvg(g.overall, 72)}</div>
+      ${avatarSvg()}
+      <p class="muted small center">Level ${g.player.level} · ${esc(g.overall.label)} · ${fmt(g.credits, 0)} Credits</p>
+    </div>
+    <div class="tile-grid">
+      ${tile('#/aufgaben', '📜', 'Aufgaben', openDaily ? String(openDaily) : '')}
+      ${tile('#/medaillen', '🏅', 'Medaillen', medals ? String(medals) : '')}
+      ${tile('#/workouts', '📋', 'Vorlagen')}
+      ${tile('#/rekorde', '🏋️', 'Übungen')}
+      ${tile('#/verlauf', '🗓️', 'Verlauf')}
+      ${tile('#/koerper', '⚖️', 'Gewicht')}
+      ${tile('#/konto', '⚙️', 'Einstellungen')}
+      ${tile('#/backup', '💾', 'Backup')}
+    </div>
+    <div class="card" id="calendar">${calendarHtml(g.workouts, month)}</div>`;
+  view.querySelector('#calendar').onclick = (e) => {
+    const b = e.target.closest('[data-cal]');
+    if (!b) return;
+    const [y, m] = month.split('-').map(Number);
+    const d = new Date(Date.UTC(y, m - 1 + Number(b.dataset.cal), 1));
+    month = d.toISOString().slice(0, 7);
+    view.querySelector('#calendar').innerHTML = calendarHtml(g.workouts, month);
+  };
+}
+
+async function renderFriends() {
+  view.innerHTML = `
+    <h2>Freunde</h2>
+    <div class="card">
+      <h3>Kommt in Phase 3</h3>
+      <p>Freunde brauchen echte Konten in der Cloud. Sobald die eingerichtet sind, kommen hier:</p>
+      <ul>
+        <li>Freunde per Link oder Code einladen</li>
+        <li>Profile mit Level, Rang, Serie und Körpergraph</li>
+        <li>Feed mit den Trainings deiner Freunde, Likes und Kommentare</li>
+        <li>Ranglisten und Challenges</li>
+      </ul>
+      <p class="muted small">${api.mode === 'cloud' ? 'Du bist schon mit Konto angemeldet – damit bist du bereit.' : 'Du nutzt gerade den lokalen Modus ohne Konto.'}</p>
+    </div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1163,26 +1439,14 @@ async function renderProgress() {
   };
 
   view.innerHTML = `
-    <h2>Fortschritt</h2>
+    <h2>Analyse</h2>
     <div class="card">
       <label>Übung<select id="p-exercise">${used
         .map((e) => `<option value="${e.id}" ${e.id === selected ? 'selected' : ''}>${esc(e.name)}</option>`)
         .join('')}</select></label>
       <div id="p-body"></div>
     </div>
-    <h2>Level pro Übung</h2>
-    <div class="card scroll-x"><table class="table">
-      <thead><tr><th>Übung</th><th>Übungs-Level</th><th>Gewichts-Level</th><th>Trainings</th></tr></thead>
-      <tbody>${used
-        .map((e) => ({ e, l: levelOf(e.id) }))
-        .sort((a, b) => b.l.st.xp - a.l.st.xp || a.e.name.localeCompare(b.e.name, 'de'))
-        .map(({ e, l }) => `<tr><td>${esc(e.name)}</td><td><span class="level-badge small-badge">${l.ex.level}</span></td>
-          <td>${l.w ? `<span class="level-badge small-badge weight">${l.w}</span>` : '–'}</td><td>${l.st.sessions}</td></tr>`)
-        .join('')}</tbody></table>
-      ${CREDITS_RULES_HTML}
-    </div>
-    <h2>Persönliche Rekorde</h2>
-    ${recordsHtml(records)}`;
+`;
 
   const drawExercise = () => {
     destroyCharts();

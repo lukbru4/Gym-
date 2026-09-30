@@ -621,6 +621,75 @@ form.assign { padding: 10px 0; border-top: 1px solid var(--border); }
 .bodygraph-link .bodygraph-panel { margin: 0; }
 .bodygraph .muscle.static { cursor: inherit; }
 
+/* Kopfzeile wie in einem Spiel: Level, Serie, Credits */
+.topbar { gap: 10px; }
+.hud-player { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); min-width: 0; flex: 1 1 auto; }
+.avatar-sm {
+  width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  background: var(--input-bg, var(--bg)); border: 2px solid var(--accent); font-weight: 800; color: var(--accent);
+}
+.hud-level { display: flex; flex-direction: column; gap: 4px; width: 110px; }
+.hud-level strong { font-size: 0.95rem; line-height: 1; }
+.hud-level .xp-bar { height: 7px; }
+.hud-stat { display: flex; align-items: center; gap: 5px; text-decoration: none; color: var(--text); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.hud-stat .flame { width: 18px; height: 22px; }
+.hud-stat .coin { width: 22px; height: 22px; fill: var(--warmup); }
+.subnav { position: sticky; top: 61px; z-index: 9; display: flex; gap: 4px; overflow-x: auto; padding: 0 12px; background: var(--surface); border-bottom: 1px solid var(--border); scrollbar-width: none; }
+.subnav a { flex: none; padding: 12px 12px 10px; color: var(--text-secondary); text-decoration: none; font-weight: 600; border-bottom: 3px solid transparent; }
+.subnav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Aufgaben */
+.quests-mini { display: block; text-decoration: none; color: var(--text); }
+.quest-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.quest-list li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); }
+.quest-list li:first-child { border-top: 0; }
+.quest-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border); display: grid; place-items: center; font-weight: 800; font-size: 0.8rem; }
+.quest-list li.done .quest-check { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.quest-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.quest-label { font-size: 0.95rem; }
+.quest-list li.done .quest-label { color: var(--text-secondary); }
+.quest-reward { font-weight: 800; color: var(--warmup); font-variant-numeric: tabular-nums; }
+
+/* Ränge */
+.rank-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.rank-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 14px 12px;
+  border-radius: 16px; border: 1px solid color-mix(in srgb, var(--tier) 45%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tier) 26%, var(--surface)), var(--surface));
+}
+.rank-card.overall { grid-column: 1 / -1; }
+.rank-card.overall .bodygraph { max-width: 260px; }
+.rank-head { display: flex; flex-direction: column; line-height: 1.15; }
+.rank-head strong { font-size: 1.05rem; color: var(--tier); letter-spacing: 0.02em; }
+.rank-head span { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; }
+.rank-name { font-weight: 800; font-size: 1.05rem; }
+.rank-best { font-size: 0.75rem; color: var(--text-secondary); }
+.tier-bar { width: 100%; }
+.tier-bar span { background: var(--tier); }
+
+/* Medaillen */
+.medal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.medal { display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; padding: 14px 10px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); opacity: 0.55; }
+.medal.unlocked { opacity: 1; border-color: var(--warmup); }
+.medal-icon { font-size: 1.8rem; }
+
+/* Profil */
+.profile-hero { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 16px 8px; margin-bottom: 12px; }
+.profile-top { display: flex; justify-content: space-between; align-items: center; }
+.profile-top h2 { margin: 0; }
+.avatar { display: block; width: 100%; max-width: 240px; margin: 0 auto; }
+.tile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.tile-link { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: 0.72rem; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
+.tile-icon { font-size: 1.6rem; }
+.tile-badge { position: absolute; top: 4px; right: 6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--danger); color: #fff; font-size: 0.72rem; display: grid; place-items: center; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.cal-head { text-align: center; font-size: 0.75rem; color: var(--text-secondary); }
+.cal-day { aspect-ratio: 1; display: grid; place-items: center; border-radius: 10px; background: var(--input-bg, var(--bg)); color: var(--text); text-decoration: none; font-variant-numeric: tabular-nums; }
+.cal-day.empty { background: none; }
+.cal-day.trained { background: var(--accent); color: var(--accent-text); font-weight: 800; }
+.cal-day.today { outline: 2px solid var(--warmup); outline-offset: -2px; }
+
 /* Menü oben rechts */
 .topbar { position: sticky; }
 .menu-btn { width: 44px; height: 44px; margin: -6px -8px -6px 0; display: grid; place-items: center; border: 0; border-radius: 10px; background: none; color: var(--text); cursor: pointer; }

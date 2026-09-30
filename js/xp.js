@@ -36,13 +36,16 @@ export function computeProgress(workouts, sets, exercises) {
     setsByWorkout.get(s.workout_id).push(s);
   }
 
-  const perWorkout = new Map(); // id -> { credits, before, after, items: [{ label, credits }] }
-  const perExercise = new Map(); // id -> { xp, sessions, last, best }
+  // perWorkout: id -> { date, sets, improvements, records, credits, before, after, items: [{ label, credits }] }
+  const perWorkout = new Map();
+  const perExercise = new Map(); // id -> { xp, sessions, improvements, records, last, best }
   let total = 0;
 
   for (const w of ordered) {
     const ws = setsByWorkout.get(w.id) || [];
     const items = [];
+    let improvements = 0;
+    let records = 0;
     if (ws.length) {
       items.push({ label: 'Training abgeschlossen', credits: RULES.workout });
       items.push({ label: `${ws.length} ${ws.length === 1 ? 'Arbeitssatz' : 'Arbeitssätze'}`, credits: ws.length * RULES.set });
@@ -54,7 +57,7 @@ export function computeProgress(workouts, sets, exercises) {
     }
     for (const [exId, exSets] of byExercise) {
       const ex = exercises.get(exId);
-      const state = perExercise.get(exId) || { xp: 0, sessions: 0, last: 0, best: 0 };
+      const state = perExercise.get(exId) || { xp: 0, sessions: 0, improvements: 0, records: 0, last: 0, best: 0 };
       state.sessions++;
       state.xp += EXERCISE_XP.session;
       if (ex?.type !== 'cardio') {
@@ -63,10 +66,14 @@ export function computeProgress(workouts, sets, exercises) {
         if (state.sessions > 1 && best > state.last + 1e-9) {
           items.push({ label: `${name} gesteigert`, credits: RULES.improvement });
           state.xp += EXERCISE_XP.improvement;
+          state.improvements++;
+          improvements++;
         }
         if (state.sessions > 1 && best > state.best + 1e-9) {
           items.push({ label: `Neuer Rekord: ${name}`, credits: RULES.record });
           state.xp += EXERCISE_XP.record;
+          state.records++;
+          records++;
         }
         state.last = best;
         state.best = Math.max(state.best, best);
@@ -74,7 +81,7 @@ export function computeProgress(workouts, sets, exercises) {
       perExercise.set(exId, state);
     }
     const credits = items.reduce((sum, i) => sum + i.credits, 0);
-    perWorkout.set(w.id, { credits, before: total, after: total + credits, items });
+    perWorkout.set(w.id, { date: w.date, sets: ws.length, improvements, records, credits, before: total, after: total + credits, items });
     total += credits;
   }
   return { total, perWorkout, perExercise };

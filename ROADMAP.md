@@ -11,6 +11,15 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [ ] Supabase-Projekt anlegen und `js/config.js` eintragen (**Lukas**)
 - [ ] Anmelden mit Apple & Google (braucht Apple-Developer-Konto bzw. Google-Cloud-Projekt)
 
+## Zwischendurch – Gamification (nach Vorbild deiner Screenshots)
+- [x] Ränge pro Übung (Bronze → Titan, III → I) mit eigenen Abzeichen, Gesamt-Rang
+- [x] Neue Navigation: Workout · Home · Ränge · Freunde · Profil; Kopfzeile mit Level, Serie, Credits
+- [x] Ränge-Reiter: Rang, Körpergraph, Rekorde, Analyse
+- [x] Profil mit Avatar, Kacheln und Trainings-Kalender
+- [x] Aufgaben (täglich/wöchentlich) mit Credits – auch serverseitig berechnet
+- [x] Medaillen für Meilensteine
+- [ ] Fotos im Kalender (braucht Datei-Upload)
+
 ## Phase 2 – Code-Umbau
 - [ ] TypeScript + Komponenten-Framework, Build mit Vite
 - [ ] Tests weiter ausbauen

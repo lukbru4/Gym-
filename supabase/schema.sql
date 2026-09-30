@@ -179,10 +179,12 @@ revoke all on function public.delete_my_account() from public;
 grant execute on function public.delete_my_account() to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Credits serverseitig berechnen – gleiche Regeln wie js/xp.js:
---   +20 pro Training mit mindestens einem Arbeitssatz, +2 pro Arbeitssatz,
---   +10 wenn eine Kraftübung stärker ist als beim letzten Mal (geschätztes 1RM, Epley),
---   +25 zusätzlich bei neuem Rekord der Übung. Aufwärmsätze zählen nicht.
+-- Credits serverseitig berechnen – gleiche Regeln wie js/xp.js und js/quests.js:
+--   Training: +20 pro Training mit mindestens einem Arbeitssatz, +2 pro Arbeitssatz,
+--             +10 wenn eine Kraftübung stärker ist als beim letzten Mal (geschätztes 1RM, Epley),
+--             +25 zusätzlich bei neuem Rekord der Übung. Aufwärmsätze zählen nicht.
+--   Tägliche Aufgaben (pro Kalendertag): trainiert +15, ≥ 10 Arbeitssätze +10, ≥ 1 Rekord +20.
+--   Wöchentliche Aufgaben (Woche ab Montag): an ≥ 3 Tagen trainiert +50, ≥ 3 Steigerungen +40.
 -- Grundlage für den Shop: Käufe prüfen später gegen diesen Wert, nicht gegen die App.
 -- ---------------------------------------------------------------------------
 create or replace function public.credits_earned(p_user uuid)
@@ -197,17 +199,27 @@ declare
   e record;
   total integer := 0;
   n_sets integer;
-  st jsonb := '{}'::jsonb; -- exercise_id -> {"n": Anzahl Trainings, "last": 1RM, "best": 1RM}
+  n_impr integer;
+  n_rec integer;
+  st jsonb := '{}'::jsonb;   -- exercise_id -> {"last": 1RM, "best": 1RM}
   prev jsonb;
+  days jsonb := '{}'::jsonb; -- 'YYYY-MM-DD' -> {"sets", "records"}
+  weeks jsonb := '{}'::jsonb; -- Montag -> {"days": {datum: true}, "improvements"}
+  dkey text;
+  wkey text;
+  d jsonb;
+  k text;
 begin
   for w in
-    select id from public.workouts where user_id = p_user order by date, id
+    select id, date from public.workouts where user_id = p_user order by date, id
   loop
     select count(*) into n_sets from public.sets s
       where s.workout_id = w.id and not s.is_warmup;
     if n_sets > 0 then
       total := total + 20 + 2 * n_sets;
     end if;
+    n_impr := 0;
+    n_rec := 0;
     for e in
       select s.exercise_id, x.type,
              max(case
@@ -224,9 +236,11 @@ begin
       if e.type <> 'cardio' and prev is not null then
         if e.best > (prev ->> 'last')::double precision + 1e-9 then
           total := total + 10;
+          n_impr := n_impr + 1;
         end if;
         if e.best > (prev ->> 'best')::double precision + 1e-9 then
           total := total + 25;
+          n_rec := n_rec + 1;
         end if;
       end if;
       st := st || jsonb_build_object(e.exercise_id::text, jsonb_build_object(
@@ -234,6 +248,31 @@ begin
         'best', greatest(coalesce((prev ->> 'best')::double precision, 0),
                          case when e.type = 'cardio' then 0 else e.best end)));
     end loop;
+
+    -- Aufgaben: Tag und Woche fortschreiben
+    dkey := w.date::text;
+    d := coalesce(days -> dkey, '{"sets": 0, "records": 0}'::jsonb);
+    days := days || jsonb_build_object(dkey, jsonb_build_object(
+      'sets', (d ->> 'sets')::int + n_sets, 'records', (d ->> 'records')::int + n_rec));
+    wkey := date_trunc('week', w.date)::date::text;
+    d := coalesce(weeks -> wkey, '{"days": {}, "improvements": 0}'::jsonb);
+    if n_sets > 0 then
+      d := jsonb_set(d, array['days', dkey], 'true'::jsonb);
+    end if;
+    d := jsonb_set(d, '{improvements}', to_jsonb((d ->> 'improvements')::int + n_impr));
+    weeks := weeks || jsonb_build_object(wkey, d);
+  end loop;
+
+  for k in select jsonb_object_keys(days) loop
+    d := days -> k;
+    if (d ->> 'sets')::int > 0 then total := total + 15; end if;
+    if (d ->> 'sets')::int >= 10 then total := total + 10; end if;
+    if (d ->> 'records')::int >= 1 then total := total + 20; end if;
+  end loop;
+  for k in select jsonb_object_keys(weeks) loop
+    d := weeks -> k;
+    if (select count(*) from jsonb_object_keys(d -> 'days')) >= 3 then total := total + 50; end if;
+    if (d ->> 'improvements')::int >= 3 then total := total + 40; end if;
   end loop;
   return total;
 end;

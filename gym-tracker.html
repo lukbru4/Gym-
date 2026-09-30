@@ -648,6 +648,75 @@ form.assign { padding: 10px 0; border-top: 1px solid var(--border); }
 .bodygraph-link .bodygraph-panel { margin: 0; }
 .bodygraph .muscle.static { cursor: inherit; }
 
+/* Kopfzeile wie in einem Spiel: Level, Serie, Credits */
+.topbar { gap: 10px; }
+.hud-player { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); min-width: 0; flex: 1 1 auto; }
+.avatar-sm {
+  width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  background: var(--input-bg, var(--bg)); border: 2px solid var(--accent); font-weight: 800; color: var(--accent);
+}
+.hud-level { display: flex; flex-direction: column; gap: 4px; width: 110px; }
+.hud-level strong { font-size: 0.95rem; line-height: 1; }
+.hud-level .xp-bar { height: 7px; }
+.hud-stat { display: flex; align-items: center; gap: 5px; text-decoration: none; color: var(--text); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.hud-stat .flame { width: 18px; height: 22px; }
+.hud-stat .coin { width: 22px; height: 22px; fill: var(--warmup); }
+.subnav { position: sticky; top: 61px; z-index: 9; display: flex; gap: 4px; overflow-x: auto; padding: 0 12px; background: var(--surface); border-bottom: 1px solid var(--border); scrollbar-width: none; }
+.subnav a { flex: none; padding: 12px 12px 10px; color: var(--text-secondary); text-decoration: none; font-weight: 600; border-bottom: 3px solid transparent; }
+.subnav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Aufgaben */
+.quests-mini { display: block; text-decoration: none; color: var(--text); }
+.quest-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.quest-list li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); }
+.quest-list li:first-child { border-top: 0; }
+.quest-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border); display: grid; place-items: center; font-weight: 800; font-size: 0.8rem; }
+.quest-list li.done .quest-check { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.quest-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.quest-label { font-size: 0.95rem; }
+.quest-list li.done .quest-label { color: var(--text-secondary); }
+.quest-reward { font-weight: 800; color: var(--warmup); font-variant-numeric: tabular-nums; }
+
+/* Ränge */
+.rank-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.rank-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 14px 12px;
+  border-radius: 16px; border: 1px solid color-mix(in srgb, var(--tier) 45%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tier) 26%, var(--surface)), var(--surface));
+}
+.rank-card.overall { grid-column: 1 / -1; }
+.rank-card.overall .bodygraph { max-width: 260px; }
+.rank-head { display: flex; flex-direction: column; line-height: 1.15; }
+.rank-head strong { font-size: 1.05rem; color: var(--tier); letter-spacing: 0.02em; }
+.rank-head span { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; }
+.rank-name { font-weight: 800; font-size: 1.05rem; }
+.rank-best { font-size: 0.75rem; color: var(--text-secondary); }
+.tier-bar { width: 100%; }
+.tier-bar span { background: var(--tier); }
+
+/* Medaillen */
+.medal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.medal { display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; padding: 14px 10px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); opacity: 0.55; }
+.medal.unlocked { opacity: 1; border-color: var(--warmup); }
+.medal-icon { font-size: 1.8rem; }
+
+/* Profil */
+.profile-hero { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 16px 8px; margin-bottom: 12px; }
+.profile-top { display: flex; justify-content: space-between; align-items: center; }
+.profile-top h2 { margin: 0; }
+.avatar { display: block; width: 100%; max-width: 240px; margin: 0 auto; }
+.tile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.tile-link { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: 0.72rem; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
+.tile-icon { font-size: 1.6rem; }
+.tile-badge { position: absolute; top: 4px; right: 6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--danger); color: #fff; font-size: 0.72rem; display: grid; place-items: center; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.cal-head { text-align: center; font-size: 0.75rem; color: var(--text-secondary); }
+.cal-day { aspect-ratio: 1; display: grid; place-items: center; border-radius: 10px; background: var(--input-bg, var(--bg)); color: var(--text); text-decoration: none; font-variant-numeric: tabular-nums; }
+.cal-day.empty { background: none; }
+.cal-day.trained { background: var(--accent); color: var(--accent-text); font-weight: 800; }
+.cal-day.today { outline: 2px solid var(--warmup); outline-offset: -2px; }
+
 /* Menü oben rechts */
 .topbar { position: sticky; }
 .menu-btn { width: 44px; height: 44px; margin: -6px -8px -6px 0; display: grid; place-items: center; border: 0; border-radius: 10px; background: none; color: var(--text); cursor: pointer; }
@@ -1717,6 +1786,8 @@ function computeProgress(workouts, sets, exercises2) {
   for (const w of ordered) {
     const ws = setsByWorkout.get(w.id) || [];
     const items = [];
+    let improvements = 0;
+    let records = 0;
     if (ws.length) {
       items.push({ label: "Training abgeschlossen", credits: RULES.workout });
       items.push({ label: `${ws.length} ${ws.length === 1 ? "Arbeitssatz" : "Arbeitssätze"}`, credits: ws.length * RULES.set });
@@ -1728,7 +1799,7 @@ function computeProgress(workouts, sets, exercises2) {
     }
     for (const [exId, exSets] of byExercise) {
       const ex = exercises2.get(exId);
-      const state2 = perExercise.get(exId) || { xp: 0, sessions: 0, last: 0, best: 0 };
+      const state2 = perExercise.get(exId) || { xp: 0, sessions: 0, improvements: 0, records: 0, last: 0, best: 0 };
       state2.sessions++;
       state2.xp += EXERCISE_XP.session;
       if (ex?.type !== "cardio") {
@@ -1737,10 +1808,14 @@ function computeProgress(workouts, sets, exercises2) {
         if (state2.sessions > 1 && best > state2.last + 1e-9) {
           items.push({ label: `${name} gesteigert`, credits: RULES.improvement });
           state2.xp += EXERCISE_XP.improvement;
+          state2.improvements++;
+          improvements++;
         }
         if (state2.sessions > 1 && best > state2.best + 1e-9) {
           items.push({ label: `Neuer Rekord: ${name}`, credits: RULES.record });
           state2.xp += EXERCISE_XP.record;
+          state2.records++;
+          records++;
         }
         state2.last = best;
         state2.best = Math.max(state2.best, best);
@@ -1748,10 +1823,160 @@ function computeProgress(workouts, sets, exercises2) {
       perExercise.set(exId, state2);
     }
     const credits = items.reduce((sum, i) => sum + i.credits, 0);
-    perWorkout.set(w.id, { credits, before: total, after: total + credits, items });
+    perWorkout.set(w.id, { date: w.date, sets: ws.length, improvements, records, credits, before: total, after: total + credits, items });
     total += credits;
   }
   return { total, perWorkout, perExercise };
+}
+
+// js/ranks.js
+var TIERS = [
+  { id: "bronze", name: "Bronze", from: 0, division: 50, color: "#c8834a" },
+  { id: "silber", name: "Silber", from: 150, division: 80, color: "#aab4c3" },
+  { id: "gold", name: "Gold", from: 390, division: 120, color: "#f2c14e" },
+  { id: "platin", name: "Platin", from: 750, division: 150, color: "#3fd0b6" },
+  { id: "diamant", name: "Diamant", from: 1200, division: 200, color: "#8f86ff" },
+  { id: "titan", name: "Titan", from: 1800, division: 300, color: "#ff4d5a" }
+];
+var ROMAN = ["III", "II", "I"];
+function rankFromPoints(points) {
+  const rp = Math.max(0, Math.floor(points || 0));
+  const i = TIERS.findLastIndex((t) => rp >= t.from);
+  const tier = TIERS[i];
+  const step = Math.min(2, Math.floor((rp - tier.from) / tier.division));
+  const start = tier.from + step * tier.division;
+  const top = i === TIERS.length - 1 && step === 2;
+  const needed = tier.division;
+  const lp = rp - start;
+  return {
+    tier,
+    division: ROMAN[step],
+    label: `${tier.name} ${ROMAN[step]}`,
+    lp,
+    needed,
+    progress: top ? 1 : Math.min(1, lp / needed),
+    max: top,
+    points: rp
+  };
+}
+function overallPoints(exercisePoints) {
+  const top = [...exercisePoints].sort((a, b) => b - a).slice(0, 5);
+  return top.length ? Math.round(top.reduce((s, x) => s + x, 0) / top.length) : 0;
+}
+function badgeSvg(rank, size = 72) {
+  const c = rank.tier.color;
+  const tierIndex = TIERS.indexOf(rank.tier);
+  const n = ["III", "II", "I"].indexOf(rank.division) + 1;
+  const wings = tierIndex >= 3 ? `<path d="M22 44 C8 40 3 30 4 20 C10 28 16 31 24 32 Z M78 44 C92 40 97 30 96 20 C90 28 84 31 76 32 Z" fill="${c}" opacity="0.75"/>` : "";
+  const dots = Array.from({ length: n }, (_, i) => `<circle cx="${50 + (i - (n - 1) / 2) * 9}" cy="93" r="3" fill="${c}"/>`).join("");
+  return `<svg class="rank-badge" width="${size}" height="${size}" viewBox="0 0 100 100" role="img" aria-label="Rang ${rank.label}">
+    ${wings}
+    <path d="M50 8 L84 27 L84 65 L50 84 L16 65 L16 27 Z" fill="${c}"/>
+    <path d="M50 17 L76 32 L76 60 L50 75 L24 60 L24 32 Z" fill="#ffffff" opacity="0.28"/>
+    <path d="M50 30 L55.9 42.1 L69 43.9 L59.5 53.1 L61.8 66.2 L50 60 L38.2 66.2 L40.5 53.1 L31 43.9 L44.1 42.1 Z" fill="#ffffff" opacity="0.95"/>
+    ${dots}
+  </svg>`;
+}
+
+// js/quests.js
+init_stats();
+var DAILY = [
+  { id: "train", label: "Trainiere heute", goal: 1, reward: 15, metric: (d) => d.sets > 0 ? 1 : 0 },
+  { id: "sets10", label: "Schaffe heute 10 Arbeitssätze", goal: 10, reward: 10, metric: (d) => d.sets },
+  { id: "record", label: "Stell heute einen Rekord auf", goal: 1, reward: 20, metric: (d) => d.records }
+];
+var WEEKLY = [
+  { id: "days3", label: "Trainiere an 3 Tagen diese Woche", goal: 3, reward: 50, metric: (w) => w.days.size },
+  { id: "improve3", label: "Steigere dich 3-mal diese Woche", goal: 3, reward: 40, metric: (w) => w.improvements }
+];
+var emptyDay = () => ({ sets: 0, records: 0, improvements: 0 });
+var emptyWeek = () => ({ days: /* @__PURE__ */ new Set(), improvements: 0 });
+function computeQuests(perWorkout, today) {
+  const days = /* @__PURE__ */ new Map();
+  const weeks = /* @__PURE__ */ new Map();
+  const ordered = [...perWorkout.values()].sort((a, b) => a.date.localeCompare(b.date));
+  const weekDone = /* @__PURE__ */ new Map();
+  for (const w of ordered) {
+    const d = days.get(w.date) || emptyDay();
+    d.sets += w.sets;
+    d.records += w.records;
+    d.improvements += w.improvements;
+    days.set(w.date, d);
+    const wk = weekStart(w.date);
+    const week = weeks.get(wk) || emptyWeek();
+    if (w.sets > 0) week.days.add(w.date);
+    week.improvements += w.improvements;
+    weeks.set(wk, week);
+    for (const q of WEEKLY) {
+      const key = `${wk}|${q.id}`;
+      if (!weekDone.has(key) && q.metric(week) >= q.goal) weekDone.set(key, w.date);
+    }
+  }
+  const byDate = /* @__PURE__ */ new Map();
+  const add = (date, n) => byDate.set(date, (byDate.get(date) || 0) + n);
+  let total = 0;
+  for (const [date, d] of days) {
+    for (const q of DAILY) {
+      if (q.metric(d) >= q.goal) {
+        total += q.reward;
+        add(date, q.reward);
+      }
+    }
+  }
+  for (const [key, date] of weekDone) {
+    const q = WEEKLY.find((x) => x.id === key.split("|")[1]);
+    total += q.reward;
+    add(date, q.reward);
+  }
+  const status = (list, data) => list.map((q) => {
+    const value = q.metric(data);
+    return { id: q.id, label: q.label, goal: q.goal, reward: q.reward, value: Math.min(value, q.goal), done: value >= q.goal };
+  });
+  return {
+    total,
+    byDate,
+    today: status(DAILY, days.get(today) || emptyDay()),
+    week: status(WEEKLY, weeks.get(weekStart(today)) || emptyWeek())
+  };
+}
+function computeMedals(perWorkout, { maxStreak, level, templates }) {
+  const ordered = [...perWorkout.values()].filter((w) => w.sets > 0).sort((a, b) => a.date.localeCompare(b.date));
+  const nth = (n) => ordered[n - 1]?.date ?? null;
+  let recs = 0;
+  let recDate10 = null;
+  let recDate1 = null;
+  for (const w of ordered) {
+    recs += w.records;
+    if (!recDate1 && recs >= 1) recDate1 = w.date;
+    if (!recDate10 && recs >= 10) recDate10 = w.date;
+  }
+  const m = (id, name, text, date, done = Boolean(date)) => ({ id, name, text, done, date });
+  return [
+    m("first", "Erster Schritt", "Dein erstes Training", nth(1)),
+    m("ten", "Dranbleiber", "10 Trainings", nth(10)),
+    m("fifty", "Stammgast", "50 Trainings", nth(50)),
+    m("hundred", "Eisern", "100 Trainings", nth(100)),
+    m("record1", "Rekordjäger", "Dein erster Rekord", recDate1),
+    m("record10", "Rekordmaschine", "10 Rekorde", recDate10),
+    m("streak4", "Serie: 4 Wochen", "4 Wochen in Folge trainiert", null, maxStreak >= 4),
+    m("streak12", "Serie: 12 Wochen", "12 Wochen in Folge trainiert", null, maxStreak >= 12),
+    m("level5", "Level 5", "Spieler-Level 5 erreicht", null, level >= 5),
+    m("level10", "Level 10", "Spieler-Level 10 erreicht", null, level >= 10),
+    m("template", "Planer", "Eigene Vorlage angelegt", null, templates > 0)
+  ];
+}
+function longestStreak(dates) {
+  const weeks = [...new Set(dates.map(weekStart))].sort();
+  let best = 0;
+  let run = 0;
+  let prev = null;
+  for (const w of weeks) {
+    const expected = prev && new Date(Date.parse(prev) + 7 * 864e5).toISOString().slice(0, 10);
+    run = prev && w === expected ? run + 1 : 1;
+    best = Math.max(best, run);
+    prev = w;
+  }
+  return best;
 }
 
 // js/theme.js
@@ -1833,7 +2058,7 @@ function initTheme(onChange) {
 var view = document.getElementById("view");
 var nav = document.getElementById("nav");
 var DRAFT_KEY = "gym-tracker-draft";
-var APP_VERSION = "2026-10-01 · 15 (Menü, Konto-Seite)";
+var APP_VERSION = "2026-10-02 · 16 (Ränge, Profil, Aufgaben)";
 var api = null;
 var user = null;
 var exercises = [];
@@ -1940,28 +2165,88 @@ var routes = [
   [/^#\/koerper$/, renderBody],
   [/^#\/gewicht$/, () => void (location.hash = "#/koerper")],
   [/^#\/backup$/, renderBackup],
-  [/^#\/konto$/, renderAccount]
+  [/^#\/konto$/, renderAccount],
+  [/^#\/raenge$/, renderRanks],
+  [/^#\/rekorde$/, renderRecords],
+  [/^#\/freunde$/, renderFriends],
+  [/^#\/profil$/, renderProfile],
+  [/^#\/aufgaben$/, renderQuests],
+  [/^#\/medaillen$/, renderMedals]
 ];
+function sectionOf(hash) {
+  if (/^#\/(workouts|neu|vorlage|start)/.test(hash)) return "workouts";
+  if (/^#\/(raenge|rekorde|fortschritt|koerper)/.test(hash)) return "raenge";
+  if (/^#\/(profil|aufgaben|medaillen|verlauf|training|konto|backup)/.test(hash)) return "profil";
+  if (/^#\/freunde/.test(hash)) return "freunde";
+  return "home";
+}
+var gamePromise = null;
+var game = () => gamePromise ??= loadGame();
+async function loadGame() {
+  const [workouts, sets] = await Promise.all([api.listWorkouts(), api.listSets()]);
+  const today = todayISO();
+  const progress = computeProgress(workouts, sets, exerciseMap());
+  const quests = computeQuests(progress.perWorkout, today);
+  const credits = progress.total + quests.total;
+  const strength = [...progress.perExercise.entries()].filter(([id]) => exerciseById(id)?.type !== "cardio");
+  const overall = rankFromPoints(overallPoints(strength.map(([, st]) => st.xp)));
+  return {
+    workouts,
+    sets,
+    today,
+    progress,
+    quests,
+    credits,
+    overall,
+    strength,
+    player: playerLevel(credits),
+    streak: weekStreak(workouts, today)
+  };
+}
+function displayName() {
+  try {
+    const n = localStorage.getItem("gym-tracker-name");
+    if (n) return n;
+  } catch {
+  }
+  return api?.mode === "cloud" && user?.email ? user.email.split("@")[0] : "Du";
+}
+function updateHud(g) {
+  document.getElementById("hud-avatar").textContent = displayName().slice(0, 1).toUpperCase();
+  document.getElementById("hud-level").textContent = `Lv.${g.player.level}`;
+  document.getElementById("hud-xp").style.width = `${Math.round(g.player.into / g.player.needed * 100)}%`;
+  document.querySelector("#hud-streak strong").textContent = g.streak;
+  document.querySelector("#hud-credits strong").textContent = fmt(g.credits, 0);
+}
 async function route() {
   destroyCharts();
   viewCleanup?.();
   viewCleanup = null;
   view.oninput = view.onclick = view.onchange = view.onsubmit = null;
   document.getElementById("menu-btn").hidden = !user;
-  if (!user) return renderAuth();
+  if (!user) {
+    for (const id of ["hud-player", "hud-streak", "hud-credits", "subnav"]) document.getElementById(id).hidden = true;
+    document.getElementById("app-title").hidden = false;
+    return renderAuth();
+  }
   const hash = location.hash || "#/";
   nav.hidden = false;
-  nav.querySelectorAll("a").forEach((a) => {
-    const target = a.getAttribute("href");
-    const section = /^#\/(neu|vorlage|start)/.test(hash) ? "#/workouts" : hash;
-    a.classList.toggle("active", target === "#/" ? section === "#/" || section === "" : section.startsWith(target));
-  });
+  const section = sectionOf(hash);
+  nav.querySelectorAll("a").forEach((a) => a.classList.toggle("active", a.dataset.section === section));
+  const subnav = document.getElementById("subnav");
+  subnav.hidden = section !== "raenge";
+  subnav.querySelectorAll("a").forEach((a) => a.classList.toggle("active", hash === a.getAttribute("href")));
+  for (const id of ["hud-player", "hud-streak", "hud-credits"]) document.getElementById(id).hidden = false;
+  document.getElementById("app-title").hidden = true;
+  gamePromise = null;
   for (const [re, handler] of routes) {
     const m = hash.match(re);
     if (m) {
       view.innerHTML = '<p class="muted center">Lädt …</p>';
       try {
         await handler(m);
+        game().then(updateHud).catch(() => {
+        });
       } catch (err) {
         view.innerHTML = `<div class="card"><p>Konnte die Daten nicht laden.</p><p class="muted">${esc(err.message)}</p></div>`;
         console.error(err);
@@ -2029,14 +2314,12 @@ function renderAuth() {
   draw();
 }
 async function renderDashboard() {
-  const [workouts, sets, weights] = await Promise.all([api.listWorkouts(), api.listSets(), api.listBodyWeights()]);
+  const [g, weights] = await Promise.all([game(), api.listBodyWeights()]);
+  const { workouts, sets } = g;
   const weeks = weeklySummary(workouts, sets, todayISO(), 8);
-  const streak = weekStreak(workouts, todayISO());
   const levels = strengthLevels(datedSets(workouts, sets), exerciseMap(), todayISO());
   const thisWeek = weeks[weeks.length - 1];
   const lastWeight = weights[weights.length - 1];
-  const progress = computeProgress(workouts, sets, exerciseMap());
-  const player = playerLevel(progress.total);
   const localData = api.mode === "cloud" && user && !migrationDone(user.id) ? readLocalData() : null;
   view.innerHTML = `
     ${localData ? `<div class="card highlight" id="migrate-card">
@@ -2049,18 +2332,10 @@ async function renderDashboard() {
         </div>` : ""}
     ${api.mode === "local" ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
          Sichere sie regelmäßig über ☰ → <a href="#/backup">Backup</a>.</p>` : ""}
-    <div class="hero-row">
-      <div class="streak" title="Wochen in Folge mit mindestens einem Training">
-        <span class="streak-label">Serie</span>
-        <span class="streak-value">${FLAME}<strong>${streak}</strong></span>
-        <span class="streak-hint">${streak === 1 ? "Woche" : "Wochen"} in Folge</span>
-      </div>
-      <div class="player-level">
-        <span class="streak-label">Level</span>
-        <span class="streak-value"><span class="level-badge">${player.level}</span><strong>${fmt(progress.total, 0)}</strong><small>Credits</small></span>
-        ${levelBar(player, "Credits")}
-      </div>
-    </div>
+    <a class="card quests-mini" href="#/aufgaben">
+      <div class="block-head"><h3>Heutige Aufgaben</h3><span class="muted small">${g.quests.today.filter((q) => q.done).length} / ${g.quests.today.length}</span></div>
+      ${questRows(g.quests.today)}
+    </a>
     <a class="bodygraph-link" href="#/koerper" aria-label="Körpergraph öffnen">${bodySvg(levels, esc, { interactive: false })}</a>
     <a class="btn primary block big" href="#/workouts">Workout starten</a>
     ${CREDITS_RULES_HTML}
@@ -2130,18 +2405,21 @@ async function renderHistory() {
   view.innerHTML = `<h2>Verlauf</h2>${workoutList(workouts, sets) || '<p class="muted">Noch keine Trainings erfasst.</p>'}`;
 }
 async function renderWorkoutDetail(id) {
-  const [w, allWorkouts, allSets] = await Promise.all([api.getWorkout(id), api.listWorkouts(), api.listSets()]);
-  const earned = computeProgress(allWorkouts, allSets, exerciseMap()).perWorkout.get(id);
-  const levelBefore = earned ? playerLevel(earned.before).level : 1;
-  const levelAfter = earned ? playerLevel(earned.after).level : 1;
+  const [w, g] = await Promise.all([api.getWorkout(id), game()]);
+  const earned = g.progress.perWorkout.get(id);
+  const latest = [...g.progress.perWorkout.entries()].sort((a, b) => b[1].date.localeCompare(a[1].date) || b[0] - a[0])[0];
+  const questBonus = latest?.[0] === id ? g.quests.byDate.get(earned.date) || 0 : 0;
+  const levelAfter = g.player.level;
+  const levelBefore = latest?.[0] === id ? playerLevel(g.credits - earned.credits - questBonus).level : levelAfter;
   const groups = groupSets(w.sets);
   view.innerHTML = `
     <p><a href="#/verlauf" class="link">← Verlauf</a></p>
     <h2>${fmtDate(w.date)}</h2>
     ${earned?.credits ? `<div class="card credits-card">
-          <div class="credits-total">+${earned.credits} <small>Credits</small></div>
+          <div class="credits-total">+${earned.credits + questBonus} <small>Credits</small></div>
           ${levelAfter > levelBefore ? `<p class="level-up">Level-Up! Du bist jetzt Level ${levelAfter}.</p>` : ""}
-          <ul class="credit-items">${earned.items.map((i) => `<li><span>${esc(i.label)}</span><strong>+${i.credits}</strong></li>`).join("")}</ul>
+          <ul class="credit-items">${earned.items.map((i) => `<li><span>${esc(i.label)}</span><strong>+${i.credits}</strong></li>`).join("")}
+          ${questBonus ? `<li><span>Aufgaben erledigt</span><strong>+${questBonus}</strong></li>` : ""}</ul>
         </div>` : ""}
     ${w.notes ? `<div class="card notes">${esc(w.notes)}</div>` : ""}
     ${groups.map(({ exercise, sets }) => {
@@ -2189,7 +2467,6 @@ function datedSets(workouts, sets) {
   const dateOf = new Map(workouts.map((w) => [w.id, w.date]));
   return sets.map((x) => ({ ...x, date: dateOf.get(x.workout_id) })).filter((x) => x.date);
 }
-var FLAME = `<svg class="flame" viewBox="0 0 24 28" aria-hidden="true"><path d="M12 1 C13 6 18 8 20 13 C23 20 18 27 12 27 C6 27 1 22 3 15 C4 11 7 9 7 5 C9 7 10 9 10 12 C12 10 13 6 12 1 Z"/></svg>`;
 function numberSets(sets) {
   let n = 0;
   return sets.map((s) => [s, s.is_warmup ? "A" : String(++n)]);
@@ -2664,6 +2941,10 @@ async function renderAccount() {
            <button class="btn danger block" id="delete-local">Alle Daten löschen</button>`}
     </div>
     <div class="card">
+      <h3>Profil</h3>
+      <label>Anzeigename<input id="display-name" maxlength="30" value="${esc(displayName())}" autocomplete="nickname"></label>
+    </div>
+    <div class="card">
       <h3>Stil</h3>
       <label>Farbschema
         <select id="scheme">${SCHEMES.map(([id, label]) => `<option value="${id}" ${id === getScheme() ? "selected" : ""}>${esc(label)}</option>`).join("")}</select>
@@ -2682,6 +2963,12 @@ async function renderAccount() {
       <h3>Daten</h3>
       <a class="btn block" href="#/backup">Backup</a>
     </div>`;
+  view.querySelector("#display-name").onchange = (e) => {
+    try {
+      localStorage.setItem("gym-tracker-name", e.target.value.trim());
+    } catch {
+    }
+  };
   view.querySelector("#theme-mode").onchange = (e) => setThemeMode(e.target.value);
   view.querySelector("#scheme").onchange = (e) => setScheme(e.target.value);
   view.querySelector("#hard-reload").onclick = hardReload;
@@ -2709,6 +2996,186 @@ async function renderAccount() {
       showError(err);
     }
   });
+}
+async function renderRecords() {
+  const g = await game();
+  const dated = datedSets(g.workouts, g.sets);
+  const used = exercises.filter((e) => dated.some((x) => x.exercise_id === e.id));
+  if (!used.length) {
+    view.innerHTML = '<h2>Rekorde</h2><p class="muted">Sobald du Trainings erfasst hast, siehst du hier deine Rekorde.</p>';
+    return;
+  }
+  const records = personalRecords(dated, exerciseMap());
+  const levelOf = (exId) => {
+    const st = g.progress.perExercise.get(exId) || { xp: 0, sessions: 0, best: 0 };
+    return { st, ex: exerciseLevel(st.xp), w: st.best > 0 ? weightLevel(st.best) : null };
+  };
+  view.innerHTML = `
+    <h2>Level pro Übung</h2>
+    <div class="card scroll-x"><table class="table">
+      <thead><tr><th>Übung</th><th>Übungs-Level</th><th>Gewichts-Level</th><th>Trainings</th></tr></thead>
+      <tbody>${used.map((e) => ({ e, l: levelOf(e.id) })).sort((a, b) => b.l.st.xp - a.l.st.xp || a.e.name.localeCompare(b.e.name, "de")).map(({ e, l }) => `<tr><td>${esc(e.name)}</td><td><span class="level-badge small-badge">${l.ex.level}</span></td>
+          <td>${l.w ? `<span class="level-badge small-badge weight">${l.w}</span>` : "–"}</td><td>${l.st.sessions}</td></tr>`).join("")}</tbody></table>
+      ${CREDITS_RULES_HTML}
+    </div>
+    <h2>Persönliche Rekorde</h2>
+    ${recordsHtml(records)}`;
+}
+function questRows(list) {
+  return `<ul class="quest-list">${list.map(
+    (q) => `<li class="${q.done ? "done" : ""}">
+        <span class="quest-check" aria-hidden="true">${q.done ? "✓" : ""}</span>
+        <span class="quest-main"><span class="quest-label">${esc(q.label)}</span>
+          <span class="xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${q.goal}" aria-valuenow="${q.value}" aria-label="${esc(q.label)}: ${q.value} von ${q.goal}"><span style="width:${Math.round(q.value / q.goal * 100)}%"></span></span></span>
+        <span class="quest-reward">+${q.reward}</span>
+      </li>`
+  ).join("")}</ul>`;
+}
+var RANK_RULES_HTML = `<details class="rules"><summary>Wie funktionieren Ränge?</summary>
+  <p>Jede Übung sammelt Rang-Punkte: +10 pro Training mit der Übung, +10 wenn du stärker warst als beim letzten Mal
+  (geschätztes 1RM) und +15 für einen neuen Rekord. Der Rang zeigt also deinen eigenen Fortschritt,
+  keinen Vergleich mit anderen. Stufen: ${TIERS.map((t) => t.name).join(" → ")}, jeweils III → II → I.
+  Der Gesamt-Rang ist der Schnitt deiner 5 besten Übungen.</p></details>`;
+async function renderRanks() {
+  const g = await game();
+  const levels = strengthLevels(datedSets(g.workouts, g.sets), exerciseMap(), todayISO());
+  const cards = g.strength.map(([id, st]) => ({ ex: exerciseById(id), st, rank: rankFromPoints(st.xp) })).filter((c) => c.ex).sort((a, b) => b.st.xp - a.st.xp || a.ex.name.localeCompare(b.ex.name, "de"));
+  const totalLp = g.strength.reduce((sum, [, st]) => sum + st.xp, 0);
+  view.innerHTML = `
+    <div class="rank-grid">
+      <div class="rank-card overall" style="--tier:${g.overall.tier.color}">
+        <div class="rank-head"><strong>${fmt(totalLp, 0)} RP</strong><span>Gesamt</span></div>
+        ${badgeSvg(g.overall, 84)}
+        <div class="rank-name">${esc(g.overall.label)}</div>
+        ${bodySvg(levels, esc, { interactive: false })}
+      </div>
+      ${cards.map(
+    (c) => `<div class="rank-card" style="--tier:${c.rank.tier.color}">
+            <div class="rank-head"><strong>${esc(c.rank.label)}</strong><span>${c.rank.lp} LP</span></div>
+            ${badgeSvg(c.rank, 84)}
+            <div class="rank-name">${esc(c.ex.name)}</div>
+            <div class="rank-best">Bestes gesch. 1RM ${fmt(c.st.best)} kg · ${plural(c.st.sessions, "Training", "Trainings")}</div>
+            <div class="xp-bar tier-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${c.rank.needed}" aria-valuenow="${c.rank.lp}"
+              aria-label="${c.rank.lp} von ${c.rank.needed} LP bis zur nächsten Stufe"><span style="width:${Math.round(c.rank.progress * 100)}%"></span></div>
+          </div>`
+  ).join("")}
+    </div>
+    ${cards.length ? "" : '<p class="muted">Trainiere eine Kraftübung, um deinen ersten Rang zu bekommen.</p>'}
+    ${RANK_RULES_HTML}`;
+}
+async function renderQuests() {
+  const g = await game();
+  const earnedToday = g.quests.byDate.get(g.today) || 0;
+  view.innerHTML = `
+    <h2>Aufgaben</h2>
+    <p class="muted small">Erledigte Aufgaben bringen Credits. Heute schon verdient: <strong>+${earnedToday}</strong> ·
+      insgesamt aus Aufgaben: <strong>${fmt(g.quests.total, 0)}</strong> Credits.</p>
+    <div class="card"><div class="block-head"><h3>Täglich</h3><span class="muted small">neu ab Mitternacht</span></div>${questRows(g.quests.today)}</div>
+    <div class="card"><div class="block-head"><h3>Wöchentlich</h3><span class="muted small">neu ab Montag</span></div>${questRows(g.quests.week)}</div>`;
+}
+async function renderMedals() {
+  const [g, templates] = await Promise.all([game(), api.listTemplates()]);
+  const medals = computeMedals(g.progress.perWorkout, {
+    maxStreak: longestStreak(g.workouts.map((w) => w.date)),
+    level: g.player.level,
+    templates: templates.length
+  });
+  const done = medals.filter((m) => m.done).length;
+  view.innerHTML = `
+    <h2>Medaillen</h2>
+    <p class="muted small">${done} von ${medals.length} freigeschaltet.</p>
+    <div class="medal-grid">${medals.map(
+    (m) => `<div class="medal ${m.done ? "unlocked" : ""}">
+          <span class="medal-icon" aria-hidden="true">${m.done ? "🏅" : "🔒"}</span>
+          <strong>${esc(m.name)}</strong>
+          <span class="muted small">${esc(m.text)}</span>
+          ${m.done && m.date ? `<span class="muted small">${fmtDate(m.date, false)}</span>` : ""}
+        </div>`
+  ).join("")}</div>`;
+}
+function avatarSvg() {
+  return `<svg class="avatar" viewBox="0 0 200 170" role="img" aria-label="Avatar">
+    <path d="M40 170 C40 128 62 112 100 112 C138 112 160 128 160 170 Z" fill="#f2c9a0"/>
+    <path d="M62 170 C62 136 76 120 100 120 C124 120 138 136 138 170 Z" fill="var(--accent)"/>
+    <rect x="88" y="92" width="24" height="26" rx="8" fill="#e8b98c"/>
+    <ellipse cx="100" cy="62" rx="34" ry="38" fill="#f2c9a0"/>
+    <ellipse cx="66" cy="66" rx="7" ry="10" fill="#f2c9a0"/><ellipse cx="134" cy="66" rx="7" ry="10" fill="#f2c9a0"/>
+    <path d="M65 58 C58 24 82 14 102 16 C124 17 142 30 135 58 C132 46 124 38 114 36 C110 42 102 44 96 40 C90 44 82 44 79 38 C72 42 67 48 65 58 Z" fill="#3b2f2a"/>
+    <ellipse cx="88" cy="64" rx="6" ry="7" fill="#fff"/><ellipse cx="112" cy="64" rx="6" ry="7" fill="#fff"/>
+    <ellipse cx="89" cy="65" rx="3.4" ry="4.2" fill="#1d1d1d"/><ellipse cx="113" cy="65" rx="3.4" ry="4.2" fill="#1d1d1d"/>
+    <path d="M86 80 Q100 94 114 80 Q100 84 86 80 Z" fill="#8a2f2f"/><path d="M88 80.6 Q100 84.4 112 80.6 L111.6 82.6 Q100 86.4 88.4 82.6 Z" fill="#fff"/>
+  </svg>`;
+}
+function calendarHtml(workouts, month) {
+  const [y, m] = month.split("-").map(Number);
+  const first = new Date(Date.UTC(y, m - 1, 1));
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const offset = (first.getUTCDay() + 6) % 7;
+  const byDate = /* @__PURE__ */ new Map();
+  for (const w of [...workouts].sort((a, b) => a.id - b.id)) if (!byDate.has(w.date)) byDate.set(w.date, w.id);
+  const cells = [];
+  for (let i = 0; i < offset; i++) cells.push('<span class="cal-day empty"></span>');
+  for (let d = 1; d <= days; d++) {
+    const iso = `${month}-${String(d).padStart(2, "0")}`;
+    const id = byDate.get(iso);
+    const cls = `cal-day${id ? " trained" : ""}${iso === todayISO() ? " today" : ""}`;
+    cells.push(id ? `<a class="${cls}" href="#/training/${id}" aria-label="${fmtDate(iso)}: Training">${d}</a>` : `<span class="${cls}">${d}</span>`);
+  }
+  const title = first.toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
+  return `<div class="block-head"><h3>${title}</h3>
+      <span><button class="icon-btn" data-cal="-1" aria-label="Voriger Monat">‹</button><button class="icon-btn" data-cal="1" aria-label="Nächster Monat">›</button></span></div>
+    <div class="cal-grid">${["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => `<span class="cal-head">${d}</span>`).join("")}${cells.join("")}</div>`;
+}
+async function renderProfile() {
+  const [g, templates] = await Promise.all([game(), api.listTemplates()]);
+  const openDaily = g.quests.today.filter((q) => !q.done).length;
+  const medals = computeMedals(g.progress.perWorkout, {
+    maxStreak: longestStreak(g.workouts.map((w) => w.date)),
+    level: g.player.level,
+    templates: templates.length
+  }).filter((m) => m.done).length;
+  let month = todayISO().slice(0, 7);
+  const tile = (href, icon, label, badge = "") => `<a class="tile-link" href="${href}"><span class="tile-icon" aria-hidden="true">${icon}</span>${label}${badge ? `<span class="tile-badge">${badge}</span>` : ""}</a>`;
+  view.innerHTML = `
+    <div class="profile-hero">
+      <div class="profile-top"><h2>${esc(displayName())}</h2>${badgeSvg(g.overall, 72)}</div>
+      ${avatarSvg()}
+      <p class="muted small center">Level ${g.player.level} · ${esc(g.overall.label)} · ${fmt(g.credits, 0)} Credits</p>
+    </div>
+    <div class="tile-grid">
+      ${tile("#/aufgaben", "📜", "Aufgaben", openDaily ? String(openDaily) : "")}
+      ${tile("#/medaillen", "🏅", "Medaillen", medals ? String(medals) : "")}
+      ${tile("#/workouts", "📋", "Vorlagen")}
+      ${tile("#/rekorde", "🏋️", "Übungen")}
+      ${tile("#/verlauf", "🗓️", "Verlauf")}
+      ${tile("#/koerper", "⚖️", "Gewicht")}
+      ${tile("#/konto", "⚙️", "Einstellungen")}
+      ${tile("#/backup", "💾", "Backup")}
+    </div>
+    <div class="card" id="calendar">${calendarHtml(g.workouts, month)}</div>`;
+  view.querySelector("#calendar").onclick = (e) => {
+    const b = e.target.closest("[data-cal]");
+    if (!b) return;
+    const [y, m] = month.split("-").map(Number);
+    const d = new Date(Date.UTC(y, m - 1 + Number(b.dataset.cal), 1));
+    month = d.toISOString().slice(0, 7);
+    view.querySelector("#calendar").innerHTML = calendarHtml(g.workouts, month);
+  };
+}
+async function renderFriends() {
+  view.innerHTML = `
+    <h2>Freunde</h2>
+    <div class="card">
+      <h3>Kommt in Phase 3</h3>
+      <p>Freunde brauchen echte Konten in der Cloud. Sobald die eingerichtet sind, kommen hier:</p>
+      <ul>
+        <li>Freunde per Link oder Code einladen</li>
+        <li>Profile mit Level, Rang, Serie und Körpergraph</li>
+        <li>Feed mit den Trainings deiner Freunde, Likes und Kommentare</li>
+        <li>Ranglisten und Challenges</li>
+      </ul>
+      <p class="muted small">${api.mode === "cloud" ? "Du bist schon mit Konto angemeldet – damit bist du bereit." : "Du nutzt gerade den lokalen Modus ohne Konto."}</p>
+    </div>`;
 }
 var hasDraft = () => Boolean(loadDraft()?.blocks.length);
 async function renderWorkouts() {
@@ -2815,20 +3282,12 @@ async function renderProgress() {
     return { st, ex: exerciseLevel(st.xp), w: st.best > 0 ? weightLevel(st.best) : null };
   };
   view.innerHTML = `
-    <h2>Fortschritt</h2>
+    <h2>Analyse</h2>
     <div class="card">
       <label>Übung<select id="p-exercise">${used.map((e) => `<option value="${e.id}" ${e.id === selected ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</select></label>
       <div id="p-body"></div>
     </div>
-    <h2>Level pro Übung</h2>
-    <div class="card scroll-x"><table class="table">
-      <thead><tr><th>Übung</th><th>Übungs-Level</th><th>Gewichts-Level</th><th>Trainings</th></tr></thead>
-      <tbody>${used.map((e) => ({ e, l: levelOf(e.id) })).sort((a, b) => b.l.st.xp - a.l.st.xp || a.e.name.localeCompare(b.e.name, "de")).map(({ e, l }) => `<tr><td>${esc(e.name)}</td><td><span class="level-badge small-badge">${l.ex.level}</span></td>
-          <td>${l.w ? `<span class="level-badge small-badge weight">${l.w}</span>` : "–"}</td><td>${l.st.sessions}</td></tr>`).join("")}</tbody></table>
-      ${CREDITS_RULES_HTML}
-    </div>
-    <h2>Persönliche Rekorde</h2>
-    ${recordsHtml(records)}`;
+`;
   const drawExercise = () => {
     destroyCharts();
     const ex = exerciseById(selected);
@@ -3109,7 +3568,19 @@ if ("serviceWorker" in navigator && !window.GYM_STANDALONE) {
 </head>
 <body>
   <header class="topbar">
-    <h1><a href="#/">🏋️ Level Up</a></h1>
+    <h1 id="app-title"><a href="#/">🏋️ Level Up</a></h1>
+    <a class="hud-player" id="hud-player" href="#/profil" aria-label="Profil" hidden>
+      <span class="avatar-sm" id="hud-avatar">L</span>
+      <span class="hud-level"><strong id="hud-level">Lv.1</strong><span class="xp-bar"><span id="hud-xp"></span></span></span>
+    </a>
+    <a class="hud-stat" id="hud-streak" href="#/" title="Serie: Wochen in Folge mit Training" hidden>
+      <svg class="flame" viewBox="0 0 24 28" aria-hidden="true"><path d="M12 1 C13 6 18 8 20 13 C23 20 18 27 12 27 C6 27 1 22 3 15 C4 11 7 9 7 5 C9 7 10 9 10 12 C12 10 13 6 12 1 Z"/></svg>
+      <strong>0</strong>
+    </a>
+    <a class="hud-stat" id="hud-credits" href="#/aufgaben" title="Credits" hidden>
+      <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6.5l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6-2.6-2.5 3.6-.5z" fill="#fff" opacity="0.9"/></svg>
+      <strong>0</strong>
+    </a>
     <button class="menu-btn" id="menu-btn" aria-label="Menü" aria-expanded="false" aria-controls="menu" hidden>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
@@ -3123,13 +3594,19 @@ if ("serviceWorker" in navigator && !window.GYM_STANDALONE) {
     <span>Neue Version verfügbar <small class="update-version"></small></span>
     <button class="btn small-btn primary">Aktualisieren</button>
   </div>
+  <nav id="subnav" class="subnav" aria-label="Ränge" hidden>
+    <a href="#/raenge">Rang</a>
+    <a href="#/koerper">Körpergraph</a>
+    <a href="#/rekorde">Rekorde</a>
+    <a href="#/fortschritt">Analyse</a>
+  </nav>
   <main id="view" class="container"><p class="muted center">Lädt …</p></main>
   <nav id="nav" class="bottom-nav" hidden>
-    <a href="#/"><span aria-hidden="true">🏠</span>Start</a>
-    <a href="#/workouts"><span aria-hidden="true">🏋️</span>Workouts</a>
-    <a href="#/verlauf"><span aria-hidden="true">📋</span>Verlauf</a>
-    <a href="#/fortschritt"><span aria-hidden="true">📈</span>Fortschritt</a>
-    <a href="#/koerper"><span aria-hidden="true">🧍</span>Körper</a>
+    <a href="#/workouts" data-section="workouts"><span aria-hidden="true">🏋️</span>Workout</a>
+    <a href="#/" data-section="home"><span aria-hidden="true">🏠</span>Home</a>
+    <a href="#/raenge" data-section="raenge"><span aria-hidden="true">🏅</span>Ränge</a>
+    <a href="#/freunde" data-section="freunde"><span aria-hidden="true">👥</span>Freunde</a>
+    <a href="#/profil" data-section="profil"><span aria-hidden="true">👤</span>Profil</a>
   </nav>
   <div id="rest-timer" class="rest-timer" role="timer" aria-live="off" hidden>
     <div class="rest-bar"><span></span></div>
