@@ -347,6 +347,7 @@ input, select, textarea {
   display: block; width: 100%;
   margin-top: 6px;
   font: inherit; font-weight: 400;
+  font-size: 16px; /* unter 16 px zoomt iOS beim Antippen in die Seite */
   color: var(--text);
   background: var(--input-bg, var(--bg));
   border: 1px solid var(--border);

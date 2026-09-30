@@ -13,7 +13,7 @@ import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setSchem
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-10-02 · 19 (Kräftigere Arme im Körpergraph)'; // muss zu version.json passen (npm run build)
+const APP_VERSION = '2026-10-02 · 20 (Kein Reinzoomen bei Textfeldern)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;

@@ -374,6 +374,7 @@ input, select, textarea {
   display: block; width: 100%;
   margin-top: 6px;
   font: inherit; font-weight: 400;
+  font-size: 16px; /* unter 16 px zoomt iOS beim Antippen in die Seite */
   color: var(--text);
   background: var(--input-bg, var(--bg));
   border: 1px solid var(--border);
@@ -1993,7 +1994,7 @@ function initTheme(onChange) {
 var view = document.getElementById("view");
 var nav = document.getElementById("nav");
 var DRAFT_KEY = "gym-tracker-draft";
-var APP_VERSION = "2026-10-02 · 19 (Kräftigere Arme im Körpergraph)";
+var APP_VERSION = "2026-10-02 · 20 (Kein Reinzoomen bei Textfeldern)";
 var api = null;
 var user = null;
 var exercises = [];
