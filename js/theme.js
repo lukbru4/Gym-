@@ -3,6 +3,33 @@
 // (gleiche Regel), damit die Seite nicht kurz hell aufblitzt.
 
 const KEY = 'gym-tracker-theme';
+const SCHEME_KEY = 'gym-tracker-scheme';
+export const SCHEMES = [
+  ['violett', 'Nacht-Violett (wie deine alte App)'],
+  ['energie', 'Energie (Schwarz + Neon-Grün)'],
+  ['ozean', 'Ozean (Petrol)'],
+  ['glut', 'Glut (warmes Orange)'],
+  ['klassisch', 'Klassisch'],
+];
+export const DEFAULT_SCHEME = 'violett';
+
+export function getScheme() {
+  try {
+    const s = localStorage.getItem(SCHEME_KEY);
+    return SCHEMES.some(([id]) => id === s) ? s : DEFAULT_SCHEME;
+  } catch {
+    return DEFAULT_SCHEME;
+  }
+}
+
+export function setScheme(scheme) {
+  try {
+    localStorage.setItem(SCHEME_KEY, scheme);
+  } catch {
+    /* ohne Speicher gilt das Standardschema */
+  }
+  applyTheme();
+}
 export const THEME_OPTIONS = [
   ['time', 'Nach Uhrzeit (18–6 Uhr dunkel)'],
   ['system', 'Wie Gerät'],
@@ -34,13 +61,15 @@ let onChangeCb = null;
 
 export function applyTheme() {
   const root = document.documentElement;
-  const before = root.dataset.theme ?? null;
+  const before = `${root.dataset.theme ?? ''}|${root.dataset.scheme ?? ''}`;
+  root.dataset.scheme = getScheme();
   const theme = resolveTheme(getThemeMode());
   if (theme) root.dataset.theme = theme;
   else delete root.dataset.theme;
   const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#1a1a19' : '#1f6fd1');
-  if ((root.dataset.theme ?? null) !== before) onChangeCb?.();
+  const bg = getComputedStyle(root).getPropertyValue('--surface').trim();
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg || (dark ? '#1a1a19' : '#ffffff'));
+  if (`${root.dataset.theme ?? ''}|${root.dataset.scheme ?? ''}` !== before) onChangeCb?.();
 }
 
 export function setThemeMode(mode) {

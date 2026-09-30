@@ -3,12 +3,12 @@ import { todayISO, weeklySummary, exerciseProgress, personalRecords, setVolume }
 import { MUSCLES, MUSCLE_NAMES, LEVELS, musclesOf, strengthLevels, bodySvg } from './muscles.js';
 import { REST_OPTIONS, getDefaultRest, setDefaultRest, fmtDuration, startRest, stop as stopRest, initTimer } from './timer.js';
 import { STARTER_TEMPLATES } from './starter-templates.js';
-import { THEME_OPTIONS, getThemeMode, setThemeMode, initTheme } from './theme.js';
+import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setScheme, initTheme } from './theme.js';
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-09-25 · 6 (Körpergraph wie Vorlage)';
+const APP_VERSION = '2026-09-30 · 7 (Farbschemata, Nacht-Violett)';
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -937,13 +937,17 @@ async function renderWorkouts() {
       Die Pause pro Übung stellst du in der Vorlage oder direkt im Training ein.</p>
     </div>
     <div class="card">
-      <label>Design
+      <label>Farbschema
+        <select id="scheme">${SCHEMES.map(([id, label]) => `<option value="${id}" ${id === getScheme() ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>
+      </label>
+      <label>Hell / Dunkel
         <select id="theme-mode">${THEME_OPTIONS.map(([id, label]) => `<option value="${id}" ${id === getThemeMode() ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>
       </label>
     </div>`;
 
   view.querySelector('#default-rest').onchange = (e) => setDefaultRest(Number(e.target.value));
   view.querySelector('#theme-mode').onchange = (e) => setThemeMode(e.target.value);
+  view.querySelector('#scheme').onchange = (e) => setScheme(e.target.value);
   view.querySelector('#empty-workout').onclick = () => {
     if (hasDraft() && !confirm('Es läuft bereits ein Training. Verwerfen und leer neu starten?')) return;
     saveDraft({ mode: 'live', id: null, template_id: null, name: '', date: todayISO(), notes: '', started_at: Date.now(), blocks: [] });
