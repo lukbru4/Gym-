@@ -8,7 +8,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Lokale Daten ins Konto übertragen (abbruchsicher, keine Doppelten)
 - [x] Lokaler Modus: „Alle Daten löschen“
 - [x] Menü ☰ oben rechts: Konto & Einstellungen (Konto, Stil, App-Update), Backup, Abmelden
-- [ ] Supabase-Projekt anlegen und `js/config.js` eintragen (**Lukas**)
+- [x] Supabase-Projekt anlegen und `js/config.js` eintragen
 - [ ] Anmelden mit Apple & Google (braucht Apple-Developer-Konto bzw. Google-Cloud-Projekt)
 
 ## Zwischendurch – Gamification (nach Vorbild deiner Screenshots)
