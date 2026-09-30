@@ -13,7 +13,7 @@ import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setSchem
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-10-02 · 22 (Bodybuilder-Körpergraph)'; // muss zu version.json passen (npm run build)
+const APP_VERSION = '2026-10-02 · 23 (Kein Zoomen, saubere Felder)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -758,7 +758,7 @@ async function renderEditor(mode, id = null) {
         <label>Notizen<textarea id="w-notes" rows="3" maxlength="2000" placeholder="Wie lief's?">${esc(state.notes)}</textarea></label>
       </div>` : ''}
       <div class="row">
-        <button class="btn primary grow" id="save">${live ? 'Training beenden & speichern' : 'Speichern'}</button>
+        <button class="btn primary grow" id="save">${live ? 'Beenden & speichern' : 'Speichern'}</button>
         <button class="btn" id="cancel">${live ? 'Verwerfen' : 'Abbrechen'}</button>
       </div>
       ${mode === 'template' && state.id ? '<p class="center"><button class="btn danger" id="delete-template">Vorlage löschen</button></p>' : ''}`;
@@ -1639,7 +1639,7 @@ async function renderBody() {
       : ''}
     <h2>Körpergewicht</h2>
     <form class="card" id="bw-form">
-      <div class="row">
+      <div class="row pair">
         <label class="grow">Datum<input type="date" name="date" value="${todayISO()}" required></label>
         <label class="grow">Gewicht (kg)<input name="weight" inputmode="decimal" placeholder="z. B. 80,5" required></label>
       </div>
@@ -1773,7 +1773,17 @@ async function renderBackup() {
 // ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
+// Kein Zoomen mit zwei Fingern: iOS Safari beachtet „user-scalable=no“ im Viewport nicht,
+// deshalb die Zoom-Gesten zusätzlich abfangen.
+function preventZoom() {
+  const stop = (e) => e.preventDefault();
+  document.addEventListener('gesturestart', stop);
+  document.addEventListener('gesturechange', stop);
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, { passive: false });
+}
+
 async function init() {
+  preventZoom();
   // Diagramme lesen ihre Farben beim Zeichnen – nach einem Designwechsel neu zeichnen
   initTheme(() => charts.length && route());
   initTimer(document.getElementById('rest-timer'));

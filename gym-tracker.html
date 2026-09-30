@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Level Up</title>
   <meta name="description" content="Trainings, Fortschritt und Körpergewicht tracken">
   <meta name="theme-color" content="#1f6fd1">
@@ -328,7 +328,7 @@
 
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; touch-action: manipulation; } /* kein Doppeltipp-Zoom */
 body {
   margin: 0;
   font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -413,7 +413,15 @@ textarea { resize: vertical; }
 .icon-btn:hover { background: var(--bg); }
 
 .row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.grow { flex: 1 1 140px; }
+.grow { flex: 1 1 140px; min-width: 0; }
+/* Zwei Felder immer nebeneinander in einer Linie (z. B. Datum + Gewicht) */
+.row.pair { flex-wrap: nowrap; align-items: flex-start; }
+.row.pair input { height: 50px; min-height: 50px; }
+.row.pair > * { flex: 1 1 0; margin-bottom: 0; }
+/* iOS: Datumsfeld sonst höher/breiter als normale Felder und Text zentriert */
+input[type="date"] { -webkit-appearance: none; appearance: none; min-width: 0; text-align: left; line-height: 1.45; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; min-height: 1.45em; }
+input[type="date"]::-webkit-calendar-picker-indicator { margin: 0; }
 
 .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px; }
 @media (min-width: 600px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
@@ -2066,7 +2074,7 @@ function initTheme(onChange) {
 var view = document.getElementById("view");
 var nav = document.getElementById("nav");
 var DRAFT_KEY = "gym-tracker-draft";
-var APP_VERSION = "2026-10-02 · 22 (Bodybuilder-Körpergraph)";
+var APP_VERSION = "2026-10-02 · 23 (Kein Zoomen, saubere Felder)";
 var api = null;
 var user = null;
 var exercises = [];
@@ -2716,7 +2724,7 @@ async function renderEditor(mode, id = null) {
         <label>Notizen<textarea id="w-notes" rows="3" maxlength="2000" placeholder="Wie lief's?">${esc(state2.notes)}</textarea></label>
       </div>` : ""}
       <div class="row">
-        <button class="btn primary grow" id="save">${live ? "Training beenden & speichern" : "Speichern"}</button>
+        <button class="btn primary grow" id="save">${live ? "Beenden & speichern" : "Speichern"}</button>
         <button class="btn" id="cancel">${live ? "Verwerfen" : "Abbrechen"}</button>
       </div>
       ${mode === "template" && state2.id ? '<p class="center"><button class="btn danger" id="delete-template">Vorlage löschen</button></p>' : ""}`;
@@ -3474,7 +3482,7 @@ async function renderBody() {
               ${muscleChips("muscle")}<button class="btn small-btn" type="submit">Speichern</button></form>`).join("")}</div>` : ""}
     <h2>Körpergewicht</h2>
     <form class="card" id="bw-form">
-      <div class="row">
+      <div class="row pair">
         <label class="grow">Datum<input type="date" name="date" value="${todayISO()}" required></label>
         <label class="grow">Gewicht (kg)<input name="weight" inputmode="decimal" placeholder="z. B. 80,5" required></label>
       </div>
@@ -3587,7 +3595,16 @@ async function renderBackup() {
     }
   };
 }
+function preventZoom() {
+  const stop2 = (e) => e.preventDefault();
+  document.addEventListener("gesturestart", stop2);
+  document.addEventListener("gesturechange", stop2);
+  document.addEventListener("touchmove", (e) => {
+    if (e.touches.length > 1 || e.scale && e.scale !== 1) e.preventDefault();
+  }, { passive: false });
+}
 async function init() {
+  preventZoom();
   initTheme(() => charts.length && route());
   initTimer(document.getElementById("rest-timer"));
   initUpdateCheck(APP_VERSION, document.getElementById("update-banner"));

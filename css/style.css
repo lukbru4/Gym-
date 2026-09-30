@@ -301,7 +301,7 @@
 
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; touch-action: manipulation; } /* kein Doppeltipp-Zoom */
 body {
   margin: 0;
   font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -386,7 +386,15 @@ textarea { resize: vertical; }
 .icon-btn:hover { background: var(--bg); }
 
 .row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.grow { flex: 1 1 140px; }
+.grow { flex: 1 1 140px; min-width: 0; }
+/* Zwei Felder immer nebeneinander in einer Linie (z. B. Datum + Gewicht) */
+.row.pair { flex-wrap: nowrap; align-items: flex-start; }
+.row.pair input { height: 50px; min-height: 50px; }
+.row.pair > * { flex: 1 1 0; margin-bottom: 0; }
+/* iOS: Datumsfeld sonst höher/breiter als normale Felder und Text zentriert */
+input[type="date"] { -webkit-appearance: none; appearance: none; min-width: 0; text-align: left; line-height: 1.45; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; min-height: 1.45em; }
+input[type="date"]::-webkit-calendar-picker-indicator { margin: 0; }
 
 .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px; }
 @media (min-width: 600px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
