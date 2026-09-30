@@ -1,5 +1,5 @@
 import { createBackend } from './api.js';
-import { todayISO, weeklySummary, exerciseProgress, personalRecords, setVolume } from './stats.js';
+import { todayISO, weeklySummary, exerciseProgress, personalRecords, setVolume, weekStreak } from './stats.js';
 import { MUSCLES, MUSCLE_NAMES, LEVELS, musclesOf, strengthLevels, bodySvg } from './muscles.js';
 import { REST_OPTIONS, getDefaultRest, setDefaultRest, fmtDuration, startRest, stop as stopRest, initTimer } from './timer.js';
 import { STARTER_TEMPLATES } from './starter-templates.js';
@@ -8,7 +8,7 @@ import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setSchem
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-09-30 · 7 (Farbschemata, Nacht-Violett)';
+const APP_VERSION = '2026-09-30 · 8 (Serie + Körpergraph auf Start)';
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -241,6 +241,8 @@ function renderAuth() {
 async function renderDashboard() {
   const [workouts, sets, weights] = await Promise.all([api.listWorkouts(), api.listSets(), api.listBodyWeights()]);
   const weeks = weeklySummary(workouts, sets, todayISO(), 8);
+  const streak = weekStreak(workouts, todayISO());
+  const levels = strengthLevels(datedSets(workouts, sets), exerciseMap(), todayISO());
   const thisWeek = weeks[weeks.length - 1];
   const lastWeight = weights[weights.length - 1];
 
@@ -249,6 +251,12 @@ async function renderDashboard() {
       ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
          Sichere sie regelmäßig über <a href="#/backup">Backup</a>.</p>`
       : ''}
+    <div class="streak" title="Wochen in Folge mit mindestens einem Training">
+      <span class="streak-label">Serie</span>
+      <span class="streak-value">${FLAME}<strong>${streak}</strong></span>
+      <span class="streak-hint">${streak === 1 ? 'Woche' : 'Wochen'} in Folge mit Training</span>
+    </div>
+    <a class="bodygraph-link" href="#/koerper" aria-label="Körpergraph öffnen">${bodySvg(levels, esc, { interactive: false })}</a>
     <a class="btn primary block big" href="#/workouts">Workout starten</a>
     <h2>Diese Woche</h2>
     <div class="tiles">
@@ -351,6 +359,14 @@ async function renderWorkoutDetail(id) {
     }
   };
 }
+
+// Sätze mit dem Datum ihres Trainings (für Kraft-Stufen und Fortschritt)
+function datedSets(workouts, sets) {
+  const dateOf = new Map(workouts.map((w) => [w.id, w.date]));
+  return sets.map((x) => ({ ...x, date: dateOf.get(x.workout_id) })).filter((x) => x.date);
+}
+
+const FLAME = `<svg class="flame" viewBox="0 0 24 28" aria-hidden="true"><path d="M12 1 C13 6 18 8 20 13 C23 20 18 27 12 27 C6 27 1 22 3 15 C4 11 7 9 7 5 C9 7 10 9 10 12 C12 10 13 6 12 1 Z"/></svg>`;
 
 // Satznummern: Aufwärmsätze heißen "A", Arbeitssätze werden durchgezählt.
 function numberSets(sets) {
@@ -1110,8 +1126,7 @@ function recordsHtml(records) {
 async function renderBody() {
   destroyCharts();
   const [weights, workouts, sets] = await Promise.all([api.listBodyWeights(), api.listWorkouts(), api.listSets()]);
-  const dateOf = new Map(workouts.map((w) => [w.id, w.date]));
-  const dated = sets.map((x) => ({ ...x, date: dateOf.get(x.workout_id) })).filter((x) => x.date);
+  const dated = datedSets(workouts, sets);
   const levels = strengthLevels(dated, exerciseMap(), todayISO());
   const trained = [...levels.entries()].filter(([, r]) => r.level > 0);
   const usedIds = new Set(dated.map((x) => x.exercise_id));

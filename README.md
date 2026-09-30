@@ -34,6 +34,7 @@ Hinweis: Lokale Daten werden beim Umstieg auf die Cloud nicht automatisch übern
 - **Übungsliste.** Gängige Übungen sind vorgegeben, eigene legst du direkt beim Eintragen an.
 - **Notizen.** Zu jedem Training kannst du einen Freitext speichern.
 - **Entwurf.** Ein angefangenes Training bleibt erhalten, wenn du die Seite neu lädst oder schließt.
+- **Serie.** Auf der Startseite stehen die Wochen in Folge mit mindestens einem Training (🔥), darunter der Körpergraph.
 - **Wochenübersicht.** Trainings, Volumen, Cardio-Minuten und aktuelles Körpergewicht, dazu Diagramme der letzten 8 Wochen.
 - **Verlauf.** Alle Trainings mit Detailansicht. Du kannst sie bearbeiten und löschen.
 - **Fortschritt pro Übung.** Das Diagramm zeigt das geschätzte 1RM nach der Epley-Formel und den schwersten Satz, bei Cardio Dauer und Distanz. Alle Werte gibt es auch als Tabelle.

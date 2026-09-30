@@ -47,6 +47,7 @@
   --level-4: #707ee0;
   --level-5: #5a67d3;
   --done: #e6f0fb;
+  --streak: #16a34a;
   --warmup: #b86e00;
   --radius: 14px;
   --nav-h: 64px;
@@ -77,6 +78,7 @@
     --level-4: #707ee0;
     --level-5: #5a67d3;
     --done: #1b2a3d;
+    --streak: #5ee08e;
     --warmup: #eda100;
   }
 }
@@ -105,6 +107,7 @@
   --level-4: #707ee0;
   --level-5: #5a67d3;
   --done: #1b2a3d;
+  --streak: #5ee08e;
   --warmup: #eda100;
 }
 
@@ -623,6 +626,16 @@ form.assign { padding: 10px 0; border-top: 1px solid var(--border); }
 .legend li { display: inline-flex; align-items: center; gap: 6px; }
 .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 
+/* Serie + Körpergraph auf der Startseite */
+.streak { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 12px; }
+.streak-label { font-size: 0.9rem; color: var(--text-secondary); }
+.streak-value { display: flex; align-items: center; gap: 6px; font-size: 1.9rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.streak-hint { font-size: 0.8rem; color: var(--text-secondary); }
+.flame { width: 22px; height: 26px; fill: var(--streak); }
+.bodygraph-link { display: block; margin-bottom: 16px; border-radius: 12px; }
+.bodygraph-link .bodygraph-panel { margin: 0; }
+.bodygraph .muscle.static { cursor: inherit; }
+
 /* Pause-Timer */
 .rest-timer {
   position: fixed; left: 0; right: 0; z-index: 15;
@@ -861,6 +874,17 @@ function personalRecords(sets, exercises2) {
   }
   return [...records.values()].sort((a, b) => a.exercise.localeCompare(b.exercise, "de"));
 }
+function weekStreak(workouts, today) {
+  const weeks = new Set(workouts.map((w) => weekStart(w.date)));
+  let week = weekStart(today);
+  if (!weeks.has(week)) week = addDays(week, -7);
+  let n = 0;
+  while (weeks.has(week)) {
+    n++;
+    week = addDays(week, -7);
+  }
+  return n;
+}
 var isWorkingSet;
 var init_stats = __esm({
   "js/stats.js"() {
@@ -900,11 +924,11 @@ function strengthLevels(sets, exercises2, today, recentDays = 30) {
   }
   return result;
 }
-function figure({ parts, neutral, lines, hair, face }, levels, offsetX, esc2) {
+function figure({ parts, neutral, lines, hair, face }, levels, offsetX, esc2, interactive = true) {
   const shapes = Object.entries(parts).map(([m, svg]) => {
     const r = levels.get(m);
     const title = `${MUSCLE_NAMES.get(m)}: ${r.level ? `Stufe ${r.level}` : "noch nicht trainiert"}`;
-    return `<g class="muscle" data-muscle="${m}" fill="var(--level-${r.level})" tabindex="0" role="img" aria-label="${esc2(title)}"><title>${esc2(title)}</title>${svg}</g>`;
+    return interactive ? `<g class="muscle" data-muscle="${m}" fill="var(--level-${r.level})" tabindex="0" role="img" aria-label="${esc2(title)}"><title>${esc2(title)}</title>${svg}</g>` : `<g class="muscle static" data-muscle="${m}" fill="var(--level-${r.level})">${svg}</g>`;
   }).join("");
   return `<g transform="translate(${offsetX} 0)">
     <g class="body-base">${both(OUTLINE)}${HEAD}</g>
@@ -914,13 +938,13 @@ function figure({ parts, neutral, lines, hair, face }, levels, offsetX, esc2) {
     <g class="body-lines">${lines}</g>
   </g>`;
 }
-function bodySvg(levels, esc2) {
-  return `<div class="bodygraph-panel"><svg class="bodygraph" viewBox="0 0 470 460" role="group" aria-label="Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten">
-    ${figure({ parts: FRONT, neutral: FRONT_NEUTRAL, lines: FRONT_LINES, hair: HAIR_FRONT, face: FACE }, levels, 0, esc2)}
-    ${figure({ parts: BACK, neutral: BACK_NEUTRAL, lines: BACK_LINES, hair: HAIR_BACK }, levels, 270, esc2)}
+function bodySvg(levels, esc2, { interactive = true } = {}) {
+  return `<div class="bodygraph-panel"><svg class="bodygraph" viewBox="0 -4 470 464" role="group" aria-label="Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten">
+    ${figure({ parts: FRONT, neutral: FRONT_NEUTRAL, lines: FRONT_LINES, hair: HAIR_FRONT, face: FACE }, levels, 0, esc2, interactive)}
+    ${figure({ parts: BACK, neutral: BACK_NEUTRAL, lines: BACK_LINES, hair: HAIR_BACK }, levels, 270, esc2, interactive)}
   </svg></div>`;
 }
-var MUSCLES, MUSCLE_NAMES, DEFAULT_MUSCLES, musclesOf, LEVELS, levelFor, MIRROR, both, OUTLINE, HEAD, HAIR_FRONT, HAIR_BACK, FACE, DELTOID, FOREARMS, FRONT_NEUTRAL, BACK_NEUTRAL, FRONT, FRONT_LINES, BACK, BACK_LINES;
+var MUSCLES, MUSCLE_NAMES, DEFAULT_MUSCLES, musclesOf, LEVELS, levelFor, MIRROR, both, OUTLINE, HEAD, COWLICK, HAIR_FRONT, HAIR_BACK, FACE, DELTOID, FOREARMS, FRONT_NEUTRAL, BACK_NEUTRAL, FRONT, FRONT_LINES, BACK, BACK_LINES;
 var init_muscles = __esm({
   "js/muscles.js"() {
     init_stats();
@@ -984,21 +1008,25 @@ var init_muscles = __esm({
   L13 266 C13 272 13 278 14 281 C15 283 17 283 17 280 L18 270 C19 276 20 280 21 282
   C22 284 24 283 24 280 L23 268 C24 272 26 275 27 276 C29 277 30 275 29 273 C28 266 27 258 27 250
   C28 246 28 242 28 240 C31 226 34 212 37 200 C38 194 39 190 40 186 C43 172 46 156 50 142
-  C52 160 56 180 62 200 C64 212 64 222 62 232 C58 246 54 262 55 280 C56 302 60 320 66 334
+  C52 160 56 180 62 200 C64 212 64 222 62 232 C56 246 51 264 52 284 C53 306 58 322 65 336
   C67 342 66 350 64 356 C58 370 58 390 64 404 C67 412 69 418 69 424
-  C62 432 58 440 60 446 C62 452 80 452 94 452 C98 452 99 446 97 440 C95 432 94 424 94 418
+  C60 430 54 440 55 448 C56 454 70 455 94 455 C99 455 100 450 99 444 C97 434 94 426 94 418
   C94 408 96 392 97 380 C98 370 96 362 95 356 C95 350 96 342 97 336 C99 316 100 290 100 262
   L101 262 Z`;
-    HEAD = '<ellipse cx="100" cy="50" rx="26" ry="31"/><ellipse cx="74" cy="54" rx="6" ry="9"/><ellipse cx="126" cy="54" rx="6" ry="9"/>';
-    HAIR_FRONT = `<path d="M75 48 C69 22 84 9 100 9 C118 9 133 22 126 48 C124 39 118 32 110 30
-  C108 34 104 37 99 35 C95 39 89 39 87 35 C82 37 78 41 75 48 Z M97 11 C97 5 102 3 106 7 C103 7 100 8 97 11 Z"/>`;
-    HAIR_BACK = `<path d="M73 56 C67 26 84 9 100 9 C118 9 135 26 127 56 C125 68 116 78 108 81 L92 81
-  C84 78 75 68 73 56 Z M97 11 C97 5 102 3 106 7 C103 7 100 8 97 11 Z"/>`;
-    FACE = `<path class="brow" d="M85 41 Q91 37.5 96 40.5 M104 40.5 Q109 37.5 115 41"/>
-  <ellipse cx="91" cy="50" rx="3.6" ry="4.4"/><ellipse cx="109" cy="50" rx="3.6" ry="4.4"/>
-  <circle class="shine" cx="92.2" cy="48.6" r="1.2"/><circle class="shine" cx="110.2" cy="48.6" r="1.2"/>
-  <path class="brow" d="M100 54 Q98.5 58 100.5 59"/>
-  <path d="M89 63 Q100 74 111 63 Q100 66.5 89 63 Z"/><path class="shine" d="M91.5 64 Q100 66.8 108.5 64 L108 65.6 Q100 68.4 92 65.6 Z"/>`;
+    HEAD = '<ellipse cx="100" cy="46" rx="29" ry="33"/><ellipse cx="71" cy="52" rx="6.5" ry="9.5"/><ellipse cx="129" cy="52" rx="6.5" ry="9.5"/>';
+    COWLICK = "M99 8 C98 1 104 -2 109 2 C105 2 102 4 99 8 Z";
+    HAIR_FRONT = `<path d="M71 46 C65 18 83 4 101 5 C121 5 137 19 130 46 C128 37 124 31 118 28
+  C117 33 112 36 107 32 C104 37 97 38 94 33 C90 36 84 36 82 31 C77 34 73 39 71 46 Z
+  M71 46 C69 52 70 58 72 61 C72 55 73 50 75 46 Z M129 46 C131 52 130 58 128 61 C128 55 127 50 125 46 Z ${COWLICK}"/>`;
+    HAIR_BACK = `<path d="M68 56 C62 22 82 4 100 4 C120 4 140 22 132 56 C130 70 119 80 109 83 L91 83
+  C81 80 70 70 68 56 Z ${COWLICK}"/>`;
+    FACE = `<path class="brow" d="M82 39 Q89 35 96 38.5 M104 38.5 Q111 35 118 39"/>
+  <ellipse class="shine" cx="89" cy="49" rx="5.2" ry="5.8"/><ellipse class="shine" cx="111" cy="49" rx="5.2" ry="5.8"/>
+  <ellipse cx="90" cy="50" rx="3.2" ry="3.8"/><ellipse cx="110" cy="50" rx="3.2" ry="3.8"/>
+  <circle class="shine" cx="91.2" cy="48.6" r="1.1"/><circle class="shine" cx="111.2" cy="48.6" r="1.1"/>
+  <path class="brow" d="M100 55 Q98 60 101 61"/>
+  <path d="M87 64 Q100 79 113 64 Q100 68.5 87 64 Z"/>
+  <path class="shine" d="M89.5 65 Q100 69 110.5 65 L110 67.2 Q100 71.4 90 67.2 Z"/>`;
     DELTOID = "M56 104 C40 106 28 116 26 132 C25 142 28 150 33 156 C38 142 44 128 52 118 C58 112 60 106 56 104 Z";
     FOREARMS = [
       "M22 192 C17 206 15 222 15 236 C19 226 24 212 28 198 C27 194 24 191 22 192 Z",
@@ -1511,7 +1539,7 @@ function initTheme(onChange) {
 var view = document.getElementById("view");
 var nav = document.getElementById("nav");
 var DRAFT_KEY = "gym-tracker-draft";
-var APP_VERSION = "2026-09-30 · 7 (Farbschemata, Nacht-Violett)";
+var APP_VERSION = "2026-09-30 · 8 (Serie + Körpergraph auf Start)";
 var api = null;
 var user = null;
 var exercises = [];
@@ -1708,11 +1736,19 @@ function renderAuth() {
 async function renderDashboard() {
   const [workouts, sets, weights] = await Promise.all([api.listWorkouts(), api.listSets(), api.listBodyWeights()]);
   const weeks = weeklySummary(workouts, sets, todayISO(), 8);
+  const streak = weekStreak(workouts, todayISO());
+  const levels = strengthLevels(datedSets(workouts, sets), exerciseMap(), todayISO());
   const thisWeek = weeks[weeks.length - 1];
   const lastWeight = weights[weights.length - 1];
   view.innerHTML = `
     ${api.mode === "local" ? `<p class="notice small">Lokaler Modus: Deine Daten liegen nur in diesem Browser.
          Sichere sie regelmäßig über <a href="#/backup">Backup</a>.</p>` : ""}
+    <div class="streak" title="Wochen in Folge mit mindestens einem Training">
+      <span class="streak-label">Serie</span>
+      <span class="streak-value">${FLAME}<strong>${streak}</strong></span>
+      <span class="streak-hint">${streak === 1 ? "Woche" : "Wochen"} in Folge mit Training</span>
+    </div>
+    <a class="bodygraph-link" href="#/koerper" aria-label="Körpergraph öffnen">${bodySvg(levels, esc, { interactive: false })}</a>
     <a class="btn primary block big" href="#/workouts">Workout starten</a>
     <h2>Diese Woche</h2>
     <div class="tiles">
@@ -1799,6 +1835,11 @@ async function renderWorkoutDetail(id) {
     }
   };
 }
+function datedSets(workouts, sets) {
+  const dateOf = new Map(workouts.map((w) => [w.id, w.date]));
+  return sets.map((x) => ({ ...x, date: dateOf.get(x.workout_id) })).filter((x) => x.date);
+}
+var FLAME = `<svg class="flame" viewBox="0 0 24 28" aria-hidden="true"><path d="M12 1 C13 6 18 8 20 13 C23 20 18 27 12 27 C6 27 1 22 3 15 C4 11 7 9 7 5 C9 7 10 9 10 12 C12 10 13 6 12 1 Z"/></svg>`;
 function numberSets(sets) {
   let n = 0;
   return sets.map((s) => [s, s.is_warmup ? "A" : String(++n)]);
@@ -2446,8 +2487,7 @@ function recordsHtml(records) {
 async function renderBody() {
   destroyCharts();
   const [weights, workouts, sets] = await Promise.all([api.listBodyWeights(), api.listWorkouts(), api.listSets()]);
-  const dateOf = new Map(workouts.map((w) => [w.id, w.date]));
-  const dated = sets.map((x) => ({ ...x, date: dateOf.get(x.workout_id) })).filter((x) => x.date);
+  const dated = datedSets(workouts, sets);
   const levels = strengthLevels(dated, exerciseMap(), todayISO());
   const trained = [...levels.entries()].filter(([, r]) => r.level > 0);
   const usedIds = new Set(dated.map((x) => x.exercise_id));

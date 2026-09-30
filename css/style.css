@@ -24,6 +24,7 @@
   --level-4: #707ee0;
   --level-5: #5a67d3;
   --done: #e6f0fb;
+  --streak: #16a34a;
   --warmup: #b86e00;
   --radius: 14px;
   --nav-h: 64px;
@@ -54,6 +55,7 @@
     --level-4: #707ee0;
     --level-5: #5a67d3;
     --done: #1b2a3d;
+    --streak: #5ee08e;
     --warmup: #eda100;
   }
 }
@@ -82,6 +84,7 @@
   --level-4: #707ee0;
   --level-5: #5a67d3;
   --done: #1b2a3d;
+  --streak: #5ee08e;
   --warmup: #eda100;
 }
 
@@ -599,6 +602,16 @@ form.assign { padding: 10px 0; border-top: 1px solid var(--border); }
 .legend { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: var(--text-secondary); }
 .legend li { display: inline-flex; align-items: center; gap: 6px; }
 .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* Serie + Körpergraph auf der Startseite */
+.streak { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 12px; }
+.streak-label { font-size: 0.9rem; color: var(--text-secondary); }
+.streak-value { display: flex; align-items: center; gap: 6px; font-size: 1.9rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.streak-hint { font-size: 0.8rem; color: var(--text-secondary); }
+.flame { width: 22px; height: 26px; fill: var(--streak); }
+.bodygraph-link { display: block; margin-bottom: 16px; border-radius: 12px; }
+.bodygraph-link .bodygraph-panel { margin: 0; }
+.bodygraph .muscle.static { cursor: inherit; }
 
 /* Pause-Timer */
 .rest-timer {

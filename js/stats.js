@@ -141,3 +141,18 @@ export function personalRecords(sets, exercises) {
   }
   return [...records.values()].sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'));
 }
+
+// Serie: Wochen in Folge (Mo–So) mit mindestens einem Training.
+// Die laufende Woche zählt mit, sobald darin trainiert wurde; ohne Training bricht sie
+// die Serie noch nicht ab (die Woche ist ja noch nicht vorbei).
+export function weekStreak(workouts, today) {
+  const weeks = new Set(workouts.map((w) => weekStart(w.date)));
+  let week = weekStart(today);
+  if (!weeks.has(week)) week = addDays(week, -7);
+  let n = 0;
+  while (weeks.has(week)) {
+    n++;
+    week = addDays(week, -7);
+  }
+  return n;
+}

@@ -113,22 +113,26 @@ const OUTLINE = `M101 70 L90 70 C90 84 89 90 88 94 C80 100 66 104 56 104 C40 106
   L13 266 C13 272 13 278 14 281 C15 283 17 283 17 280 L18 270 C19 276 20 280 21 282
   C22 284 24 283 24 280 L23 268 C24 272 26 275 27 276 C29 277 30 275 29 273 C28 266 27 258 27 250
   C28 246 28 242 28 240 C31 226 34 212 37 200 C38 194 39 190 40 186 C43 172 46 156 50 142
-  C52 160 56 180 62 200 C64 212 64 222 62 232 C58 246 54 262 55 280 C56 302 60 320 66 334
+  C52 160 56 180 62 200 C64 212 64 222 62 232 C56 246 51 264 52 284 C53 306 58 322 65 336
   C67 342 66 350 64 356 C58 370 58 390 64 404 C67 412 69 418 69 424
-  C62 432 58 440 60 446 C62 452 80 452 94 452 C98 452 99 446 97 440 C95 432 94 424 94 418
+  C60 430 54 440 55 448 C56 454 70 455 94 455 C99 455 100 450 99 444 C97 434 94 426 94 418
   C94 408 96 392 97 380 C98 370 96 362 95 356 C95 350 96 342 97 336 C99 316 100 290 100 262
   L101 262 Z`;
 
-const HEAD = '<ellipse cx="100" cy="50" rx="26" ry="31"/><ellipse cx="74" cy="54" rx="6" ry="9"/><ellipse cx="126" cy="54" rx="6" ry="9"/>';
-const HAIR_FRONT = `<path d="M75 48 C69 22 84 9 100 9 C118 9 133 22 126 48 C124 39 118 32 110 30
-  C108 34 104 37 99 35 C95 39 89 39 87 35 C82 37 78 41 75 48 Z M97 11 C97 5 102 3 106 7 C103 7 100 8 97 11 Z"/>`;
-const HAIR_BACK = `<path d="M73 56 C67 26 84 9 100 9 C118 9 135 26 127 56 C125 68 116 78 108 81 L92 81
-  C84 78 75 68 73 56 Z M97 11 C97 5 102 3 106 7 C103 7 100 8 97 11 Z"/>`;
-const FACE = `<path class="brow" d="M85 41 Q91 37.5 96 40.5 M104 40.5 Q109 37.5 115 41"/>
-  <ellipse cx="91" cy="50" rx="3.6" ry="4.4"/><ellipse cx="109" cy="50" rx="3.6" ry="4.4"/>
-  <circle class="shine" cx="92.2" cy="48.6" r="1.2"/><circle class="shine" cx="110.2" cy="48.6" r="1.2"/>
-  <path class="brow" d="M100 54 Q98.5 58 100.5 59"/>
-  <path d="M89 63 Q100 74 111 63 Q100 66.5 89 63 Z"/><path class="shine" d="M91.5 64 Q100 66.8 108.5 64 L108 65.6 Q100 68.4 92 65.6 Z"/>`;
+const HEAD = '<ellipse cx="100" cy="46" rx="29" ry="33"/><ellipse cx="71" cy="52" rx="6.5" ry="9.5"/><ellipse cx="129" cy="52" rx="6.5" ry="9.5"/>';
+const COWLICK = 'M99 8 C98 1 104 -2 109 2 C105 2 102 4 99 8 Z';
+const HAIR_FRONT = `<path d="M71 46 C65 18 83 4 101 5 C121 5 137 19 130 46 C128 37 124 31 118 28
+  C117 33 112 36 107 32 C104 37 97 38 94 33 C90 36 84 36 82 31 C77 34 73 39 71 46 Z
+  M71 46 C69 52 70 58 72 61 C72 55 73 50 75 46 Z M129 46 C131 52 130 58 128 61 C128 55 127 50 125 46 Z ${COWLICK}"/>`;
+const HAIR_BACK = `<path d="M68 56 C62 22 82 4 100 4 C120 4 140 22 132 56 C130 70 119 80 109 83 L91 83
+  C81 80 70 70 68 56 Z ${COWLICK}"/>`;
+const FACE = `<path class="brow" d="M82 39 Q89 35 96 38.5 M104 38.5 Q111 35 118 39"/>
+  <ellipse class="shine" cx="89" cy="49" rx="5.2" ry="5.8"/><ellipse class="shine" cx="111" cy="49" rx="5.2" ry="5.8"/>
+  <ellipse cx="90" cy="50" rx="3.2" ry="3.8"/><ellipse cx="110" cy="50" rx="3.2" ry="3.8"/>
+  <circle class="shine" cx="91.2" cy="48.6" r="1.1"/><circle class="shine" cx="111.2" cy="48.6" r="1.1"/>
+  <path class="brow" d="M100 55 Q98 60 101 61"/>
+  <path d="M87 64 Q100 79 113 64 Q100 68.5 87 64 Z"/>
+  <path class="shine" d="M89.5 65 Q100 69 110.5 65 L110 67.2 Q100 71.4 90 67.2 Z"/>`;
 
 const DELTOID = 'M56 104 C40 106 28 116 26 132 C25 142 28 150 33 156 C38 142 44 128 52 118 C58 112 60 106 56 104 Z';
 const FOREARMS = [
@@ -197,12 +201,14 @@ const BACK = {
 };
 const BACK_LINES = both('M101 84 L101 262');
 
-function figure({ parts, neutral, lines, hair, face }, levels, offsetX, esc) {
+function figure({ parts, neutral, lines, hair, face }, levels, offsetX, esc, interactive = true) {
   const shapes = Object.entries(parts)
     .map(([m, svg]) => {
       const r = levels.get(m);
       const title = `${MUSCLE_NAMES.get(m)}: ${r.level ? `Stufe ${r.level}` : 'noch nicht trainiert'}`;
-      return `<g class="muscle" data-muscle="${m}" fill="var(--level-${r.level})" tabindex="0" role="img" aria-label="${esc(title)}"><title>${esc(title)}</title>${svg}</g>`;
+      return interactive
+        ? `<g class="muscle" data-muscle="${m}" fill="var(--level-${r.level})" tabindex="0" role="img" aria-label="${esc(title)}"><title>${esc(title)}</title>${svg}</g>`
+        : `<g class="muscle static" data-muscle="${m}" fill="var(--level-${r.level})">${svg}</g>`;
     })
     .join('');
   return `<g transform="translate(${offsetX} 0)">
@@ -214,9 +220,9 @@ function figure({ parts, neutral, lines, hair, face }, levels, offsetX, esc) {
   </g>`;
 }
 
-export function bodySvg(levels, esc) {
-  return `<div class="bodygraph-panel"><svg class="bodygraph" viewBox="0 0 470 460" role="group" aria-label="Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten">
-    ${figure({ parts: FRONT, neutral: FRONT_NEUTRAL, lines: FRONT_LINES, hair: HAIR_FRONT, face: FACE }, levels, 0, esc)}
-    ${figure({ parts: BACK, neutral: BACK_NEUTRAL, lines: BACK_LINES, hair: HAIR_BACK }, levels, 270, esc)}
+export function bodySvg(levels, esc, { interactive = true } = {}) {
+  return `<div class="bodygraph-panel"><svg class="bodygraph" viewBox="0 -4 470 464" role="group" aria-label="Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten">
+    ${figure({ parts: FRONT, neutral: FRONT_NEUTRAL, lines: FRONT_LINES, hair: HAIR_FRONT, face: FACE }, levels, 0, esc, interactive)}
+    ${figure({ parts: BACK, neutral: BACK_NEUTRAL, lines: BACK_LINES, hair: HAIR_BACK }, levels, 270, esc, interactive)}
   </svg></div>`;
 }

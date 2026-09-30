@@ -97,3 +97,20 @@ test('Aufwärmsätze zählen nicht für Volumen und Rekorde', () => {
   );
   assert.deepEqual(recs[0].heaviest, { weight: 50, reps: 5, date: '2026-09-22' });
 });
+
+test('weekStreak zählt Wochen in Folge mit Training', async () => {
+  const { weekStreak } = await import('../js/stats.js');
+  const w = (...dates) => dates.map((date, i) => ({ id: i, date }));
+  // heute: Freitag 25.09.2026 (Woche ab 21.09.)
+  assert.equal(weekStreak(w(), '2026-09-25'), 0);
+  assert.equal(weekStreak(w('2026-09-22'), '2026-09-25'), 1);
+  assert.equal(weekStreak(w('2026-09-22', '2026-09-15', '2026-09-08'), '2026-09-25'), 3);
+  // Lücke in der Woche ab 07.09. beendet die Serie
+  assert.equal(weekStreak(w('2026-09-22', '2026-09-14', '2026-08-31'), '2026-09-25'), 2);
+  // laufende Woche noch ohne Training: Serie der Vorwochen bleibt stehen
+  assert.equal(weekStreak(w('2026-09-18', '2026-09-10'), '2026-09-25'), 2);
+  // letzte Woche ausgelassen: Serie ist 0
+  assert.equal(weekStreak(w('2026-09-10'), '2026-09-25'), 0);
+  // mehrere Trainings in einer Woche zählen als eine Woche
+  assert.equal(weekStreak(w('2026-09-21', '2026-09-23', '2026-09-25'), '2026-09-25'), 1);
+});
