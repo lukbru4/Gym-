@@ -10,12 +10,12 @@
     <script>
     // Design vor dem ersten Zeichnen setzen (gleiche Regel wie js/theme.js)
     try {
-      document.documentElement.dataset.scheme = localStorage.getItem('gym-tracker-scheme') || 'violett';
+      document.documentElement.dataset.scheme = localStorage.getItem('gym-tracker-scheme') || 'energie';
       var m = localStorage.getItem('gym-tracker-theme') || 'time', h = new Date().getHours();
       if (m === 'time') document.documentElement.dataset.theme = h >= 18 || h < 6 ? 'dark' : 'light';
       else if (m === 'light' || m === 'dark') document.documentElement.dataset.theme = m;
     } catch (e) {
-      document.documentElement.dataset.scheme = 'violett';
+      document.documentElement.dataset.scheme = 'energie';
       var hh = new Date().getHours();
       document.documentElement.dataset.theme = hh >= 18 || hh < 6 ? 'dark' : 'light';
     }
@@ -1517,13 +1517,13 @@ function initUpdateCheck(currentVersion, banner) {
 var KEY = "gym-tracker-theme";
 var SCHEME_KEY = "gym-tracker-scheme";
 var SCHEMES = [
-  ["violett", "Nacht-Violett (wie deine alte App)"],
   ["energie", "Energie (Schwarz + Neon-Grün)"],
+  ["violett", "Nacht-Violett (wie deine alte App)"],
   ["ozean", "Ozean (Petrol)"],
   ["glut", "Glut (warmes Orange)"],
   ["klassisch", "Klassisch"]
 ];
-var DEFAULT_SCHEME = "violett";
+var DEFAULT_SCHEME = "energie";
 function getScheme() {
   try {
     const s = localStorage.getItem(SCHEME_KEY);
@@ -1592,7 +1592,7 @@ function initTheme(onChange) {
 var view = document.getElementById("view");
 var nav = document.getElementById("nav");
 var DRAFT_KEY = "gym-tracker-draft";
-var APP_VERSION = "2026-09-30 · 9 (Update-Knopf)";
+var APP_VERSION = "2026-09-30 · 10 (Design Energie)";
 var api = null;
 var user = null;
 var exercises = [];

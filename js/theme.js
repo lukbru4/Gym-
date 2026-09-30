@@ -5,13 +5,13 @@
 const KEY = 'gym-tracker-theme';
 const SCHEME_KEY = 'gym-tracker-scheme';
 export const SCHEMES = [
-  ['violett', 'Nacht-Violett (wie deine alte App)'],
   ['energie', 'Energie (Schwarz + Neon-Grün)'],
+  ['violett', 'Nacht-Violett (wie deine alte App)'],
   ['ozean', 'Ozean (Petrol)'],
   ['glut', 'Glut (warmes Orange)'],
   ['klassisch', 'Klassisch'],
 ];
-export const DEFAULT_SCHEME = 'violett';
+export const DEFAULT_SCHEME = 'energie';
 
 export function getScheme() {
   try {

@@ -40,7 +40,7 @@ Hinweis: Lokale Daten werden beim Umstieg auf die Cloud nicht automatisch übern
 - **Fortschritt pro Übung.** Das Diagramm zeigt das geschätzte 1RM nach der Epley-Formel und den schwersten Satz, bei Cardio Dauer und Distanz. Alle Werte gibt es auch als Tabelle.
 - **Persönliche Rekorde.** Pro Übung: schwerster Satz, bestes geschätztes 1RM und meistes Volumen in einem Training. Bei Cardio: längste Dauer und weiteste Distanz.
 - **Körpergewicht.** Ein Eintrag pro Tag, mit Verlaufsdiagramm.
-- **Farbschemata.** Standard ist „Nacht-Violett“ im Stil deiner bisherigen App. Außerdem gibt es Energie (Schwarz + Neon-Grün), Ozean (Petrol), Glut (Orange) und Klassisch, einstellbar unter Workouts → Farbschema.
+- **Farbschemata.** Standard ist „Energie“ (Schwarz + Neon-Grün). Außerdem gibt es Nacht-Violett im Stil deiner bisherigen App, Ozean (Petrol), Glut (Orange) und Klassisch, einstellbar unter Workouts → Farbschema.
 - **Hell- und Dunkelmodus.** Von 18:00 bis 6:00 Uhr ist die App dunkel, tagsüber hell. Unter Workouts → Design kannst du stattdessen „Wie Gerät“, „Immer hell“ oder „Immer dunkel“ wählen.
 
 **Technik:** HTML, CSS und JavaScript ohne Build-Schritt. Für Login und Datenbank nutzt die App [Supabase](https://supabase.com), für die Diagramme [Chart.js](https://www.chartjs.org).

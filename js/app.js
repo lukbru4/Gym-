@@ -9,7 +9,7 @@ import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setSchem
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-09-30 · 9 (Update-Knopf)'; // muss zu version.json passen (npm run build)
+const APP_VERSION = '2026-09-30 · 10 (Design Energie)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
