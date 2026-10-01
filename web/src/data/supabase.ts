@@ -1,5 +1,6 @@
 // Cloud-Speicher über Supabase (Login + Postgres mit Row Level Security).
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { TERMS_VERSION } from '../lib/legal';
 import { publicUrl } from '../lib/platform';
 import type { BodyWeight, Exercise, Template, User, Workout, WorkoutSet } from '../lib/types';
 import type { Backend } from './backend';
@@ -42,7 +43,12 @@ function backend(supabase: SupabaseClient): Backend {
     signIn: async (email, password) => check<unknown>(await supabase.auth.signInWithPassword({ email, password })),
     signUp: async (email, password) =>
       check<{ session: unknown }>(
-        await supabase.auth.signUp({ email, password, options: { emailRedirectTo: publicUrl() } }),
+        await supabase.auth.signUp({
+          email,
+          password,
+          // Zustimmung zu Nutzungsbedingungen, Datenschutz und Gesundheitsdaten (Art. 9 DSGVO) festhalten
+          options: { emailRedirectTo: publicUrl(), data: { terms_version: TERMS_VERSION, consent_at: new Date().toISOString() } },
+        }),
       ),
     signOut: () => supabase.auth.signOut(),
     resetPassword: async (email) => {

@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
 import { PasswordInput } from '../components/PasswordInput';
 import { authErrorMessage } from '../lib/authErrors';
+import { legalUrl } from '../lib/legal';
 
 type Mode = 'login' | 'signup' | 'reset';
 
@@ -63,6 +64,17 @@ export function Auth() {
             <PasswordInput name="password" minLength={6} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
           </label>
         )}
+        {mode === 'signup' && (
+          <label className="consent">
+            <input type="checkbox" name="consent" id="consent" required />
+            <span>
+              Ich akzeptiere die{' '}
+              <a href={legalUrl('nutzungsbedingungen')} target="_blank" rel="noopener">Nutzungsbedingungen</a> und habe die{' '}
+              <a href={legalUrl('datenschutz')} target="_blank" rel="noopener">Datenschutzerklärung</a> gelesen. Ich willige ausdrücklich ein, dass meine
+              Trainings- und Körperdaten (Gesundheitsdaten) für die App gespeichert werden. Widerruf jederzeit durch Löschen des Kontos.
+            </span>
+          </label>
+        )}
         <button className="btn primary block" type="submit" disabled={busy}>
           {button}
         </button>
@@ -78,7 +90,18 @@ export function Auth() {
           {mode === 'login' ? 'Noch kein Konto? Registrieren' : 'Zurück zur Anmeldung'}
         </button>
       </p>
+      <LegalLinks />
     </div>
+  );
+}
+
+export function LegalLinks() {
+  return (
+    <p className="legal-links muted small center">
+      <a href={legalUrl('datenschutz')} target="_blank" rel="noopener">Datenschutz</a> ·{' '}
+      <a href={legalUrl('nutzungsbedingungen')} target="_blank" rel="noopener">Nutzungsbedingungen</a> ·{' '}
+      <a href={legalUrl('impressum')} target="_blank" rel="noopener">Impressum</a>
+    </p>
   );
 }
 

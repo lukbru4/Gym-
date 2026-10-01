@@ -1,6 +1,7 @@
 // Konto & Einstellungen sowie Backup (nur lokaler Modus).
 import { useState, type ChangeEvent } from 'react';
 import { useAsync } from '../app/useAsync';
+import { LegalLinks } from './Auth';
 import type { Visibility } from '../data/social';
 import { useApp } from '../app/context';
 import { displayName, setDisplayName } from '../app/profile';
@@ -189,6 +190,10 @@ export function Account() {
       <div className="card">
         <h3>Daten</h3>
         <a className="btn block" href="#/backup">Backup</a>
+      </div>
+      <div className="card" id="legal">
+        <h3>Rechtliches</h3>
+        <LegalLinks />
       </div>
     </>
   );
