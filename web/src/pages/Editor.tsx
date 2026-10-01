@@ -249,8 +249,13 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
       <div className="editor-head">
         <h2>{title}</h2>
         {live && (
-          <span className="muted" id="elapsed" aria-label="Trainingsdauer">
-            {fmtDuration((Date.now() - state.started_at) / 1000)}
+          <span className="editor-head-right">
+            <span className="muted" id="elapsed" aria-label="Trainingsdauer">
+              {fmtDuration((Date.now() - state.started_at) / 1000)}
+            </span>
+            <button type="button" className="btn small-btn" id="minimize" onClick={() => navigate('#/')} title="Training läuft weiter – unten zurückkehren">
+              ⌄ Minimieren
+            </button>
           </span>
         )}
       </div>

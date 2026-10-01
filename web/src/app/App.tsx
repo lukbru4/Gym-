@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { BottomNav, DbUpdateBanner, Header, SubNav, UpdateBanner } from '../components/Chrome';
 import { PreviewBar } from '../components/PreviewBar';
+import { WorkoutBar } from '../components/WorkoutBar';
 import { RestTimer } from '../components/RestTimer';
 import type { Backend } from '../data/backend';
 import { createBackend } from '../data/api';
@@ -111,6 +112,7 @@ function Shell() {
       <main id="view" className="container" key={hash}>
         {page}
       </main>
+      <WorkoutBar />
       <BottomNav />
       <RestTimer />
       <PreviewBar />

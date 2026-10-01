@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../app/context';
 import { displayName } from '../app/profile';
-import { sectionOf, useHash } from '../app/router';
+import { sectionOf, useHash, type Section } from '../app/router';
+import { hasDraft } from '../lib/editor';
+import { NavIcon, type NavIconId } from './NavIcons';
 import type { Game } from '../app/game';
 import { SCHEMA_VERSION } from '../data/config';
 import { useCosmetics } from '../lib/cosmetics';
@@ -111,24 +113,42 @@ export function SubNav() {
   );
 }
 
-const NAV: [string, string, string, string][] = [
-  ['#/workouts', 'workouts', '🏋️', 'Workout'],
-  ['#/', 'home', '🏠', 'Home'],
-  ['#/raenge', 'raenge', '🏅', 'Ränge'],
-  ['#/freunde', 'freunde', '👥', 'Freunde'],
-  ['#/profil', 'profil', '👤', 'Profil'],
+// Aufbau: Home · Ränge · [Workout-Knopf in der Mitte] · Freunde · Profil.
+// Die aktive Seite wird breiter und zeigt ihren Namen; die übrigen zeigen nur das Symbol.
+const NAV_LEFT: [string, Section, NavIconId, string][] = [
+  ['#/', 'home', 'home', 'Home'],
+  ['#/raenge', 'raenge', 'raenge', 'Ränge'],
+];
+const NAV_RIGHT: [string, Section, NavIconId, string][] = [
+  ['#/freunde', 'freunde', 'freunde', 'Freunde'],
+  ['#/profil', 'profil', 'profil', 'Profil'],
 ];
 
 export function BottomNav() {
-  const section = sectionOf(useHash());
+  const hash = useHash();
+  const section = sectionOf(hash);
+  const running = hasDraft();
+  const item = ([href, id, icon, label]: [string, Section, NavIconId, string]) => (
+    <a key={id} href={href} data-section={id} className={`nav-tab${section === id ? ' active' : ''}`} aria-current={section === id ? 'page' : undefined}>
+      <span className="nav-pill">
+        <NavIcon id={icon} />
+        <span className="nav-label">{label}</span>
+      </span>
+    </a>
+  );
   return (
-    <nav id="nav" className="bottom-nav">
-      {NAV.map(([href, id, icon, label]) => (
-        <a key={id} href={href} data-section={id} className={section === id ? 'active' : ''}>
-          <span aria-hidden="true">{icon}</span>
-          {label}
-        </a>
-      ))}
+    <nav id="nav" className="bottom-nav" aria-label="Hauptnavigation">
+      <div className="nav-group">{NAV_LEFT.map(item)}</div>
+      <a
+        href={running ? '#/neu' : '#/workouts'}
+        data-section="workouts"
+        className={`nav-start${section === 'workouts' ? ' active' : ''}${running ? ' running' : ''}`}
+        aria-label={running ? 'Laufendes Training öffnen' : 'Workout starten'}
+      >
+        <span className="nav-fab"><NavIcon id="workout" /></span>
+        <span className="nav-start-label">Workout</span>
+      </a>
+      <div className="nav-group">{NAV_RIGHT.map(item)}</div>
     </nav>
   );
 }

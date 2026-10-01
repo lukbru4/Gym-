@@ -1,4 +1,4 @@
-// Home: Umschalter „Mein Feed | Freunde“, Begrüßung mit Rückblick, laufendes Training, Aufgaben, Körpergraph, Wochenstatistik.
+// Home: Umschalter „Mein Feed | Freunde“, Begrüßung mit Rückblick (laufendes Training: Zeile über der Leiste), Aufgaben, Körpergraph, Wochenstatistik.
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
@@ -8,8 +8,8 @@ import { CreditsRules, LoadError, Loading, QuestRows, WorkoutList } from '../com
 import { ChartView } from '../components/ChartView';
 import { RecapCard } from '../components/Recap';
 import { migrateToCloud, migrationDone, readLocalData } from '../data/migrate';
-import { datedSets, loadDraft } from '../lib/editor';
-import { fmt, fmtDuration, fmtShortDate, plural } from '../lib/format';
+import { datedSets } from '../lib/editor';
+import { fmt, fmtShortDate, plural } from '../lib/format';
 import { strengthLevels } from '../lib/muscles';
 import { todayISO, weeklySummary } from '../lib/stats';
 import { APP_VERSION } from '../version';
@@ -76,24 +76,12 @@ export function Home() {
   const levels = strengthLevels(datedSets(g.workouts, g.sets), exerciseMap(), today);
   const thisWeek = weeks[weeks.length - 1];
   const lastWeight = weights.data[weights.data.length - 1];
-  const draft = loadDraft();
   const labels = weeks.map((w) => fmtShortDate(w.start));
 
   return (
     <>
       <HomeTabs active="mine" />
       <RecapCard workouts={g.workouts} sets={g.sets} today={today} />
-      {draft?.blocks.length ? (
-        <a className="card highlight resume-card" href="#/neu">
-          <div>
-            <strong>Laufendes Training{draft.name ? `: ${draft.name}` : ''}</strong>
-            <span className="muted small">
-              Gestartet vor {fmtDuration((Date.now() - draft.started_at) / 1000)} · {plural(draft.blocks.length, 'Übung', 'Übungen')}
-            </span>
-          </div>
-          <span className="btn primary">Fortsetzen</span>
-        </a>
-      ) : null}
       <MigrateCard />
       {api.mode === 'local' && (
         <p className="notice small">

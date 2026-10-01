@@ -1,21 +1,24 @@
 // Leiste unten mit dem Pause-Timer (−15 / +15 / Weiter).
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useHash } from '../app/router';
 import { fmtDuration } from '../lib/format';
 import { adjustRest, checkRestFinished, getRest, stopRest, subscribeRest } from '../lib/timer';
 
+/** Nur im Training selbst; außerhalb zeigt die Trainings-Zeile die Pause an. */
 export function RestTimer() {
+  const onEditor = useHash().startsWith('#/neu');
   const rest = useSyncExternalStore(subscribeRest, getRest);
   const [, tick] = useState(0);
   useEffect(() => {
-    document.body.classList.toggle('has-timer', Boolean(rest));
-    if (!rest) return;
+    document.body.classList.toggle('has-timer', Boolean(rest) && onEditor);
+    if (!rest || !onEditor) return;
     const t = setInterval(() => {
       checkRestFinished();
       tick((n) => n + 1);
     }, 250);
     return () => clearInterval(t);
-  }, [rest]);
-  if (!rest) return null;
+  }, [rest, onEditor]);
+  if (!rest || !onEditor) return null;
   const left = Math.max(0, (rest.endAt - Date.now()) / 1000);
   return (
     <div id="rest-timer" className="rest-timer" role="timer" aria-live="off">
