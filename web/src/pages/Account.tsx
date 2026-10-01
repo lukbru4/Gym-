@@ -136,7 +136,13 @@ function SocialSettings() {
   const [name, setName] = useState<string | null>(null);
   const [saved, setSaved] = useState('');
   if (data.status === 'loading') return <div className="card"><h3>Profil</h3><p className="muted">Lädt …</p></div>;
-  if (data.status === 'error') return <div className="card"><h3>Profil</h3><p className="muted">{data.error.message}</p></div>;
+  if (data.status === 'error')
+    return (
+      <div className="card">
+        <h3>Profil für Freunde</h3>
+        <p className="muted small">Noch nicht verfügbar – in Supabase fehlt das neue SQL für Freunde (siehe Seite „Freunde“).</p>
+      </div>
+    );
   const [profile, blocks] = data.data;
   const current = name ?? profile.display_name;
   const save = async (displayName: string, visibility: Visibility) => {

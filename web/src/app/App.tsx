@@ -105,7 +105,7 @@ export function App() {
 
   const showError = useCallback((err: unknown) => {
     console.error(err);
-    const msg = (err as Error)?.message || String(err);
+    const msg = (err as { message?: string })?.message || String(err);
     setToast(msg);
     clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(null), 6000);

@@ -1,6 +1,7 @@
 // Anmelden / Registrieren / Passwort vergessen (nur im Cloud-Modus) und neues Passwort festlegen.
 import { useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
+import { PasswordInput } from '../components/PasswordInput';
 import { authErrorMessage } from '../lib/authErrors';
 
 type Mode = 'login' | 'signup' | 'reset';
@@ -59,7 +60,7 @@ export function Auth() {
         {mode !== 'reset' && (
           <label>
             Passwort
-            <input type="password" name="password" minLength={6} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+            <PasswordInput name="password" minLength={6} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
           </label>
         )}
         <button className="btn primary block" type="submit" disabled={busy}>
@@ -107,11 +108,11 @@ export function SetNewPassword({ onDone }: { onDone: () => void }) {
       <form id="new-password-form" onSubmit={submit}>
         <label>
           Neues Passwort
-          <input type="password" name="password" minLength={6} required autoComplete="new-password" />
+          <PasswordInput name="password" minLength={6} required autoComplete="new-password" />
         </label>
         <label>
           Neues Passwort wiederholen
-          <input type="password" name="password2" minLength={6} required autoComplete="new-password" />
+          <PasswordInput name="password2" minLength={6} required autoComplete="new-password" />
         </label>
         <button className="btn primary block" type="submit" disabled={busy}>Speichern</button>
       </form>

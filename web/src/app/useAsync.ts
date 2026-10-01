@@ -1,6 +1,15 @@
 // Lädt Daten für eine Seite und lädt neu, wenn sich die Abhängigkeiten ändern.
 import { useEffect, useState, type DependencyList } from 'react';
 
+/** Fehler einheitlich als Error – Supabase liefert z. B. Objekte mit message/code statt Error */
+export function toError(e: unknown): Error {
+  if (e instanceof Error) return e;
+  const o = e as { message?: string; code?: string; details?: string } | null;
+  const err = new Error(o?.message || (typeof e === 'string' ? e : 'Unbekannter Fehler'));
+  if (o?.code) (err as Error & { code?: string }).code = o.code;
+  return err;
+}
+
 export type AsyncState<T> = { status: 'loading' } | { status: 'error'; error: Error } | { status: 'ok'; data: T };
 
 export function useAsync<T>(load: () => Promise<T>, deps: DependencyList): AsyncState<T> {
@@ -11,7 +20,7 @@ export function useAsync<T>(load: () => Promise<T>, deps: DependencyList): Async
       (data) => alive && setState({ status: 'ok', data }),
       (error) => {
         console.error(error);
-        if (alive) setState({ status: 'error', error: error instanceof Error ? error : new Error(String(error)) });
+        if (alive) setState({ status: 'error', error: toError(error) });
       },
     );
     return () => {

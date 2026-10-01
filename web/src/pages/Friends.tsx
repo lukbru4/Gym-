@@ -28,6 +28,24 @@ function NeedsAccount() {
   );
 }
 
+/** Fehler der Freunde-Funktionen: fehlt das SQL in Supabase, erklären statt Fachchinesisch */
+function SocialError({ error }: { error: Error }) {
+  const code = (error as Error & { code?: string }).code ?? '';
+  const missing = code === 'PGRST202' || code === '42883' || /could not find the function|does not exist|schema cache/i.test(error.message);
+  if (!missing) return <LoadError error={error} />;
+  return (
+    <div className="card" id="social-setup-needed">
+      <h3>Freunde sind noch nicht eingerichtet</h3>
+      <p>Für Freunde, Feed und Rangliste braucht deine Supabase-Datenbank noch ein Update.</p>
+      <ol className="small">
+        <li>Öffne <a href="./supabase/einrichten.html">die Einrichtungsseite</a> und tippe auf „SQL kopieren“.</li>
+        <li>Supabase → SQL Editor → neue Abfrage → einfügen → Run (bei der Warnung „Run query“).</li>
+        <li>Danach diese Seite neu öffnen.</li>
+      </ol>
+    </div>
+  );
+}
+
 function useSocial(): Social | null {
   return useApp().api.social ?? null;
 }
@@ -60,7 +78,7 @@ export function Friends() {
   );
   if (!social) return (<><h2>Freunde</h2><NeedsAccount /></>);
   if (data.status === 'loading') return <Loading />;
-  if (data.status === 'error') return <LoadError error={data.error} />;
+  if (data.status === 'error') return (<><h2>Freunde</h2><SocialError error={data.error} /></>);
   const [profile, friends, board] = data.data!;
   const incoming = friends.filter((f) => f.status === 'incoming');
   const outgoing = friends.filter((f) => f.status === 'outgoing');
@@ -247,7 +265,7 @@ export function FriendsFeed() {
   }, [feed]);
   let body;
   if (!social) body = <NeedsAccount />;
-  else if (feed.status === 'error') body = <LoadError error={feed.error} />;
+  else if (feed.status === 'error') body = <SocialError error={feed.error} />;
   else if (!items) body = <Loading />;
   else if (!items.length)
     body = (
