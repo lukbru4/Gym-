@@ -1,5 +1,6 @@
 // Körpergraph: Neon-Drahtgitter von vorne und hinten; trainierte Muskeln leuchten je nach Stufe.
 import { BACK, BACK_LINES, BACK_NEUTRAL, FRONT, FRONT_LINES, FRONT_NEUTRAL, HEAD, OUTLINE } from '../lib/bodyShapes';
+import { useCosmetics } from '../lib/cosmetics';
 import { MUSCLE_NAMES, type MuscleLevel } from '../lib/muscles';
 import type { MuscleId } from '../lib/types';
 
@@ -85,9 +86,11 @@ function Figure({ parts, neutral, lines, levels, offsetX, onSelect }: FigureProp
   );
 }
 
-export function BodyGraph({ levels, onSelect }: { levels: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void }) {
+/** skin: Shop-Look; ohne Angabe der eigene ausgerüstete Look */
+export function BodyGraph({ levels, onSelect, skin }: { levels: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void; skin?: string | null }) {
+  const own = useCosmetics().equipped.skin;
   return (
-    <div className="bodygraph-panel">
+    <div className="bodygraph-panel" data-skin={skin === undefined ? own : skin ?? undefined}>
       <svg
         className="bodygraph"
         viewBox="0 6 470 454"

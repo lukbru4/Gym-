@@ -1,4 +1,5 @@
 // Muskel-Radar: Netzdiagramm aller 12 Muskelgruppen, je weiter außen, desto höher die Stufe.
+import { useCosmetics } from '../lib/cosmetics';
 import { MUSCLES, type MuscleLevel } from '../lib/muscles';
 import type { MuscleId } from '../lib/types';
 import { GlowFilter } from './BodyGraph';
@@ -11,6 +12,7 @@ const SHORT_NAMES: Partial<Record<MuscleId, string>> = {
 };
 
 export function Radar({ levels }: { levels: Map<MuscleId, MuscleLevel> }) {
+  const skin = useCosmetics().equipped.skin;
   const n = MUSCLES.length;
   const cx = 250, cy = 200, R = 130;
   const pt = (i: number, r: number): [number, number] => {
@@ -21,7 +23,7 @@ export function Radar({ levels }: { levels: Map<MuscleId, MuscleLevel> }) {
   const radius = (id: MuscleId) => R * Math.max(0.04, levels.get(id)!.level / 5);
   const summary = MUSCLES.map(([id, name]) => `${name} ${levels.get(id)!.level}`).join(', ');
   return (
-    <div className="bodygraph-panel">
+    <div className="bodygraph-panel" data-skin={skin}>
       <svg className="radar" viewBox="-40 0 580 400" role="img" aria-label={`Muskel-Radar (Stufe 0–5): ${summary}`}>
         <GlowFilter />
         <g className="radar-grid">

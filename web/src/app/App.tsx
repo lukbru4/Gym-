@@ -13,6 +13,8 @@ import { Editor } from '../pages/Editor';
 import { Home } from '../pages/Home';
 import { AcceptInvite, FriendProfile, Friends, FriendsFeed } from '../pages/Friends';
 import { Medals, Profile, Quests } from '../pages/Profile';
+import { Shop } from '../pages/Shop';
+import { setCosmetics } from '../lib/cosmetics';
 import { Analysis, Ranks, Records } from '../pages/Ranks';
 import { History, WorkoutDetail } from '../pages/Workout';
 import { StartFromTemplate, Workouts } from '../pages/Workouts';
@@ -46,6 +48,7 @@ const ROUTES: Route[] = [
   [/^#\/profil$/, () => <Profile />],
   [/^#\/aufgaben$/, () => <Quests />],
   [/^#\/medaillen$/, () => <Medals />],
+  [/^#\/shop$/, () => <Shop />],
 ];
 
 function Toast({ message }: { message: string | null }) {
@@ -66,6 +69,10 @@ function Shell() {
   const lastGame = useRef(game.status === 'ok' ? game.data : null);
   if (game.status === 'ok') lastGame.current = game.data;
   useEffect(() => window.scrollTo(0, 0), [hash]);
+  // Gekaufte/ausgerüstete Shop-Artikel einmal laden (fehlt das SQL noch, bleibt alles beim Standard)
+  useEffect(() => {
+    api.social?.myShop().then(setCosmetics, () => setCosmetics({ owned: [], equipped: {} }));
+  }, [api]);
 
   let page: ReactNode = null;
   for (const [re, render] of ROUTES) {

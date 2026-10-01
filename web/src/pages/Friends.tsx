@@ -13,6 +13,7 @@ import { Challenges } from '../components/Challenges';
 import { Comments } from '../components/Comments';
 import { Leaderboards } from '../components/Leaderboards';
 import { RankBadge } from '../components/RankBadge';
+import { itemById } from '../lib/shop';
 import { inviteLink, requestMessage, type FeedItem, type Friend, type Social } from '../data/social';
 import { datedSets } from '../lib/editor';
 import { fmt, fmtDate, plural } from '../lib/format';
@@ -308,6 +309,7 @@ export function FriendProfile({ userId }: { userId: string }) {
   const levels = strengthLevels(dated, exMap, todayISO());
   const records = personalRecords(dated, exMap).filter((r) => r.type === 'strength' && r.bestE1RM);
   const name = d.profile.display_name;
+  const eq = d.profile.equipped ?? {};
 
   const remove = async () => {
     if (!confirm(`${name} als Freund entfernen?`)) return;
@@ -345,16 +347,19 @@ export function FriendProfile({ userId }: { userId: string }) {
       <p><a href="#/freunde" className="link">← Freunde</a></p>
       <div className="profile-hero">
         <div className="profile-top">
-          <h2>{name}</h2>
+          <div>
+            <h2>{name}</h2>
+            {itemById(eq.title) && <p className="player-title">„{itemById(eq.title)!.name}“</p>}
+          </div>
           <RankBadge rank={g.overall} size={72} />
         </div>
-        <Avatar level={g.player.level} />
+        <Avatar level={g.player.level} skin={eq.skin} accessory={eq.accessory} />
         <p className="muted small center">
           Level {g.player.level} · {g.overall.label} · Serie {g.streak} {g.streak === 1 ? 'Woche' : 'Wochen'} · {plural(g.workouts.length, 'Training', 'Trainings')}
         </p>
       </div>
       <div className="card">
-        <BodyGraph levels={levels} />
+        <BodyGraph levels={levels} skin={eq.skin ?? null} />
       </div>
       {records.length > 0 && (
         <div className="card scroll-x">

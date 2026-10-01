@@ -1,6 +1,7 @@
 // Freunde & Community (nur Cloud). Alle Abfragen laufen über Server-Funktionen in supabase/schema.sql,
 // die selbst prüfen, wer was sehen darf.
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Equipped } from '../lib/shop';
 import type { Exercise, ISODate, Workout, WorkoutSet } from '../lib/types';
 
 export type Visibility = 'friends' | 'private';
@@ -39,7 +40,7 @@ export interface Challenge {
   bonus: number;
 }
 export interface Comment { id: number; user_id: string; display_name: string; body: string; created_at: string; is_mine: boolean; can_delete: boolean }
-export interface FriendProfileData { profile: { id: string; display_name: string }; workouts: Workout[]; sets: WorkoutSet[]; exercises: Exercise[] }
+export interface FriendProfileData { profile: { id: string; display_name: string; equipped?: Equipped }; workouts: Workout[]; sets: WorkoutSet[]; exercises: Exercise[] }
 
 export interface Social {
   myProfile(): Promise<Profile>;
@@ -69,6 +70,10 @@ export interface Social {
   deleteComment(id: number): Promise<void>;
   reportComment(id: number, reason: string): Promise<void>;
   workoutSocial(workoutId: number): Promise<{ likes: number; comments: number } | null>;
+  wallet(): Promise<{ earned: number; spent: number; balance: number }>;
+  myShop(): Promise<{ owned: string[]; equipped: Equipped }>;
+  buy(itemId: string): Promise<number>;
+  equip(kind: 'skin' | 'accessory' | 'title', itemId: string | null): Promise<void>;
 }
 
 export function createSocial(supabase: SupabaseClient): Social {
@@ -104,6 +109,10 @@ export function createSocial(supabase: SupabaseClient): Social {
     addComment: (p_workout, p_body) => rpc('add_comment', { p_workout, p_body }),
     deleteComment: (p_id) => rpc('delete_comment', { p_id }),
     reportComment: (p_id, p_reason) => rpc('report_comment', { p_id, p_reason }),
+    wallet: async () => (await rpc<{ earned: number; spent: number; balance: number }[]>('my_wallet'))[0] ?? { earned: 0, spent: 0, balance: 0 },
+    myShop: () => rpc('my_shop'),
+    buy: (p_item) => rpc('buy_item', { p_item }),
+    equip: (p_kind, p_item) => rpc('equip_item', { p_kind, p_item }),
     workoutSocial: async (p_workout) => (await rpc<{ likes: number; comments: number }[]>('workout_social', { p_workout }))[0] ?? null,
   };
 }

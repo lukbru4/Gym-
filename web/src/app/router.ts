@@ -19,7 +19,7 @@ export type Section = 'workouts' | 'home' | 'raenge' | 'freunde' | 'profil';
 export function sectionOf(hash: string): Section {
   if (/^#\/(workouts|neu|vorlage|start)/.test(hash)) return 'workouts';
   if (/^#\/(raenge|rekorde|fortschritt|koerper)/.test(hash)) return 'raenge';
-  if (/^#\/(profil|aufgaben|medaillen|verlauf|training|konto|backup)/.test(hash)) return 'profil';
+  if (/^#\/(profil|aufgaben|medaillen|verlauf|training|konto|backup|shop)/.test(hash)) return 'profil';
   if (/^#\/freunde/.test(hash)) return 'freunde';
   return 'home';
 }

@@ -5,7 +5,7 @@
 const KEY = 'gym-tracker-theme';
 const SCHEME_KEY = 'gym-tracker-scheme';
 
-export type SchemeId = 'energie' | 'violett' | 'ozean' | 'glut' | 'klassisch';
+export type SchemeId = 'energie' | 'violett' | 'ozean' | 'glut' | 'klassisch' | 'gold' | 'eis';
 export type ThemeMode = 'time' | 'system' | 'light' | 'dark';
 
 export const SCHEMES: [SchemeId, string][] = [
@@ -14,7 +14,11 @@ export const SCHEMES: [SchemeId, string][] = [
   ['ozean', 'Ozean (Petrol)'],
   ['glut', 'Glut (warmes Orange)'],
   ['klassisch', 'Klassisch'],
+  ['gold', 'Schwarz-Gold (Shop)'],
+  ['eis', 'Eisblau (Shop)'],
 ];
+/** Farbschemata, die man im Shop kaufen muss: Schema → Shop-Artikel */
+export const PREMIUM_SCHEMES: Partial<Record<SchemeId, string>> = { gold: 'scheme_gold', eis: 'scheme_eis' };
 export const DEFAULT_SCHEME: SchemeId = 'energie';
 export const THEME_OPTIONS: [ThemeMode, string][] = [
   ['time', 'Nach Uhrzeit (18–6 Uhr dunkel)'],

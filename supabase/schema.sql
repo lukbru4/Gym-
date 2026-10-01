@@ -968,3 +968,141 @@ grant execute on function
   public.add_comment(bigint, text), public.workout_comments(bigint), public.workout_social(bigint),
   public.delete_comment(bigint), public.report_comment(bigint, text), public.friend_feed(integer, timestamptz)
 to authenticated;
+
+-- ===========================================================================
+-- Phase 4: Shop – mit Credits Körpergraph-Looks, Farbschemata, Avatar-Teile und Titel kaufen.
+-- Preise stehen nur hier (der Server prüft jeden Kauf); die App zeigt dieselbe Liste an
+-- (web/src/lib/shop.ts – ein Test vergleicht beide).
+-- Guthaben = verdiente Credits (credits_total) − ausgegebene Credits.
+-- ===========================================================================
+create table if not exists public.shop_items (
+  id     text primary key,
+  kind   text not null check (kind in ('skin', 'scheme', 'accessory', 'title')),
+  name   text not null,
+  price  integer not null check (price >= 0)
+);
+insert into public.shop_items (id, kind, name, price) values
+  ('skin_lava',     'skin',      'Lava',             300),
+  ('skin_eis',      'skin',      'Eis',              300),
+  ('skin_pink',     'skin',      'Neon-Pink',        300),
+  ('skin_matrix',   'skin',      'Matrix',           450),
+  ('skin_gold',     'skin',      'Gold',             600),
+  ('scheme_gold',   'scheme',    'Schwarz-Gold',     500),
+  ('scheme_eis',    'scheme',    'Eisblau',          500),
+  ('acc_band',      'accessory', 'Stirnband',        150),
+  ('acc_shades',    'accessory', 'Sonnenbrille',     250),
+  ('acc_cap',       'accessory', 'Cap',              200),
+  ('acc_chain',     'accessory', 'Goldkette',        400),
+  ('acc_crown',     'accessory', 'Krone',            800),
+  ('title_early',   'title',     'Frühaufsteher',    150),
+  ('title_iron',    'title',     'Eisenfresser',     200),
+  ('title_reps',    'title',     'Rep-Maschine',     200),
+  ('title_beast',   'title',     'Beast Mode',       400),
+  ('title_legend',  'title',     'Gym-Legende',     1000)
+on conflict (id) do update set kind = excluded.kind, name = excluded.name, price = excluded.price;
+
+create table if not exists public.purchases (
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  item_id     text not null references public.shop_items (id),
+  price       integer not null,
+  created_at  timestamptz not null default now(),
+  primary key (user_id, item_id)
+);
+
+-- Ausgerüstet: { "skin": "skin_lava", "accessory": "acc_cap", "title": "title_iron" } – für Freunde sichtbar
+alter table public.profiles add column if not exists equipped jsonb not null default '{}'::jsonb;
+
+alter table public.shop_items enable row level security;
+alter table public.purchases  enable row level security;
+revoke all on public.shop_items, public.purchases from anon, authenticated;
+
+create or replace function public.credits_spent(p_user uuid)
+returns integer language sql stable security definer set search_path = '' as $$
+  select coalesce(sum(price), 0)::int from public.purchases where user_id = p_user
+$$;
+revoke all on function public.credits_spent(uuid) from public;
+
+-- Eigenes Guthaben
+create or replace function public.my_wallet()
+returns table (earned integer, spent integer, balance integer)
+language sql stable security definer set search_path = '' as $$
+  select t.e, t.s, t.e - t.s
+  from (select public.credits_total(auth.uid()) as e, public.credits_spent(auth.uid()) as s) t
+  where auth.uid() is not null
+$$;
+
+-- Gekaufte Artikel und was gerade ausgerüstet ist
+create or replace function public.my_shop()
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'owned', coalesce((select jsonb_agg(p.item_id order by p.created_at) from public.purchases p where p.user_id = auth.uid()), '[]'::jsonb),
+    'equipped', coalesce((select pr.equipped from public.profiles pr where pr.id = auth.uid()), '{}'::jsonb)
+  )
+$$;
+
+-- Kaufen: prüft Artikel, Besitz und Guthaben; die Sperre verhindert Doppelkäufe bei schnellem Tippen.
+-- Liefert das neue Guthaben.
+create or replace function public.buy_item(p_item text)
+returns integer language plpgsql security definer set search_path = '' as $$
+declare
+  me uuid := auth.uid();
+  item public.shop_items;
+  bal integer;
+begin
+  if me is null then raise exception 'nicht angemeldet'; end if;
+  perform pg_advisory_xact_lock(hashtext('shop:' || me::text));
+  select * into item from public.shop_items where id = p_item;
+  if not found then raise exception 'Diesen Artikel gibt es nicht.'; end if;
+  if exists (select 1 from public.purchases where user_id = me and item_id = p_item) then
+    raise exception 'Das hast du schon gekauft.';
+  end if;
+  bal := public.credits_total(me) - public.credits_spent(me);
+  if bal < item.price then
+    raise exception 'Nicht genug Credits: Dir fehlen noch %.', item.price - bal;
+  end if;
+  insert into public.purchases (user_id, item_id, price) values (me, p_item, item.price);
+  return bal - item.price;
+end;
+$$;
+
+-- Ausrüsten (p_item = null legt ab). Farbschemata gelten pro Gerät und werden nicht hier gespeichert.
+create or replace function public.equip_item(p_kind text, p_item text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'nicht angemeldet'; end if;
+  if p_kind not in ('skin', 'accessory', 'title') then raise exception 'ungültig'; end if;
+  if p_item is not null and not exists (
+    select 1 from public.purchases p join public.shop_items i on i.id = p.item_id
+    where p.user_id = auth.uid() and p.item_id = p_item and i.kind = p_kind
+  ) then
+    raise exception 'Das musst du zuerst kaufen.';
+  end if;
+  perform public.my_profile();
+  update public.profiles
+     set equipped = case when p_item is null then equipped - p_kind else jsonb_set(equipped, array[p_kind], to_jsonb(p_item)) end
+   where id = auth.uid();
+end;
+$$;
+
+-- Profil eines Freundes: zusätzlich ausgerüstete Shop-Artikel mitliefern
+create or replace function public.friend_profile(p_user uuid)
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or not public.can_see(auth.uid(), p_user) then
+    raise exception 'Profil nicht sichtbar';
+  end if;
+  return jsonb_build_object(
+    'profile', (select jsonb_build_object('id', p.id, 'display_name', p.display_name, 'equipped', p.equipped) from public.profiles p where p.id = p_user),
+    'workouts', coalesce((select jsonb_agg(jsonb_build_object('id', w.id, 'date', w.date)) from public.workouts w where w.user_id = p_user), '[]'::jsonb),
+    'sets', coalesce((select jsonb_agg(jsonb_build_object(
+              'workout_id', s.workout_id, 'exercise_id', s.exercise_id, 'position', s.position, 'reps', s.reps,
+              'weight_kg', s.weight_kg, 'duration_min', s.duration_min, 'distance_km', s.distance_km, 'is_warmup', s.is_warmup))
+            from public.sets s where s.user_id = p_user), '[]'::jsonb),
+    'exercises', coalesce((select jsonb_agg(jsonb_build_object('id', e.id, 'name', e.name, 'type', e.type, 'user_id', e.user_id, 'muscles', e.muscles))
+            from public.exercises e where e.id in (select s.exercise_id from public.sets s where s.user_id = p_user)), '[]'::jsonb)
+  );
+end;
+$$;
+
+revoke all on function public.my_wallet(), public.my_shop(), public.buy_item(text), public.equip_item(text, text), public.friend_profile(uuid) from public;
+grant execute on function public.my_wallet(), public.my_shop(), public.buy_item(text), public.equip_item(text, text), public.friend_profile(uuid) to authenticated;

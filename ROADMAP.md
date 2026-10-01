@@ -43,7 +43,11 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [ ] Meldungen regelmäßig prüfen (Supabase → Table Editor → reports) (**Lukas**)
 
 ## Phase 4 – Shop
-- [ ] Designs, Körpergraph-Skins, Avatar-Items mit Credits kaufen (serverseitig geprüft)
+- [x] Körpergraph-Looks, Farbschemata, Avatar-Accessoires und Titel mit Credits kaufen
+- [x] Server prüft jeden Kauf (`buy_item`: Guthaben, doppelt, unbekannt) und jedes Ausrüsten (`equip_item`)
+- [x] Guthaben = verdiente Credits − ausgegeben; Level zählt weiter alle verdienten Credits
+- [x] Freunde sehen deine Ausrüstung (Titel, Avatar, Körpergraph-Look)
+- [ ] SQL im Supabase-Projekt erneut ausführen (**Lukas**)
 
 ## Phase 5 – Native Apps (Capacitor)
 - [ ] iOS- und Android-Projekt, Builds (iOS über Cloud-Mac, z. B. GitHub Actions oder Codemagic)

@@ -7,7 +7,9 @@ import { Avatar } from '../components/Avatar';
 import { LoadError, Loading, QuestRows } from '../components/Bits';
 import { Calendar } from '../components/Calendar';
 import { RankBadge } from '../components/RankBadge';
+import { useCosmetics } from '../lib/cosmetics';
 import { fmt, fmtDate } from '../lib/format';
+import { itemById } from '../lib/shop';
 import { computeMedals, longestStreak } from '../lib/quests';
 import type { Game } from '../app/game';
 
@@ -26,6 +28,7 @@ function useMedals(g: Game | null) {
 export function Profile() {
   const { api, user } = useApp();
   const game = useGame();
+  const { equipped } = useCosmetics();
   const { templates, medals } = useMedals(game.status === 'ok' ? game.data : null);
   if (game.status === 'loading' || templates.status === 'loading') return <Loading />;
   if (game.status === 'error') return <LoadError error={game.error} />;
@@ -44,10 +47,13 @@ export function Profile() {
     <>
       <div className="profile-hero">
         <div className="profile-top">
-          <h2>{displayName(api, user)}</h2>
+          <div>
+            <h2>{displayName(api, user)}</h2>
+            {itemById(equipped.title) && <p className="player-title">„{itemById(equipped.title)!.name}“</p>}
+          </div>
           <RankBadge rank={g.overall} size={72} />
         </div>
-        <Avatar level={g.player.level} />
+        <Avatar level={g.player.level} skin={equipped.skin} accessory={equipped.accessory} />
         <p className="muted small center">
           Level {g.player.level} · {g.overall.label} · {fmt(g.credits, 0)} Credits
         </p>
@@ -60,7 +66,7 @@ export function Profile() {
         {tile('#/verlauf', '🗓️', 'Verlauf')}
         {tile('#/koerper', '⚖️', 'Gewicht')}
         {tile('#/konto', '⚙️', 'Einstellungen')}
-        {tile('#/backup', '💾', 'Backup')}
+        {api.social ? tile('#/shop', '🛒', 'Shop') : tile('#/backup', '💾', 'Backup')}
       </div>
       <Calendar workouts={g.workouts} />
     </>

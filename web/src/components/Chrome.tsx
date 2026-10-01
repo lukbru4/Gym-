@@ -52,9 +52,9 @@ export function Header({ game }: { game: Game | null }) {
         <Flame />
         <strong>{game?.streak ?? 0}</strong>
       </a>
-      <a className="hud-stat" id="hud-credits" href="#/aufgaben" title="Credits">
+      <a className="hud-stat" id="hud-credits" href={api.social ? '#/shop' : '#/aufgaben'} title={api.social ? 'Guthaben – zum Shop' : 'Credits'}>
         <Coin />
-        <strong>{fmt(game?.credits ?? 0, 0)}</strong>
+        <strong>{fmt(game?.balance ?? 0, 0)}</strong>
       </a>
       <button
         className="menu-btn"
@@ -72,6 +72,7 @@ export function Header({ game }: { game: Game | null }) {
       {open && (
         <div className="menu" id="menu" ref={menuRef}>
           <a href="#/konto">Konto &amp; Einstellungen</a>
+          {api.social && <a href="#/shop">Shop</a>}
           <a href="#/backup">Backup</a>
           {api.mode === 'cloud' && (
             <button id="menu-signout" onClick={() => api.signOut()}>

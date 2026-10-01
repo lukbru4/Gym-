@@ -8,7 +8,8 @@ import { navigate } from '../app/router';
 import { clearDraft } from '../lib/editor';
 import { plural } from '../lib/format';
 import { todayISO } from '../lib/stats';
-import { SCHEMES, THEME_OPTIONS, getScheme, getThemeMode, setScheme, setThemeMode, type SchemeId, type ThemeMode } from '../lib/theme';
+import { useCosmetics } from '../lib/cosmetics';
+import { PREMIUM_SCHEMES, SCHEMES, THEME_OPTIONS, getScheme, getThemeMode, setScheme, setThemeMode, type SchemeId, type ThemeMode } from '../lib/theme';
 import { hardReload } from '../lib/update';
 import { APP_VERSION } from '../version';
 
@@ -20,6 +21,9 @@ export function Account() {
   const [scheme, setSchemeState] = useState(getScheme());
   const [themeMode, setThemeModeState] = useState(getThemeMode());
   const [busy, setBusy] = useState(false);
+  const { owned } = useCosmetics();
+  // Shop-Farbschemata nur zeigen, wenn gekauft (oder gerade aktiv)
+  const schemes = SCHEMES.filter(([id]) => !PREMIUM_SCHEMES[id] || owned.includes(PREMIUM_SCHEMES[id]!) || id === scheme);
 
   const deleteAccount = async () => {
     if (!confirmDelete('Das Löschen deines Kontos')) return;
@@ -93,7 +97,7 @@ export function Account() {
               setSchemeState(e.target.value as SchemeId);
             }}
           >
-            {SCHEMES.map(([id, label]) => (
+            {schemes.map(([id, label]) => (
               <option key={id} value={id}>{label}</option>
             ))}
           </select>
