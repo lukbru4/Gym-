@@ -3,9 +3,9 @@ import { useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
 import { PasswordInput } from '../components/PasswordInput';
 import { authErrorMessage } from '../lib/authErrors';
-import { legalUrl } from '../lib/legal';
+import { MAIL_SENDER, legalUrl } from '../lib/legal';
 
-type Mode = 'login' | 'signup' | 'reset';
+type Mode = 'login' | 'signup' | 'reset' | 'check-mail';
 
 export function Auth() {
   const { api, showError } = useApp();
@@ -25,10 +25,7 @@ export function Auth() {
         await api.signIn(email.trim(), password);
       } else if (mode === 'signup') {
         const data = (await api.signUp(email.trim(), password)) as { session?: unknown };
-        if (!data?.session) {
-          setMode('login');
-          setMessage('Fast geschafft: Bitte bestätige deine E-Mail-Adresse über den Link in der Mail und melde dich dann an.');
-        }
+        if (!data?.session) setMode('check-mail');
       } else {
         await api.resetPassword!(email.trim());
         setMode('login');
@@ -42,6 +39,38 @@ export function Auth() {
       setBusy(false);
     }
   };
+
+  const resend = async () => {
+    setBusy(true);
+    try {
+      await api.resendConfirmation?.(email.trim());
+      setMessage('Wir haben die E-Mail noch einmal geschickt.');
+    } catch (err) {
+      showError(new Error(authErrorMessage(err)));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (mode === 'check-mail')
+    return (
+      <div className="card auth check-mail" id="check-mail">
+        <div className="big-icon" aria-hidden="true">✉️</div>
+        <h2>Schau in dein Postfach!</h2>
+        <p>
+          Wir haben dir eine E-Mail an <strong>{email.trim()}</strong> geschickt.
+        </p>
+        <ol className="steps">
+          <li>Öffne die Bestätigungs-E-Mail (Absender: <strong>{MAIL_SENDER}</strong>).</li>
+          <li>Tippe auf den Link darin.</li>
+          <li>Komm zurück und melde dich an.</li>
+        </ol>
+        <p className="muted small">Nichts angekommen? Schau auch im Spam- bzw. Werbung-Ordner nach. Es kann ein paar Minuten dauern.</p>
+        {message && <p className="notice">{message}</p>}
+        <button className="btn block" id="resend-mail" disabled={busy || !api.resendConfirmation} onClick={resend}>E-Mail erneut senden</button>
+        <button className="btn primary block" id="to-login" onClick={() => { setMessage(''); setMode('login'); }}>Zur Anmeldung</button>
+      </div>
+    );
 
   const title = { login: 'Anmelden', signup: 'Konto erstellen', reset: 'Passwort zurücksetzen' }[mode];
   const button = { login: 'Anmelden', signup: 'Registrieren', reset: 'Link per E-Mail senden' }[mode];

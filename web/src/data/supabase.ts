@@ -51,6 +51,9 @@ function backend(supabase: SupabaseClient): Backend {
         }),
       ),
     signOut: () => supabase.auth.signOut(),
+    resendConfirmation: async (email) => {
+      check(await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: publicUrl() } }));
+    },
     resetPassword: async (email) => {
       check(await supabase.auth.resetPasswordForEmail(email, { redirectTo: publicUrl() }));
     },

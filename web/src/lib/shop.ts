@@ -1,5 +1,8 @@
 // Shop-Katalog. Preise und IDs müssen zu public.shop_items in supabase/schema.sql passen
 // (der Server prüft jeden Kauf; tests/shop.test.ts vergleicht beide Listen).
+import { useSyncExternalStore } from 'react';
+import { registerCustomSchemes, validPalette, type CustomPalette } from './theme';
+
 export type ShopKind = 'skin' | 'scheme' | 'accessory' | 'title';
 
 export interface ShopItem {
@@ -11,6 +14,8 @@ export interface ShopItem {
   color?: string;
   /** Farbschemata: Vorschau-Farben [Hintergrund, Karte, Akzent, Schrift auf Akzent] für hell und dunkel */
   palette?: { light: [string, string, string, string]; dark: [string, string, string, string] };
+  /** Vom Admin entworfenes Farbschema (kommt vom Server) */
+  custom?: CustomPalette;
   description: string;
 }
 
@@ -21,6 +26,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'skin_matrix', kind: 'skin', name: 'Matrix', price: 450, color: '#00ff66', description: 'Grelles Terminal-Grün.' },
   { id: 'skin_gold', kind: 'skin', name: 'Gold', price: 600, color: '#ffcc33', description: 'Goldener Körpergraph für Champions.' },
   // Farbschemata (gelten für die ganze App; Vorschau mit dem Auge vor dem Kauf)
+  { id: 'scheme_energie', kind: 'scheme', name: 'Neon-Grün', price: 300, color: '#b4f000', description: 'Schwarz mit Neon-Grün – der Energie-Look.', palette: { light: ['#f5f5f0', '#ffffff', '#3f7a00', '#ffffff'], dark: ['#0a0a0a', '#161616', '#b4f000', '#0a0a0a'] } },
   { id: 'scheme_ozean', kind: 'scheme', name: 'Ozean', price: 300, color: '#22c3c3', description: 'Petrol und Türkis wie das Meer.', palette: { light: ['#f1f6f8', '#ffffff', '#0c7f86', '#ffffff'], dark: ['#0b1418', '#13222a', '#22c3c3', '#062326'] } },
   { id: 'scheme_violett', kind: 'scheme', name: 'Nacht-Violett', price: 300, color: '#3b9cf2', description: 'Dunkles Violett mit blauen Akzenten.', palette: { light: ['#f3f2f8', '#ffffff', '#1f7fe0', '#ffffff'], dark: ['#0e0c19', '#1c1a29', '#3b9cf2', '#ffffff'] } },
   { id: 'scheme_glut', kind: 'scheme', name: 'Glut', price: 300, color: '#ff6b2c', description: 'Warmes Orange wie Feuer.', palette: { light: ['#fbf5f1', '#ffffff', '#d9480f', '#ffffff'], dark: ['#140d0a', '#221612', '#ff6b2c', '#ffffff'] } },
@@ -50,7 +56,29 @@ export const SHOP_SECTIONS: [ShopKind, string][] = [
   ['title', 'Titel'],
 ];
 
-export const itemById = (id: string | null | undefined) => SHOP_ITEMS.find((i) => i.id === id);
+// Vom Admin entworfene Farbschemata kommen zusätzlich vom Server (shop_catalog)
+let serverItems: ShopItem[] = [];
+const listeners = new Set<() => void>();
+export function setServerCatalog(rows: { id: string; kind: string; name: string; price: number; palette: unknown }[]) {
+  serverItems = rows
+    .filter((r) => r.kind === 'scheme' && r.id.startsWith('scheme_c_') && validPalette(r.palette))
+    .map((r) => {
+      const p = r.palette as CustomPalette;
+      return {
+        id: r.id, kind: 'scheme' as const, name: r.name, price: Number(r.price) || 0, color: p.dark.accent, custom: p,
+        description: 'Exklusives Farbschema.',
+        palette: { light: [p.light.bg, p.light.surface, p.light.accent, '#ffffff'], dark: [p.dark.bg, p.dark.surface, p.dark.accent, '#000000'] },
+      } satisfies ShopItem;
+    });
+  registerCustomSchemes(serverItems.map((i) => ({ id: i.id, name: i.name, palette: i.custom! })));
+  listeners.forEach((l) => l());
+}
+const getAll = () => allItems;
+let allItems: ShopItem[] = SHOP_ITEMS;
+listeners.add(() => (allItems = [...SHOP_ITEMS, ...serverItems]));
+export const useShopItems = () => useSyncExternalStore((cb) => (listeners.add(cb), () => void listeners.delete(cb)), getAll);
+
+export const itemById = (id: string | null | undefined) => allItems.find((i) => i.id === id);
 
 /** Was ein Profil gerade trägt (vom Server, für Freunde sichtbar) */
 export interface Equipped { skin?: string; accessory?: string; title?: string }

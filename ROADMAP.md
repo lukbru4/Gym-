@@ -40,7 +40,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Kommentare unter Trainings mit Wortfilter, Melden und Löschen
 - [x] Challenges: 7 Tage, Trainings/Sätze/Volumen, Gewinner +50 Credits
 - [x] Neues SQL (Challenges + Kommentare) in Supabase ausgeführt
-- [ ] Meldungen regelmäßig prüfen (Supabase → Table Editor → reports) (**Lukas**)
+- [ ] Meldungen regelmäßig prüfen (jetzt im Admin-Menü) (**Lukas**)
 
 ## Phase 4 – Shop
 - [x] Körpergraph-Looks, Farbschemata, Avatar-Accessoires und Titel mit Credits kaufen
@@ -70,7 +70,13 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 
 ## Zwischendurch – Wünsche
 - [x] Begrüßung auf Home mit Wochen-/Monatsrückblick
-- [x] Mehr Farben: eigene Akzentfarbe, Dunkel-Zeiten selbst wählen
+- [x] Dunkel-Zeiten selbst wählen
+- [x] Vorlage nach dem Training per Häkchen aktualisieren / freies Training als Vorlage speichern
+- [x] 11 Farbschemata im Shop mit 👁-Vorschau; alle anderen haben „Standard (Blau)“
+- [x] Admin-Menü (nur Admin, vom Server geprüft): alle Farben + Akzentfarbe, Farbschema-Designer mit Shop-Angebot, Meldungen bearbeiten
+- [ ] Admin eintragen: einrichten-Seite → „Dich als Admin eintragen“ (**Lukas**)
+- [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
+- [ ] Eigene Domain + E-Mail-Versand (SMTP) in Supabase, deutsche E-Mail-Vorlagen (**Lukas**: Domain kaufen)
 
 ## Phase 7 – Veröffentlichung
 

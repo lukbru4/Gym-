@@ -10,21 +10,19 @@ import { clearDraft } from '../lib/editor';
 import { plural } from '../lib/format';
 import { todayISO } from '../lib/stats';
 import { useCosmetics } from '../lib/cosmetics';
+import { useShopItems } from '../lib/shop';
 import {
-  ACCENT_PRESETS,
-  PREMIUM_SCHEMES,
   SCHEMES,
   THEME_OPTIONS,
-  getAccent,
   getDarkHours,
   getScheme,
   getThemeMode,
-  setAccent,
   setDarkHours,
   setScheme,
   setThemeMode,
   timeModeLabel,
-  type SchemeId,
+  schemeAllowed,
+  type SchemeChoice,
   type ThemeMode,
 } from '../lib/theme';
 import { hardReload } from '../lib/update';
@@ -40,21 +38,21 @@ export function Account() {
   const [scheme, setSchemeState] = useState(getScheme());
   const [themeMode, setThemeModeState] = useState(getThemeMode());
   const [hours, setHoursState] = useState(getDarkHours());
-  const [accent, setAccentState] = useState(getAccent());
   const changeHours = (key: 'from' | 'until', value: number) => {
     const next = { ...hours, [key]: value };
     if (next.from === next.until) return; // gleiche Uhrzeit ergibt keinen Zeitraum
     setDarkHours(next);
     setHoursState(next);
   };
-  const changeAccent = (color: string | null) => {
-    setAccent(color);
-    setAccentState(color);
-  };
   const [busy, setBusy] = useState(false);
-  const { owned } = useCosmetics();
+  const { owned, admin } = useCosmetics();
   // Shop-Farbschemata nur zeigen, wenn gekauft (oder gerade aktiv)
-  const schemes = SCHEMES.filter(([id]) => !PREMIUM_SCHEMES[id] || owned.includes(PREMIUM_SCHEMES[id]!) || id === scheme);
+  // Nur Standard + Gekauftes (Admin: alles, auch eigene Entwürfe)
+  const shopItems = useShopItems();
+  const schemes: [SchemeChoice, string][] = [
+    ...SCHEMES.filter(([id]) => schemeAllowed(id, owned, admin)),
+    ...shopItems.filter((i) => i.custom && (admin || owned.includes(i.id))).map((i): [SchemeChoice, string] => [`custom:${i.id}`, `${i.name} (eigenes)`]),
+  ];
 
   const deleteAccount = async () => {
     if (!confirmDelete('Das Löschen deines Kontos')) return;
@@ -124,8 +122,8 @@ export function Account() {
             id="scheme"
             value={scheme}
             onChange={(e) => {
-              setScheme(e.target.value as SchemeId);
-              setSchemeState(e.target.value as SchemeId);
+              setScheme(e.target.value as SchemeChoice);
+              setSchemeState(e.target.value as SchemeChoice);
             }}
           >
             {schemes.map(([id, label]) => (
@@ -133,6 +131,11 @@ export function Account() {
             ))}
           </select>
         </label>
+        {api.social && !admin && (
+          <p className="muted small scheme-hint">
+            Weitere Farbschemata gibt es im <a href="#/shop">Shop</a> – mit 👁 kannst du sie vorher ansehen.
+          </p>
+        )}
         <label>
           Hell / Dunkel
           <select
@@ -164,22 +167,6 @@ export function Account() {
             </label>
           </div>
         )}
-        <div className="accent-picker">
-          <span className="label-text">Akzentfarbe (Knöpfe, Links, Diagramme)</span>
-          <div className="swatches-row" role="radiogroup" aria-label="Akzentfarbe">
-            <button type="button" role="radio" aria-checked={!accent} className={`swatch scheme-default${!accent ? ' on' : ''}`} onClick={() => changeAccent(null)} title="Wie Farbschema">
-              <span>Auto</span>
-            </button>
-            {ACCENT_PRESETS.map(([color, label]) => (
-              <button key={color} type="button" role="radio" aria-checked={accent === color} aria-label={label} title={label} className={`swatch${accent === color ? ' on' : ''}`} style={{ background: color }} data-accent={color} onClick={() => changeAccent(color)} />
-            ))}
-            <label className={`swatch custom${accent && !ACCENT_PRESETS.some(([c]) => c === accent) ? ' on' : ''}`} title="Eigene Farbe" style={accent && !ACCENT_PRESETS.some(([c]) => c === accent) ? { background: accent } : undefined}>
-              <span aria-hidden="true">＋</span>
-              <input type="color" id="accent-custom" aria-label="Eigene Farbe wählen" value={accent ?? '#b6ff00'} onChange={(e) => changeAccent(e.target.value)} />
-            </label>
-          </div>
-          <p className="muted small">Die Farbe wird für Hell und Dunkel automatisch so angepasst, dass alles gut lesbar bleibt.</p>
-        </div>
       </div>
       <div className="card">
         <h3>App</h3>

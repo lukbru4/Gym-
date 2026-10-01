@@ -7,13 +7,15 @@ const KEY = 'gym-tracker-theme';
 const SCHEME_KEY = 'gym-tracker-scheme';
 
 export type SchemeId =
-  | 'energie' | 'klassisch'
+  | 'standard' | 'energie'
   | 'ozean' | 'violett' | 'glut' | 'kirsche' | 'wald' | 'mitternacht' | 'sunset' | 'mono' | 'gold' | 'eis';
+/** Fest eingebautes Schema oder vom Admin entworfenes (custom:<Shop-Artikel-ID>) */
+export type SchemeChoice = SchemeId | `custom:${string}`;
 export type ThemeMode = 'time' | 'system' | 'light' | 'dark';
 
 export const SCHEMES: [SchemeId, string][] = [
-  ['energie', 'Energie (Schwarz + Neon-Grün)'],
-  ['klassisch', 'Klassisch'],
+  ['standard', 'Standard (Blau)'],
+  ['energie', 'Neon-Grün (Shop)'],
   ['ozean', 'Ozean (Shop)'],
   ['violett', 'Nacht-Violett (Shop)'],
   ['glut', 'Glut (Shop)'],
@@ -28,10 +30,10 @@ export const SCHEMES: [SchemeId, string][] = [
 /** Farbschemata, die man im Shop kaufen muss: Schema → Shop-Artikel. Wer eines davon schon aktiv hatte,
  *  bevor es in den Shop kam, behält es, bis er wechselt. */
 export const PREMIUM_SCHEMES: Partial<Record<SchemeId, string>> = {
-  ozean: 'scheme_ozean', violett: 'scheme_violett', glut: 'scheme_glut', kirsche: 'scheme_kirsche', wald: 'scheme_wald',
+  energie: 'scheme_energie', ozean: 'scheme_ozean', violett: 'scheme_violett', glut: 'scheme_glut', kirsche: 'scheme_kirsche', wald: 'scheme_wald',
   mitternacht: 'scheme_mitternacht', sunset: 'scheme_sunset', mono: 'scheme_mono', gold: 'scheme_gold', eis: 'scheme_eis',
 };
-export const DEFAULT_SCHEME: SchemeId = 'energie';
+export const DEFAULT_SCHEME: SchemeId = 'standard';
 export const THEME_OPTIONS: [ThemeMode, string][] = [
   ['time', 'Nach Uhrzeit'],
   ['system', 'Wie Gerät'],
@@ -138,10 +140,94 @@ function write(key: string, value: string) {
   }
 }
 
-export const getScheme = () => read(SCHEME_KEY, SCHEMES, DEFAULT_SCHEME);
+export function getScheme(): SchemeChoice {
+  try {
+    const v = localStorage.getItem(SCHEME_KEY);
+    if (v?.startsWith('custom:') && storedCustom()?.id === v.slice(7)) return v as SchemeChoice;
+  } catch {
+    /* Standard */
+  }
+  return read(SCHEME_KEY, SCHEMES, DEFAULT_SCHEME);
+}
+export const schemeLabel = (c: SchemeChoice) =>
+  c.startsWith('custom:') ? customPalettes.get(c.slice(7))?.name ?? storedCustom()?.name ?? 'Eigenes Schema' : SCHEMES.find(([id]) => id === c)?.[1] ?? c;
+
+// ---- Wer darf welche Farben? ----------------------------------------------------------
+// Alle außer dem Admin haben das Standard-Schema und was sie im Shop gekauft haben.
+let adminColors = false;
+export const hasAdminColors = () => adminColors;
+/** Nach dem Laden des Shop-Stands (bzw. im lokalen Modus mit owned = []) aufrufen */
+export function enforceSchemeRules(owned: string[], admin: boolean) {
+  adminColors = admin;
+  if (!admin) {
+    try {
+      localStorage.removeItem(ACCENT_KEY);
+    } catch {
+      /* ignorieren */
+    }
+    const s = getScheme();
+    const item = s.startsWith('custom:') ? s.slice(7) : PREMIUM_SCHEMES[s as SchemeId];
+    if (item && !owned.includes(item)) write(SCHEME_KEY, DEFAULT_SCHEME);
+  }
+  applyTheme();
+}
+/** Darf dieses Schema gewählt werden? */
+export const schemeAllowed = (c: SchemeChoice, owned: string[], admin: boolean) => {
+  if (admin) return true;
+  const item = c.startsWith('custom:') ? c.slice(7) : PREMIUM_SCHEMES[c as SchemeId];
+  return !item || owned.includes(item);
+};
+
+// ---- Vom Admin entworfene Farbschemata ------------------------------------------------
+export interface PaletteMode { bg: string; surface: string; text: string; accent: string }
+export interface CustomPalette { light: PaletteMode; dark: PaletteMode; neon: string }
+const CUSTOM_KEY = 'gym-tracker-custom-scheme';
+/** Bekannte eigene Schemata (aus dem Shop-Katalog): Artikel-ID → Name und Farben */
+const customPalettes = new Map<string, { name: string; palette: CustomPalette }>();
+export function registerCustomSchemes(list: { id: string; name: string; palette: CustomPalette }[]) {
+  for (const c of list) if (validPalette(c.palette)) customPalettes.set(c.id, { name: c.name, palette: c.palette });
+}
+export const validPalette = (p: unknown): p is CustomPalette => {
+  const x = p as CustomPalette | null;
+  return !!x && isHexColor(x.neon) && (['light', 'dark'] as const).every((m) => x[m] && (['bg', 'surface', 'text', 'accent'] as const).every((k) => isHexColor(x[m][k])));
+};
+interface StoredCustom { id: string; name: string; neon: string; light: Record<string, string>; dark: Record<string, string> }
+function storedCustom(): StoredCustom | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(CUSTOM_KEY) ?? 'null');
+    return v && typeof v.id === 'string' && v.light && v.dark ? v : null;
+  } catch {
+    return null;
+  }
+}
+const mixHex = (a: string, b: string, t: number) => rgbToHex(hexToRgb(a).map((v, i) => v + (hexToRgb(b)[i] - v) * t) as RGB);
+/** Aus 4 Grundfarben alle Variablen der App ableiten (Rahmen, Raster, Zweitschrift …), Akzent lesbar machen */
+export function deriveVars(p: PaletteMode, dark: boolean): Record<string, string> {
+  let accent = p.accent;
+  for (let t = 0.05; contrast(accent, p.surface) < 3 && t <= 1; t += 0.05) accent = mixHex(p.accent, p.text, t);
+  const onAccent = contrast(accent, '#ffffff') >= contrast(accent, '#000000') ? '#ffffff' : '#000000';
+  return {
+    '--bg': p.bg,
+    '--surface': p.surface,
+    '--border': mixHex(p.surface, p.text, 0.14),
+    '--text': p.text,
+    '--text-secondary': mixHex(p.text, p.surface, 0.32),
+    '--accent': accent,
+    '--accent-text': onAccent,
+    '--danger': dark ? '#ff6b6b' : '#c62828',
+    '--grid': mixHex(p.surface, p.text, 0.08),
+    '--invalid': dark ? '#3a1a1a' : '#fde8e8',
+    '--done': mixHex(p.surface, accent, 0.16),
+    '--warmup': dark ? '#ffb02e' : '#a35a00',
+    '--series-1': accent,
+    '--series-2': dark ? '#ff9f68' : '#c2410c',
+  };
+}
+const VAR_KEYS = Object.keys(deriveVars({ bg: '#000000', surface: '#000000', text: '#ffffff', accent: '#ffffff' }, true));
+export const getCustomPalette = (id: string) => customPalettes.get(id)?.palette ?? null;
 
 // ---- Vorschau aus dem Shop: Farbschema nur anschauen, nicht speichern ----------------
-let preview: SchemeId | null = null;
+let preview: SchemeChoice | null = null;
 const previewListeners = new Set<() => void>();
 export const getPreviewScheme = () => preview;
 export function subscribePreview(cb: () => void) {
@@ -149,7 +235,7 @@ export function subscribePreview(cb: () => void) {
   return () => void previewListeners.delete(cb);
 }
 /** null beendet die Vorschau; danach gilt wieder das eigene Farbschema */
-export function setPreviewScheme(id: SchemeId | null) {
+export function setPreviewScheme(id: SchemeChoice | null) {
   preview = id;
   applyTheme();
   previewListeners.forEach((l) => l());
@@ -167,29 +253,50 @@ let onChangeCb: (() => void) | null = null;
 
 export function applyTheme() {
   const root = document.documentElement;
-  const before = `${root.dataset.theme ?? ''}|${root.dataset.scheme ?? ''}|${root.dataset.accent ?? ''}`;
-  root.dataset.scheme = preview ?? getScheme();
+  const before = `${root.dataset.theme ?? ''}|${root.dataset.scheme ?? ''}|${root.dataset.accent ?? ''}|${root.style.getPropertyValue('--accent')}`;
+  const choice = preview ?? getScheme();
+  const customId = choice.startsWith('custom:') ? choice.slice(7) : null;
+  root.dataset.scheme = customId ? 'custom' : choice;
   const theme = resolveTheme(getThemeMode());
   if (theme) root.dataset.theme = theme;
   else delete root.dataset.theme;
   const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-  const accent = preview ? null : getAccent(); // in der Vorschau die echten Schema-Farben zeigen
+  // Eigene Schemata: Variablen direkt setzen; sonst entfernen (dann gilt das CSS)
+  for (const k of [...VAR_KEYS, '--neon']) root.style.removeProperty(k);
+  root.style.removeProperty('color-scheme');
+  if (customId) {
+    const known = customPalettes.get(customId)?.palette;
+    const stored = storedCustom();
+    const vars = known ? deriveVars(dark ? known.dark : known.light, dark) : stored?.id === customId ? stored[dark ? 'dark' : 'light'] : null;
+    if (vars) for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
+    const neon = known?.neon ?? (stored?.id === customId ? stored.neon : null);
+    if (neon) root.style.setProperty('--neon', neon);
+    root.style.setProperty('color-scheme', dark ? 'dark' : 'light');
+  }
+  // Eigene Akzentfarbe nur für den Admin; in der Vorschau die echten Schema-Farben zeigen
+  const accent = preview || !adminColors ? null : getAccent();
   if (accent) {
     const v = accentVariants(accent);
     root.style.setProperty('--accent', dark ? v.dark : v.light);
     root.style.setProperty('--accent-text', dark ? v.darkText : v.lightText);
     root.dataset.accent = accent;
   } else {
-    root.style.removeProperty('--accent');
-    root.style.removeProperty('--accent-text');
     delete root.dataset.accent;
   }
   const bg = getComputedStyle(root).getPropertyValue('--surface').trim();
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg || (dark ? '#1a1a19' : '#ffffff'));
-  if (`${root.dataset.theme ?? ''}|${root.dataset.scheme ?? ''}|${root.dataset.accent ?? ''}` !== before) onChangeCb?.();
+  if (`${root.dataset.theme ?? ''}|${root.dataset.scheme ?? ''}|${root.dataset.accent ?? ''}|${root.style.getPropertyValue('--accent')}` !== before) onChangeCb?.();
 }
 
-export function setScheme(scheme: SchemeId) {
+export function setScheme(scheme: SchemeChoice) {
+  if (scheme.startsWith('custom:')) {
+    const id = scheme.slice(7);
+    const c = customPalettes.get(id);
+    if (!c) return;
+    // Fertig berechnete Variablen merken, damit index.html sie schon vor dem ersten Zeichnen setzen kann
+    const stored: StoredCustom = { id, name: c.name, neon: c.palette.neon, light: deriveVars(c.palette.light, false), dark: deriveVars(c.palette.dark, true) };
+    write(CUSTOM_KEY, JSON.stringify(stored));
+  }
   write(SCHEME_KEY, scheme);
   preview = null;
   applyTheme();

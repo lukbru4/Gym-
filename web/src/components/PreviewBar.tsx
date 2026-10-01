@@ -1,11 +1,11 @@
 // Leiste unten, solange im Shop ein Farbschema zur Vorschau angeschaut wird – auf jeder Seite sichtbar.
 import { useSyncExternalStore } from 'react';
-import { SCHEMES, getPreviewScheme, setPreviewScheme, subscribePreview } from '../lib/theme';
+import { getPreviewScheme, schemeLabel, setPreviewScheme, subscribePreview } from '../lib/theme';
 
 export function PreviewBar() {
   const scheme = useSyncExternalStore(subscribePreview, getPreviewScheme);
   if (!scheme) return null;
-  const label = (SCHEMES.find(([id]) => id === scheme)?.[1] ?? scheme).replace(' (Shop)', '');
+  const label = schemeLabel(scheme).replace(' (Shop)', '');
   return (
     <div className="preview-bar" id="preview-bar" role="status">
       <span>

@@ -4,6 +4,7 @@ import { useApp } from '../app/context';
 import { displayName } from '../app/profile';
 import { sectionOf, useHash } from '../app/router';
 import type { Game } from '../app/game';
+import { useCosmetics } from '../lib/cosmetics';
 import { fmt } from '../lib/format';
 import { fetchServerVersion, hardReload } from '../lib/update';
 import { APP_VERSION } from '../version';
@@ -12,6 +13,7 @@ import { Coin, Flame, MenuIcon } from './Icons';
 export function Header({ game }: { game: Game | null }) {
   const { api, user } = useApp();
   const [open, setOpen] = useState(false);
+  const { admin } = useCosmetics();
   const hash = useHash();
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => setOpen(false), [hash]);
@@ -73,6 +75,7 @@ export function Header({ game }: { game: Game | null }) {
         <div className="menu" id="menu" ref={menuRef}>
           <a href="#/konto">Konto &amp; Einstellungen</a>
           {api.social && <a href="#/shop">Shop</a>}
+          {admin && <a href="#/admin" id="menu-admin">🛠 Admin-Menü</a>}
           <a href="#/backup">Backup</a>
           {api.mode === 'cloud' && (
             <button id="menu-signout" onClick={() => api.signOut()}>

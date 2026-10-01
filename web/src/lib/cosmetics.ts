@@ -2,8 +2,8 @@
 import { useSyncExternalStore } from 'react';
 import type { Equipped } from './shop';
 
-export interface Cosmetics { owned: string[]; equipped: Equipped }
-let state: Cosmetics = { owned: [], equipped: {} };
+export interface Cosmetics { owned: string[]; equipped: Equipped; admin: boolean }
+let state: Cosmetics = { owned: [], equipped: {}, admin: false };
 const listeners = new Set<() => void>();
 
 export const getCosmetics = () => state;
@@ -13,6 +13,7 @@ export function setCosmetics(next: Partial<Cosmetics> | null | undefined) {
   state = {
     owned: Array.isArray(raw.owned) ? raw.owned.filter((x): x is string => typeof x === 'string') : [],
     equipped: raw.equipped && typeof raw.equipped === 'object' && !Array.isArray(raw.equipped) ? raw.equipped : {},
+    admin: raw.admin === true,
   };
   listeners.forEach((l) => l());
 }

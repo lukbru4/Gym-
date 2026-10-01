@@ -7,10 +7,12 @@ import { LoadError, Loading } from '../components/Bits';
 import { Coin } from '../components/Icons';
 import { getCosmetics, setCosmetics, useCosmetics } from '../lib/cosmetics';
 import { fmt } from '../lib/format';
-import { SHOP_ITEMS, SHOP_SECTIONS, type ShopItem } from '../lib/shop';
-import { PREMIUM_SCHEMES, getPreviewScheme, getScheme, setPreviewScheme, setScheme, subscribePreview, type SchemeId } from '../lib/theme';
+import { SHOP_SECTIONS, useShopItems, type ShopItem } from '../lib/shop';
+import { PREMIUM_SCHEMES, getPreviewScheme, getScheme, setPreviewScheme, setScheme, subscribePreview, type SchemeChoice } from '../lib/theme';
 
-const schemeOf = (itemId: string) => (Object.entries(PREMIUM_SCHEMES).find(([, id]) => id === itemId)?.[0] ?? null) as SchemeId | null;
+/** Shop-Artikel → Farbschema (fest eingebaut oder vom Admin entworfen) */
+const schemeOf = (itemId: string): SchemeChoice | null =>
+  itemId.startsWith('scheme_c_') ? `custom:${itemId}` : ((Object.entries(PREMIUM_SCHEMES).find(([, id]) => id === itemId)?.[0] ?? null) as SchemeChoice | null);
 
 function Preview({ item, level }: { item: ShopItem; level: number }) {
   if (item.kind === 'skin') return <div className="shop-preview"><Avatar level={level} skin={item.id} /></div>;
@@ -43,6 +45,7 @@ export function Shop() {
   const [busy, setBusy] = useState<string | null>(null);
   const [scheme, setSchemeState] = useState(getScheme());
   const previewing = useSyncExternalStore(subscribePreview, getPreviewScheme);
+  const items = useShopItems();
   const social = api.social;
 
   if (!social)
@@ -111,12 +114,13 @@ export function Shop() {
           Verdient: {fmt(g.credits, 0)} · Ausgegeben: {fmt(g.credits - balance, 0)}. Credits bekommst du für Trainings, Aufgaben und Challenges.
           Dein Level zählt alle verdienten Credits – Einkaufen senkt es nicht.
         </p>
+        {cosmetics.admin && <p className="notice small" id="admin-shop-note">Admin: Du besitzt alle Artikel. Eigene Farbschemata entwirfst du im Admin-Menü.</p>}
       </div>
       {SHOP_SECTIONS.map(([kind, title]) => (
         <section key={kind}>
           <h3>{title}</h3>
           <div className="shop-grid">
-            {SHOP_ITEMS.filter((i) => i.kind === kind).map((item) => {
+            {items.filter((i) => i.kind === kind).map((item) => {
               const has = owned.has(item.id);
               const active = has && isActive(item);
               const missing = item.price - balance;

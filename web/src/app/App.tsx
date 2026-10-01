@@ -15,7 +15,10 @@ import { Home } from '../pages/Home';
 import { AcceptInvite, FriendProfile, Friends, FriendsFeed } from '../pages/Friends';
 import { Medals, Profile, Quests } from '../pages/Profile';
 import { Shop } from '../pages/Shop';
-import { setCosmetics } from '../lib/cosmetics';
+import { Admin } from '../pages/Admin';
+import { getCosmetics, setCosmetics } from '../lib/cosmetics';
+import { setServerCatalog } from '../lib/shop';
+import { enforceSchemeRules } from '../lib/theme';
 import { Analysis, Ranks, Records } from '../pages/Ranks';
 import { History, WorkoutDetail } from '../pages/Workout';
 import { StartFromTemplate, Workouts } from '../pages/Workouts';
@@ -50,6 +53,7 @@ const ROUTES: Route[] = [
   [/^#\/aufgaben$/, () => <Quests />],
   [/^#\/medaillen$/, () => <Medals />],
   [/^#\/shop$/, () => <Shop />],
+  [/^#\/admin$/, () => <Admin />],
 ];
 
 function Toast({ message }: { message: string | null }) {
@@ -71,8 +75,19 @@ function Shell() {
   if (game.status === 'ok') lastGame.current = game.data;
   useEffect(() => window.scrollTo(0, 0), [hash]);
   // Gekaufte/ausgerüstete Shop-Artikel einmal laden (fehlt das SQL noch, bleibt alles beim Standard)
+  // Danach gilt: Farbschemata nur, wenn gekauft (Admin: alle)
   useEffect(() => {
-    api.social?.myShop().then(setCosmetics, () => setCosmetics({ owned: [], equipped: {} }));
+    const social = api.social;
+    if (!social) return enforceSchemeRules([], false); // lokaler Modus: kein Shop → Standardfarben
+    social.catalog().then(setServerCatalog, () => {});
+    social.myShop().then(
+      (c) => {
+        setCosmetics(c);
+        const st = getCosmetics();
+        enforceSchemeRules(st.owned, st.admin);
+      },
+      () => setCosmetics({ owned: [], equipped: {} }),
+    );
   }, [api]);
 
   let page: ReactNode = null;

@@ -23,6 +23,8 @@ export interface Backend {
   onAuthChange(cb: (user: User | null) => void): void;
   /** E-Mail mit Link zum Zurücksetzen des Passworts (nur Cloud) */
   resetPassword?(email: string): Promise<void>;
+  /** Bestätigungs-Mail nach der Registrierung erneut senden */
+  resendConfirmation?(email: string): Promise<void>;
   /** Neues Passwort für den angemeldeten Nutzer (nach dem Link aus der Mail) */
   updatePassword?(password: string): Promise<void>;
 

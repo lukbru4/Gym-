@@ -5,3 +5,7 @@ import { publicUrl } from './platform';
 export const TERMS_VERSION = '2026-10';
 
 export const legalUrl = (page: 'datenschutz' | 'nutzungsbedingungen' | 'impressum') => `${publicUrl()}${page}.html`;
+
+/** Absendername der Anmelde-Mails. Solange kein eigener E-Mail-Versand (SMTP) in Supabase eingerichtet ist,
+ *  kommen sie von „Supabase Auth“ – danach hier auf 'Level Up' ändern. */
+export const MAIL_SENDER = 'Supabase Auth';

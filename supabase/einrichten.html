@@ -14,7 +14,8 @@
   button { width: 100%; min-height: 56px; border: 0; border-radius: 14px; background: var(--accent); color: #0b0b0b; font: 800 1.15rem system-ui, sans-serif; cursor: pointer; }
   button:disabled { opacity: 0.5; }
   #status { min-height: 1.5em; margin: 10px 0; font-weight: 700; }
-  #status.ok { color: var(--ok); } #status.err { color: var(--err); }
+  #status.ok, #admin-status.ok { color: var(--ok); } #status.err, #admin-status.err { color: var(--err); }
+  #admin-status { font-weight: 700; overflow-wrap: anywhere; }
   textarea { width: 100%; box-sizing: border-box; height: 220px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: 12px/1.4 ui-monospace, monospace; padding: 8px; }
   .muted { color: var(--muted); font-size: 0.9rem; }
 </style>
@@ -31,6 +32,18 @@
   <p id="status" role="status"></p>
   <p class="muted" id="info"></p>
   <textarea id="sql" readonly aria-label="SQL-Skript"></textarea>
+
+  <h2 id="admin">Dich als Admin eintragen (einmalig)</h2>
+  <ol>
+    <li>Erst das große SQL oben ausführen.</li>
+    <li>Hier die E-Mail deines Level-Up-Kontos eintragen und auf <strong>„Admin-Befehl kopieren“</strong> tippen.</li>
+    <li>In Supabase → SQL Editor → <strong>New query</strong> einfügen → <strong>Run</strong>.</li>
+    <li>In der App einmal abmelden und wieder anmelden: Im Menü ☰ erscheint <strong>🛠 Admin-Menü</strong>.</li>
+  </ol>
+  <input id="admin-email" type="email" placeholder="deine@email.de" autocomplete="email" style="width:100%;box-sizing:border-box;min-height:48px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:16px;background:var(--surface);color:var(--text)">
+  <p></p>
+  <button id="admin-copy">Admin-Befehl kopieren</button>
+  <p id="admin-status" role="status"></p>
 </main>
 <script>
   const btn = document.getElementById('copy');
@@ -65,6 +78,17 @@
     };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(area.value).then(done, fail);
     else fail();
+  });
+
+  // Admin-Befehl: E-Mail nur hier im Browser einsetzen (sie steht nirgends im Code)
+  document.getElementById('admin-copy').addEventListener('click', () => {
+    const email = document.getElementById('admin-email').value.trim().toLowerCase();
+    const out = document.getElementById('admin-status');
+    if (!/^[^\s@']+@[^\s@']+\.[^\s@']+$/.test(email)) { out.textContent = 'Bitte eine gültige E-Mail eingeben.'; out.className = 'err'; return; }
+    const cmd = "insert into public.admins (user_id) select id from auth.users where lower(email) = '" + email + "' on conflict do nothing;";
+    const ok = () => { out.textContent = '✓ Kopiert! Jetzt in Supabase einfügen und Run tippen.'; out.className = 'ok'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(cmd).then(ok, () => { out.textContent = cmd; });
+    else out.textContent = cmd;
   });
 </script>
 </body>

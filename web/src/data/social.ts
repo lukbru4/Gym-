@@ -3,6 +3,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { publicUrl } from '../lib/platform';
 import type { Equipped } from '../lib/shop';
+import type { CustomPalette } from '../lib/theme';
 import type { Exercise, ISODate, Workout, WorkoutSet } from '../lib/types';
 
 export type Visibility = 'friends' | 'private';
@@ -72,9 +73,26 @@ export interface Social {
   reportComment(id: number, reason: string): Promise<void>;
   workoutSocial(workoutId: number): Promise<{ likes: number; comments: number } | null>;
   wallet(): Promise<{ earned: number; spent: number; balance: number }>;
-  myShop(): Promise<{ owned: string[]; equipped: Equipped }>;
+  myShop(): Promise<{ owned: string[]; equipped: Equipped; admin?: boolean }>;
   buy(itemId: string): Promise<number>;
   equip(kind: 'skin' | 'accessory' | 'title', itemId: string | null): Promise<void>;
+  catalog(): Promise<CatalogRow[]>;
+  adminSaveScheme(id: string, name: string, price: number, palette: CustomPalette): Promise<void>;
+  adminHideScheme(id: string): Promise<void>;
+  adminReports(): Promise<AdminReport[]>;
+  adminResolveReport(id: number, deleteComment: boolean): Promise<void>;
+}
+
+export interface CatalogRow { id: string; kind: string; name: string; price: number; palette: CustomPalette | null }
+export interface AdminReport {
+  id: number;
+  created_at: string;
+  reason: string;
+  reporter_name: string;
+  reported: string;
+  reported_name: string;
+  comment_id: number | null;
+  comment_body: string | null;
 }
 
 export function createSocial(supabase: SupabaseClient): Social {
@@ -114,6 +132,11 @@ export function createSocial(supabase: SupabaseClient): Social {
     myShop: () => rpc('my_shop'),
     buy: (p_item) => rpc('buy_item', { p_item }),
     equip: (p_kind, p_item) => rpc('equip_item', { p_kind, p_item }),
+    catalog: () => rpc('shop_catalog'),
+    adminSaveScheme: (p_id, p_name, p_price, p_palette) => rpc('admin_save_scheme', { p_id, p_name, p_price, p_palette }),
+    adminHideScheme: (p_id) => rpc('admin_hide_scheme', { p_id }),
+    adminReports: () => rpc('admin_reports'),
+    adminResolveReport: (p_id, p_delete_comment) => rpc('admin_resolve_report', { p_id, p_delete_comment }),
     workoutSocial: async (p_workout) => (await rpc<{ likes: number; comments: number }[]>('workout_social', { p_workout }))[0] ?? null,
   };
 }

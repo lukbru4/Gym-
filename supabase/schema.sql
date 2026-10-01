@@ -987,6 +987,7 @@ insert into public.shop_items (id, kind, name, price) values
   ('skin_pink',     'skin',      'Neon-Pink',        300),
   ('skin_matrix',   'skin',      'Matrix',           450),
   ('skin_gold',     'skin',      'Gold',             600),
+  ('scheme_energie','scheme',    'Neon-Grün',        300),
   ('scheme_ozean',  'scheme',    'Ozean',            300),
   ('scheme_violett','scheme',    'Nacht-Violett',    300),
   ('scheme_glut',   'scheme',    'Glut',             300),
@@ -1114,3 +1115,182 @@ $$;
 
 revoke all on function public.my_wallet(), public.my_shop(), public.buy_item(text), public.equip_item(text, text), public.friend_profile(uuid) from public;
 grant execute on function public.my_wallet(), public.my_shop(), public.buy_item(text), public.equip_item(text, text), public.friend_profile(uuid) to authenticated;
+
+-- ===========================================================================
+-- Admin: Wer Admin ist, steht nur hier auf dem Server (Tabelle admins, ohne direkten Zugriff).
+-- Admin eintragen (einmal im SQL Editor, mit deiner E-Mail):
+--   insert into public.admins (user_id) select id from auth.users where email = 'DEINE@EMAIL' on conflict do nothing;
+-- Der Admin besitzt alle Shop-Artikel, kann eigene Farbschemata entwerfen und im Shop anbieten
+-- und Meldungen bearbeiten.
+-- ===========================================================================
+create table if not exists public.admins (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+alter table public.admins enable row level security;
+revoke all on public.admins from anon, authenticated;
+
+create or replace function public.is_admin(p_user uuid default auth.uid())
+returns boolean language sql stable security definer set search_path = '' as $$
+  select p_user is not null and exists (select 1 from public.admins a where a.user_id = p_user)
+$$;
+
+-- Eigene Farbschemata: Farben (palette) stehen beim Artikel; active = im Shop sichtbar
+alter table public.shop_items add column if not exists palette jsonb;
+alter table public.shop_items add column if not exists active boolean not null default true;
+
+-- Shop-Katalog für die App: feste Artikel + vom Admin entworfene Farbschemata
+create or replace function public.shop_catalog()
+returns table (id text, kind text, name text, price integer, palette jsonb)
+language sql stable security definer set search_path = '' as $$
+  select i.id, i.kind, i.name, i.price, i.palette from public.shop_items i
+  where i.active and auth.uid() is not null
+  order by i.price, i.id
+$$;
+
+-- Eigene Artikel: Admin besitzt alles; dazu das Admin-Kennzeichen
+create or replace function public.my_shop()
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'owned', case when public.is_admin()
+      then coalesce((select jsonb_agg(i.id order by i.id) from public.shop_items i), '[]'::jsonb)
+      else coalesce((select jsonb_agg(p.item_id order by p.created_at) from public.purchases p where p.user_id = auth.uid()), '[]'::jsonb) end,
+    'equipped', coalesce((select pr.equipped from public.profiles pr where pr.id = auth.uid()), '{}'::jsonb),
+    'admin', public.is_admin()
+  )
+$$;
+
+-- Kaufen nur aktiver Artikel; Admin muss nichts kaufen
+create or replace function public.buy_item(p_item text)
+returns integer language plpgsql security definer set search_path = '' as $$
+declare
+  me uuid := auth.uid();
+  item public.shop_items;
+  bal integer;
+begin
+  if me is null then raise exception 'nicht angemeldet'; end if;
+  if public.is_admin(me) then raise exception 'Als Admin hast du schon alles.'; end if;
+  perform pg_advisory_xact_lock(hashtext('shop:' || me::text));
+  select * into item from public.shop_items where id = p_item and active;
+  if not found then raise exception 'Diesen Artikel gibt es nicht.'; end if;
+  if exists (select 1 from public.purchases where user_id = me and item_id = p_item) then
+    raise exception 'Das hast du schon gekauft.';
+  end if;
+  bal := public.credits_total(me) - public.credits_spent(me);
+  if bal < item.price then
+    raise exception 'Nicht genug Credits: Dir fehlen noch %.', item.price - bal;
+  end if;
+  insert into public.purchases (user_id, item_id, price) values (me, p_item, item.price);
+  return bal - item.price;
+end;
+$$;
+
+-- Ausrüsten: gekauft oder Admin
+create or replace function public.equip_item(p_kind text, p_item text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'nicht angemeldet'; end if;
+  if p_kind not in ('skin', 'accessory', 'title') then raise exception 'ungültig'; end if;
+  if p_item is not null and not exists (select 1 from public.shop_items i where i.id = p_item and i.kind = p_kind) then
+    raise exception 'ungültig';
+  end if;
+  if p_item is not null and not public.is_admin() and not exists (
+    select 1 from public.purchases p where p.user_id = auth.uid() and p.item_id = p_item
+  ) then
+    raise exception 'Das musst du zuerst kaufen.';
+  end if;
+  perform public.my_profile();
+  update public.profiles
+     set equipped = case when p_item is null then equipped - p_kind else jsonb_set(equipped, array[p_kind], to_jsonb(p_item)) end
+   where id = auth.uid();
+end;
+$$;
+
+-- Prüft ein Farbschema: { "light": {bg, surface, text, accent}, "dark": {…}, "neon": "#rrggbb" }
+create or replace function public.valid_palette(p jsonb)
+returns boolean language sql immutable set search_path = '' as $$
+  select coalesce((
+    select bool_and(coalesce(p #>> array[m, k], '') ~ '^#[0-9a-fA-F]{6}$')
+    from unnest(array['light', 'dark']) m, unnest(array['bg', 'surface', 'text', 'accent']) k
+  ), false) and coalesce(p ->> 'neon', '') ~ '^#[0-9a-fA-F]{6}$'
+$$;
+
+-- Admin: eigenes Farbschema speichern (neu oder ändern). id: scheme_c_… (klein, Ziffern, _)
+create or replace function public.admin_save_scheme(p_id text, p_name text, p_price integer, p_palette jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  if p_id !~ '^scheme_c_[a-z0-9_]{1,30}$' then raise exception 'Ungültige Kennung.'; end if;
+  if char_length(btrim(coalesce(p_name, ''))) not between 1 and 30 then raise exception 'Name: 1 bis 30 Zeichen.'; end if;
+  if p_price is null or p_price < 0 or p_price > 100000 then raise exception 'Preis: 0 bis 100000.'; end if;
+  if not public.valid_palette(p_palette) then raise exception 'Ungültige Farben.'; end if;
+  insert into public.shop_items (id, kind, name, price, palette, active)
+  values (p_id, 'scheme', btrim(p_name), p_price, p_palette, true)
+  on conflict (id) do update set name = excluded.name, price = excluded.price, palette = excluded.palette, active = true;
+end;
+$$;
+
+-- Admin: eigenes Farbschema aus dem Shop nehmen (wer es gekauft hat, behält es)
+create or replace function public.admin_hide_scheme(p_id text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  update public.shop_items set active = false where id = p_id and id like 'scheme\_c\_%';
+end;
+$$;
+
+-- Admin: Meldungen ansehen
+create or replace function public.admin_reports()
+returns table (id bigint, created_at timestamptz, reason text, reporter_name text, reported uuid, reported_name text,
+               comment_id bigint, comment_body text)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  return query
+    select r.id, r.created_at, r.reason, coalesce(p1.display_name, '?'), r.reported, coalesce(p2.display_name, '?'),
+           r.comment_id, c.body
+    from public.reports r
+    left join public.profiles p1 on p1.id = r.reporter
+    left join public.profiles p2 on p2.id = r.reported
+    left join public.comments c on c.id = r.comment_id
+    order by r.created_at desc
+    limit 200;
+end;
+$$;
+
+-- Admin: Meldung erledigen, optional den gemeldeten Kommentar löschen
+create or replace function public.admin_resolve_report(p_id bigint, p_delete_comment boolean)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  cid bigint;
+begin
+  if not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  select r.comment_id into cid from public.reports r where r.id = p_id;
+  if p_delete_comment and cid is not null then
+    delete from public.comments where id = cid;
+  end if;
+  delete from public.reports where id = p_id;
+end;
+$$;
+
+revoke all on function
+  public.is_admin(uuid), public.shop_catalog(), public.my_shop(), public.buy_item(text), public.equip_item(text, text),
+  public.valid_palette(jsonb), public.admin_save_scheme(text, text, integer, jsonb), public.admin_hide_scheme(text),
+  public.admin_reports(), public.admin_resolve_report(bigint, boolean)
+from public;
+grant execute on function
+  public.shop_catalog(), public.my_shop(), public.buy_item(text), public.equip_item(text, text),
+  public.admin_save_scheme(text, text, integer, jsonb), public.admin_hide_scheme(text),
+  public.admin_reports(), public.admin_resolve_report(bigint, boolean)
+to authenticated;
+
+-- ===========================================================================
+-- Härtung: Supabase gibt neuen Funktionen standardmäßig Ausführrechte für anon und authenticated.
+-- Interne Hilfsfunktionen sollen nur von anderen Server-Funktionen aufgerufen werden.
+-- ===========================================================================
+revoke execute on function
+  public.credits_earned(uuid), public.credits_spent(uuid), public.credits_total(uuid),
+  public.challenge_score(uuid, text, date, date), public.challenge_bonus(uuid),
+  public.are_friends(uuid, uuid), public.is_blocked(uuid, uuid), public.can_see(uuid, uuid),
+  public.new_friend_code(), public.board_people(), public.is_admin(uuid), public.valid_palette(jsonb)
+from anon, authenticated;
