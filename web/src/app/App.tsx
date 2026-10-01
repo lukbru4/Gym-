@@ -7,7 +7,7 @@ import { createBackend } from '../data/api';
 import { clearDraft } from '../lib/editor';
 import type { Exercise, User } from '../lib/types';
 import { Account, Backup } from '../pages/Account';
-import { Auth } from '../pages/Auth';
+import { Auth, SetNewPassword } from '../pages/Auth';
 import { Body } from '../pages/Body';
 import { Editor } from '../pages/Editor';
 import { Home } from '../pages/Home';
@@ -99,6 +99,8 @@ export function App() {
   const [user, setUser] = useState<User | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  // Link „Passwort zurücksetzen“ aus der Mail: vor dem Start merken (Supabase entfernt den Hash danach)
+  const [recovery, setRecovery] = useState(() => /type=recovery/.test(location.hash));
   const toastTimer = useRef<number>(undefined);
 
   const showError = useCallback((err: unknown) => {
@@ -168,7 +170,14 @@ export function App() {
   }
   return (
     <AppProvider api={api} user={user} exercises={exercises} setExercises={setExercises} showError={showError}>
-      {user ? (
+      {user && recovery ? (
+        <>
+          <Header game={null} />
+          <main id="view" className="container">
+            <SetNewPassword onDone={() => setRecovery(false)} />
+          </main>
+        </>
+      ) : user ? (
         <Shell />
       ) : (
         <>

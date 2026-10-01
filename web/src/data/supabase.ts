@@ -44,6 +44,13 @@ function backend(supabase: SupabaseClient): Backend {
         await supabase.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } }),
       ),
     signOut: () => supabase.auth.signOut(),
+    resetPassword: async (email) => {
+      check(await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }));
+    },
+    updatePassword: async (password) => {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+    },
     onAuthChange: (cb) => {
       supabase.auth.onAuthStateChange((_event, session) => cb(session?.user ?? null));
     },
