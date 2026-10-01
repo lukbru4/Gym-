@@ -711,7 +711,7 @@
   --neon: #4da3ff;
   --neon-bg: #07090c;
 }
-:root, .bodygraph-panel, .avatar {
+:root, .bodygraph-panel, .avatar, .skin-scope {
   --neon-line: color-mix(in srgb, var(--neon) 24%, var(--neon-bg));
   --glow-0: var(--neon-line);
   --glow-1: color-mix(in srgb, var(--neon) 40%, var(--neon-bg));
@@ -1248,12 +1248,12 @@ body.picker-open { overflow: hidden; }
 .dark-hours { margin-bottom: 12px; }
 .accent-picker .label-text { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; }
 .swatches-row { display: flex; flex-wrap: wrap; gap: 10px; }
-.swatch { position: relative; width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--border); padding: 0; margin: 0; cursor: pointer; display: grid; place-items: center; font-size: 0.7rem; font-weight: 800; color: var(--text-secondary); background: var(--bg); }
-.swatch.on { outline: 3px solid var(--text); outline-offset: 2px; }
-.swatch.scheme-default { background: conic-gradient(#b6ff00, #3b82f6, #a855f7, #f97316, #b6ff00); color: #000; }
-.swatch.scheme-default span { background: #fff; border-radius: 6px; padding: 0 3px; }
-.swatch.custom { overflow: hidden; font-size: 1.2rem; }
-.swatch.custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; border: 0; padding: 0; }
+.swatches-row .swatch { position: relative; width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--border); padding: 0; margin: 0; cursor: pointer; display: grid; place-items: center; font-size: 0.7rem; font-weight: 800; color: var(--text-secondary); background: var(--bg); }
+.swatches-row .swatch.on { outline: 3px solid var(--text); outline-offset: 2px; }
+.swatches-row .swatch.scheme-default { background: conic-gradient(#b6ff00, #3b82f6, #a855f7, #f97316, #b6ff00); color: #000; }
+.swatches-row .swatch.scheme-default span { background: #fff; border-radius: 6px; padding: 0 3px; }
+.swatches-row .swatch.custom { overflow: hidden; font-size: 1.2rem; }
+.swatches-row .swatch.custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; border: 0; padding: 0; }
 
 /* Registrierung: Zustimmung; Links zu Rechtstexten */
 .consent { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; font-size: 0.85rem; line-height: 1.45; }

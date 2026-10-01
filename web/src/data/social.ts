@@ -81,6 +81,7 @@ export interface Social {
   adminHideScheme(id: string): Promise<void>;
   adminReports(): Promise<AdminReport[]>;
   adminResolveReport(id: number, deleteComment: boolean): Promise<void>;
+  schemaVersion(): Promise<number>;
 }
 
 export interface CatalogRow { id: string; kind: string; name: string; price: number; palette: CustomPalette | null }
@@ -137,6 +138,7 @@ export function createSocial(supabase: SupabaseClient): Social {
     adminHideScheme: (p_id) => rpc('admin_hide_scheme', { p_id }),
     adminReports: () => rpc('admin_reports'),
     adminResolveReport: (p_id, p_delete_comment) => rpc('admin_resolve_report', { p_id, p_delete_comment }),
+    schemaVersion: async () => Number(await rpc('schema_version')) || 0,
     workoutSocial: async (p_workout) => (await rpc<{ likes: number; comments: number }[]>('workout_social', { p_workout }))[0] ?? null,
   };
 }

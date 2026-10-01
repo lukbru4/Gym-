@@ -7,6 +7,7 @@ import { BodyGraph } from '../components/BodyGraph';
 import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ChartView } from '../components/ChartView';
 import { Radar } from '../components/Radar';
+import { useCosmetics } from '../lib/cosmetics';
 import { datedSets } from '../lib/editor';
 import { fmt, fmtDate, fmtShortDate, parseNum } from '../lib/format';
 import { LEVELS, MUSCLE_NAMES, musclesOf, strengthLevels } from '../lib/muscles';
@@ -40,6 +41,7 @@ function AssignForm({ ex, used }: { ex: Exercise; used: boolean }) {
 export function Body() {
   const { api, exercises, exerciseMap, showError, dataVersion, dataChanged } = useApp();
   const game = useGame();
+  const cosmetics = useCosmetics();
   const weights = useAsync(() => api.listBodyWeights(), [api, dataVersion]);
   const [selected, setSelected] = useState<MuscleId | null>(null);
   const [date, setDate] = useState(todayISO());
@@ -83,7 +85,7 @@ export function Body() {
       <h2>Körpergraph</h2>
       <div className="card">
         <BodyGraph levels={levels} onSelect={setSelected} />
-        <ul className="legend" aria-label="Legende">
+        <ul className="legend skin-scope" data-skin={cosmetics.equipped.skin} aria-label="Legende">
           <li><span className="swatch" style={{ background: 'var(--neon-bg)' }} />nicht trainiert</li>
           {LEVELS.map((l) => (
             <li key={l.level}><span className="swatch" style={{ background: `var(--glow-${l.level})` }} />Stufe {l.level}: {l.label}</li>

@@ -50,3 +50,10 @@ describe('Admin & eigene Farbschemata', async () => {
     expect(validPalette(null)).toBe(false);
   });
 });
+
+test('SCHEMA_VERSION der App passt zu schema_version() in schema.sql', async () => {
+  const { SCHEMA_VERSION } = await import('../src/data/config');
+  const sql = readFileSync(new URL('../../supabase/schema.sql', import.meta.url), 'utf8');
+  const m = sql.match(/function public\.schema_version\(\)[\s\S]*?select (\d+) \$\$/);
+  expect(Number(m?.[1])).toBe(SCHEMA_VERSION);
+});

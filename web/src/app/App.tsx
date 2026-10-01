@@ -1,6 +1,6 @@
 // Wurzel der App: startet das Backend, verwaltet Login und Übungen, wählt die Seite zur Adresse (#/…).
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { BottomNav, Header, SubNav, UpdateBanner } from '../components/Chrome';
+import { BottomNav, DbUpdateBanner, Header, SubNav, UpdateBanner } from '../components/Chrome';
 import { PreviewBar } from '../components/PreviewBar';
 import { RestTimer } from '../components/RestTimer';
 import type { Backend } from '../data/backend';
@@ -106,6 +106,7 @@ function Shell() {
     <GameProvider value={game}>
       <Header game={lastGame.current} />
       <UpdateBanner />
+      <DbUpdateBanner />
       <SubNav />
       <main id="view" className="container" key={hash}>
         {page}

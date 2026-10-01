@@ -1294,3 +1294,12 @@ revoke execute on function
   public.are_friends(uuid, uuid), public.is_blocked(uuid, uuid), public.can_see(uuid, uuid),
   public.new_friend_code(), public.board_people(), public.is_admin(uuid), public.valid_palette(jsonb)
 from anon, authenticated;
+
+-- ===========================================================================
+-- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
+-- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
+-- ===========================================================================
+create or replace function public.schema_version()
+returns integer language sql immutable set search_path = '' as $$ select 37 $$;
+revoke all on function public.schema_version() from public, anon;
+grant execute on function public.schema_version() to authenticated;

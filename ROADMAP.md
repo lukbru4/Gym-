@@ -65,7 +65,8 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Registrierung nur mit Zustimmung (inkl. Einwilligung Gesundheitsdaten), Version + Zeitpunkt im Konto
 - [ ] Platzhalter ausfüllen (Name, Anschrift, Kontakt, Supabase-Region) und Texte rechtlich prüfen lassen (**Lukas**)
 - [ ] Auftragsverarbeitungsvertrag (DPA) mit Supabase bestätigen (**Lukas**)
-- [ ] Store-Einträge, Screenshots, Datenschutz-Angaben, Altersfreigabe
+- [x] Entwurf Store-Einträge, Datenschutz-Angaben, Altersfreigabe (`store/listing-de.md`), Screenshots (`store/screenshots/`)
+- [ ] Store-Einträge in App Store Connect / Play Console eintragen (nach Konto-Anmeldung)
 - [ ] Testphase: TestFlight bzw. geschlossener Test (Google: 12 Tester, 14 Tage für neue private Konten)
 
 ## Zwischendurch – Wünsche
@@ -75,6 +76,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] 11 Farbschemata im Shop mit 👁-Vorschau; alle anderen haben „Standard (Blau)“
 - [x] Admin-Menü (nur Admin, vom Server geprüft): alle Farben + Akzentfarbe, Farbschema-Designer mit Shop-Angebot, Meldungen bearbeiten
 - [ ] Admin eintragen: einrichten-Seite → „Dich als Admin eintragen“ (**Lukas**)
+- [x] App zeigt dem Admin „Datenbank-Update nötig“, wenn das SQL älter ist als die App (`schema_version()`)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
 - [ ] Eigene Domain + E-Mail-Versand (SMTP) in Supabase, deutsche E-Mail-Vorlagen (**Lukas**: Domain kaufen)
 

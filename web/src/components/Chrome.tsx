@@ -4,7 +4,9 @@ import { useApp } from '../app/context';
 import { displayName } from '../app/profile';
 import { sectionOf, useHash } from '../app/router';
 import type { Game } from '../app/game';
+import { SCHEMA_VERSION } from '../data/config';
 import { useCosmetics } from '../lib/cosmetics';
+import { WEB_URL } from '../lib/platform';
 import { fmt } from '../lib/format';
 import { fetchServerVersion, hardReload } from '../lib/update';
 import { APP_VERSION } from '../version';
@@ -166,3 +168,39 @@ export function UpdateBanner() {
     </div>
   );
 }
+
+/** Nur für den Admin: Die Datenbank ist älter als die App → SQL auf der Einrichtungsseite ausführen.
+ *  Auch nach einem Update ohne Admin-Kennzeichen (altes SQL) erscheint der Hinweis, wenn dieses Gerät
+ *  schon einmal als Admin angemeldet war. */
+export function DbUpdateBanner() {
+  const { api } = useApp();
+  const { admin } = useCosmetics();
+  const [outdated, setOutdated] = useState(false);
+  useEffect(() => {
+    if (!api.social) return;
+    let wasAdmin = false;
+    try {
+      if (admin) localStorage.setItem(WAS_ADMIN_KEY, '1');
+      wasAdmin = localStorage.getItem(WAS_ADMIN_KEY) === '1';
+    } catch {
+      /* ignorieren */
+    }
+    if (!admin && !wasAdmin) return;
+    let alive = true;
+    api.social.schemaVersion().then(
+      (v) => alive && setOutdated(v < SCHEMA_VERSION),
+      () => alive && setOutdated(true), // Funktion fehlt → SQL ist älter
+    );
+    return () => void (alive = false);
+  }, [api, admin]);
+  if (!outdated) return null;
+  return (
+    <div id="db-update-banner" className="update-banner" role="status">
+      <span>Datenbank-Update nötig (SQL einmal ausführen)</span>
+      <a className="btn small-btn primary" href={`${WEB_URL}supabase/einrichten.html`} target="_blank" rel="noopener">
+        Öffnen
+      </a>
+    </div>
+  );
+}
+const WAS_ADMIN_KEY = 'gym-tracker-was-admin';
