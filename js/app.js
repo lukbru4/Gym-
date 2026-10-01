@@ -13,7 +13,7 @@ import { THEME_OPTIONS, SCHEMES, getThemeMode, setThemeMode, getScheme, setSchem
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
 const DRAFT_KEY = 'gym-tracker-draft';
-const APP_VERSION = '2026-10-02 · 23 (Kein Zoomen, saubere Felder)'; // muss zu version.json passen (npm run build)
+const APP_VERSION = '2026-10-02 · 24 (Start auf Home, Feed-Umschalter)'; // muss zu version.json passen (npm run build)
 
 let api = null; // Speicher-Backend: lokal (Browser) oder Cloud (Supabase)
 let user = null;
@@ -145,6 +145,7 @@ const routes = [
   [/^#\/raenge$/, renderRanks],
   [/^#\/rekorde$/, renderRecords],
   [/^#\/freunde$/, renderFriends],
+  [/^#\/feed\/freunde$/, renderFriendsFeed],
   [/^#\/profil$/, renderProfile],
   [/^#\/aufgaben$/, renderQuests],
   [/^#\/medaillen$/, renderMedals],
@@ -303,6 +304,26 @@ function renderAuth() {
 // ---------------------------------------------------------------------------
 // Dashboard
 // ---------------------------------------------------------------------------
+// Umschalter oben auf Home: eigener Feed oder Feed der Freunde
+function homeTabs(active) {
+  const tab = (id, href, label) =>
+    `<a class="seg-tab${active === id ? ' active' : ''}" href="${href}" role="tab" aria-selected="${active === id}">${label}</a>`;
+  return `<nav class="seg" role="tablist" aria-label="Feed">${tab('mine', '#/', 'Mein Feed')}${tab('friends', '#/feed/freunde', 'Freunde')}</nav>`;
+}
+
+async function renderFriendsFeed() {
+  view.innerHTML = `
+    ${homeTabs('friends')}
+    <div class="card empty-feed">
+      <div class="empty-icon" aria-hidden="true">👥</div>
+      <h3>Hier siehst du bald deine Freunde</h3>
+      <p class="muted">Sobald du Freunde hinzugefügt hast, erscheinen hier ihre Trainings, Rekorde und Level-Ups –
+      und du kannst sie anfeuern.</p>
+      <p class="muted small">Freunde kommen mit Phase 3 (Freunde &amp; Community).</p>
+      <a class="btn block" href="#/freunde">Zu Freunde</a>
+    </div>`;
+}
+
 async function renderDashboard() {
   const [g, weights] = await Promise.all([game(), api.listBodyWeights()]);
   const { workouts, sets } = g;
@@ -313,7 +334,16 @@ async function renderDashboard() {
 
   const localData = api.mode === 'cloud' && user && !migrationDone(user.id) ? readLocalData() : null;
 
+  const draft = loadDraft();
   view.innerHTML = `
+    ${homeTabs('mine')}
+    ${draft?.blocks.length
+      ? `<a class="card highlight resume-card" href="#/neu">
+          <div><strong>Laufendes Training${draft.name ? `: ${esc(draft.name)}` : ''}</strong>
+          <span class="muted small">Gestartet vor ${fmtDuration((Date.now() - draft.started_at) / 1000)} · ${plural(draft.blocks.length, 'Übung', 'Übungen')}</span></div>
+          <span class="btn primary">Fortsetzen</span>
+        </a>`
+      : ''}
     ${localData
       ? `<div class="card highlight" id="migrate-card">
           <h3>Lokale Daten gefunden</h3>
@@ -1814,6 +1844,9 @@ async function init() {
     });
     document.getElementById('menu-signout').hidden = false;
   }
+  // Beim Öffnen der App immer auf Home starten (erst nach getUser(), damit Supabase
+  // einen Login-Link mit #access_token=… schon ausgewertet hat).
+  if (location.hash !== '' && location.hash !== '#/') history.replaceState(null, '', `${location.pathname}${location.search}#/`);
   window.addEventListener('hashchange', route);
   route();
 }

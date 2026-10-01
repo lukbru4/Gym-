@@ -690,3 +690,12 @@ body.picker-open { overflow: hidden; }
 .picker-added { grid-column: 2; grid-row: 1 / span 2; font-size: 0.8rem; font-weight: 700; color: var(--accent); }
 .picker-new .picker-name { color: var(--accent); }
 .picker-empty { padding: 16px 4px; }
+
+/* Umschalter oben auf Home (Mein Feed | Freunde) */
+.seg { display: flex; gap: 4px; padding: 4px; margin: 4px 0 16px; border-radius: 12px; background: var(--input-bg, var(--bg)); border: 1px solid var(--border); }
+.seg-tab { flex: 1; text-align: center; padding: 9px 8px; border-radius: 9px; color: var(--text-secondary); text-decoration: none; font-weight: 700; }
+.seg-tab.active { background: var(--accent); color: var(--accent-text); }
+.resume-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-decoration: none; color: var(--text); }
+.resume-card > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.empty-feed { text-align: center; }
+.empty-icon { font-size: 2.4rem; }
