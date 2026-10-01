@@ -22,8 +22,12 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [ ] Fotos im Kalender (braucht Datei-Upload)
 
 ## Phase 2 – Code-Umbau
-- [ ] TypeScript + Komponenten-Framework, Build mit Vite
-- [ ] Tests weiter ausbauen
+- [x] TypeScript + React, Build mit Vite (Ordner `web/`), alle Seiten portiert
+- [x] Tests ausgebaut: 40 Unit-Tests (Vitest) + automatische Prüfung bei jedem Push (GitHub Actions)
+- [x] Veröffentlichungs-Ablauf für GitHub Pages (`.github/workflows/pages.yml`)
+- [ ] Pages auf „GitHub Actions“ umstellen (**Lukas**, Anleitung im Chat) – danach ist die React-Version live
+- [ ] Alte App im Hauptordner entfernen, sobald die React-Version live läuft
+- [ ] Browser-Tests (Playwright) ins Repo übernehmen
 
 ## Phase 3 – Freunde & Community
 - [ ] Profile (Name, Avatar, Level, Serie, Körpergraph, Rekorde)

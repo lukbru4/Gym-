@@ -90,6 +90,23 @@ Neue Versionen erkennt die App selbst: Oben erscheint dann „Neue Version verf�
 > Die App-Oberfläche lädt auch offline. Zum Laden und Speichern der Trainings braucht die App aber Internet.
 > Ein angefangenes Training bleibt trotzdem als Entwurf auf dem Gerät gespeichert.
 
+## React-Version (Ordner `web/`)
+
+Die App wird gerade auf React + TypeScript umgestellt. Die neue Version liegt in `web/`:
+
+```bash
+cd web
+npm install
+npm run dev        # Entwicklungsserver
+npm test           # Unit-Tests (Vitest)
+npm run typecheck  # TypeScript prüfen
+npm run build      # fertige App in web/dist
+VITE_BACKEND=local npm run build   # Variante ohne Konto (Speicher im Browser)
+```
+
+Bei jedem Push prüft GitHub Actions Typen, Tests und Build (`.github/workflows/ci.yml`).
+`.github/workflows/pages.yml` veröffentlicht `web/dist` auf GitHub Pages, sobald dort „Source: GitHub Actions“ eingestellt ist.
+
 ## Lokal starten
 
 ```bash
