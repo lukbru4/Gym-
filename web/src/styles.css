@@ -699,3 +699,27 @@ body.picker-open { overflow: hidden; }
 .resume-card > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .empty-feed { text-align: center; }
 .empty-icon { font-size: 2.4rem; }
+
+/* Freunde */
+.friend-code { font: 800 2rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.12em; text-align: center; margin: 4px 0 12px; color: var(--accent); }
+.add-friend { margin-top: 16px; }
+.add-friend label { margin-bottom: 6px; }
+.add-friend .row.pair > input { flex: 2 1 0; margin: 0; }
+.add-friend .row.pair > .btn { flex: 0 0 auto; padding: 0 18px; min-height: 50px; margin: 0; }
+.friend-list { list-style: none; margin: 0; padding: 0; }
+.friend-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); }
+.friend-list li:first-child { border-top: 0; }
+.friend-list a { color: var(--text); text-decoration: none; }
+.friend-actions { display: flex; gap: 6px; }
+.leaderboard { list-style: none; margin: 8px 0 0; padding: 0; }
+.leaderboard li { display: grid; grid-template-columns: 28px 1fr auto auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); }
+.leaderboard li:first-child { border-top: 0; }
+.leaderboard li.me { color: var(--accent); }
+.lb-rank { font-weight: 800; text-align: center; }
+.lb-name { color: inherit; text-decoration: none; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-week { color: var(--text-secondary); font-size: 0.85rem; }
+.lb-credits { font-variant-numeric: tabular-nums; color: var(--warmup); }
+.feed-item .block-head a { color: var(--text); text-decoration: none; }
+.cheer { display: inline-flex; align-items: center; gap: 6px; }
+.cheer .flame { width: 14px; height: 16px; }
+.cheer.on { border-color: var(--streak); color: var(--streak); }

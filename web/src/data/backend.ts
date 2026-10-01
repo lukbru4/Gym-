@@ -1,4 +1,5 @@
 // Gemeinsame Schnittstelle für den lokalen Speicher (Browser) und die Cloud (Supabase).
+import type { Social } from './social';
 import type { BodyWeight, Exercise, ExerciseType, ISODate, MuscleId, Template, TemplateExercise, User, Workout, WorkoutSet } from '../lib/types';
 
 export interface SetInput {
@@ -41,6 +42,7 @@ export interface Backend {
   deleteTemplate(id: number): Promise<unknown>;
 
   // nur Cloud
+  social?: Social;
   deleteAccount?(): Promise<void>;
   serverCredits?(): Promise<number>;
   // nur lokal

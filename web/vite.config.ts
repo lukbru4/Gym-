@@ -12,6 +12,10 @@ function versionJson(): Plugin {
       const version = src.match(/APP_VERSION = '([^']+)'/)?.[1];
       if (!version) throw new Error('APP_VERSION nicht gefunden');
       this.emitFile({ type: 'asset', fileName: 'version.json', source: `${JSON.stringify({ version }, null, 2)}\n` });
+      // SQL-Einrichtung für Supabase (Kopier-Seite) mit veröffentlichen
+      for (const f of ['schema.sql', 'einrichten.html']) {
+        this.emitFile({ type: 'asset', fileName: `supabase/${f}`, source: readFileSync(new URL(`../supabase/${f}`, import.meta.url), 'utf8') });
+      }
     },
   };
 }

@@ -2,6 +2,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { BodyWeight, Exercise, Template, User, Workout, WorkoutSet } from '../lib/types';
 import type { Backend } from './backend';
+import { createSocial } from './social';
 
 export function create(url: string, anonKey: string): Backend {
   return backend(createClient(url, anonKey));
@@ -35,6 +36,7 @@ function backend(supabase: SupabaseClient): Backend {
 
   return {
     mode: 'cloud',
+    social: createSocial(supabase),
     getUser,
     signIn: async (email, password) => check<unknown>(await supabase.auth.signInWithPassword({ email, password })),
     signUp: async (email, password) =>

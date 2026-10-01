@@ -1,5 +1,7 @@
 // Konto & Einstellungen sowie Backup (nur lokaler Modus).
 import { useState, type ChangeEvent } from 'react';
+import { useAsync } from '../app/useAsync';
+import type { Visibility } from '../data/social';
 import { useApp } from '../app/context';
 import { displayName, setDisplayName } from '../app/profile';
 import { navigate } from '../app/router';
@@ -68,13 +70,17 @@ export function Account() {
           </>
         )}
       </div>
-      <div className="card">
-        <h3>Profil</h3>
-        <label>
-          Anzeigename
-          <input id="display-name" maxLength={30} defaultValue={displayName(api, user)} autoComplete="nickname" onChange={(e) => setDisplayName(e.target.value)} />
-        </label>
-      </div>
+      {api.social ? (
+        <SocialSettings />
+      ) : (
+        <div className="card">
+          <h3>Profil</h3>
+          <label>
+            Anzeigename
+            <input id="display-name" maxLength={30} defaultValue={displayName(api, user)} autoComplete="nickname" onChange={(e) => setDisplayName(e.target.value)} />
+          </label>
+        </div>
+      )}
       <div className="card">
         <h3>Stil</h3>
         <label>
@@ -119,6 +125,67 @@ export function Account() {
         <a className="btn block" href="#/backup">Backup</a>
       </div>
     </>
+  );
+}
+
+/** Profil für Freunde (Cloud): Anzeigename, Sichtbarkeit, blockierte Personen */
+function SocialSettings() {
+  const { api, showError, dataVersion, dataChanged } = useApp();
+  const social = api.social!;
+  const data = useAsync(() => Promise.all([social.myProfile(), social.blocks()]), [social, dataVersion]);
+  const [name, setName] = useState<string | null>(null);
+  const [saved, setSaved] = useState('');
+  if (data.status === 'loading') return <div className="card"><h3>Profil</h3><p className="muted">Lädt …</p></div>;
+  if (data.status === 'error') return <div className="card"><h3>Profil</h3><p className="muted">{data.error.message}</p></div>;
+  const [profile, blocks] = data.data;
+  const current = name ?? profile.display_name;
+  const save = async (displayName: string, visibility: Visibility) => {
+    const clean = displayName.trim();
+    if (!clean) return showError(new Error('Bitte gib einen Namen ein.'));
+    try {
+      await social.updateProfile(clean, visibility);
+      setDisplayName(clean);
+      setSaved('Gespeichert.');
+      dataChanged();
+    } catch (err) {
+      showError(err);
+    }
+  };
+  return (
+    <div className="card">
+      <h3>Profil für Freunde</h3>
+      <div className="row pair">
+        <label className="grow">
+          Anzeigename
+          <input id="display-name" maxLength={30} value={current} autoComplete="nickname" onChange={(e) => { setName(e.target.value); setSaved(''); }} />
+        </label>
+        <button className="btn" id="save-name" onClick={() => save(current, profile.visibility)}>Speichern</button>
+      </div>
+      {saved && <p className="muted small">{saved}</p>}
+      <label>
+        Wer sieht deine Trainings?
+        <select id="visibility" value={profile.visibility} onChange={(e) => save(current, e.target.value as Visibility)}>
+          <option value="friends">Meine Freunde (Feed, Profil, Rangliste)</option>
+          <option value="private">Niemand (privat)</option>
+        </select>
+      </label>
+      <p className="muted small">Dein Freundescode: <strong>{profile.friend_code}</strong></p>
+      {blocks.length > 0 && (
+        <>
+          <h4>Blockiert</h4>
+          <ul className="friend-list">
+            {blocks.map((b) => (
+              <li key={b.user_id}>
+                <span>{b.display_name}</span>
+                <button className="link small" onClick={async () => { try { await social.unblock(b.user_id); dataChanged(); } catch (err) { showError(err); } }}>
+                  Entsperren
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
 

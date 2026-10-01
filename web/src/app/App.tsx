@@ -10,8 +10,9 @@ import { Account, Backup } from '../pages/Account';
 import { Auth } from '../pages/Auth';
 import { Body } from '../pages/Body';
 import { Editor } from '../pages/Editor';
-import { FriendsFeed, Home } from '../pages/Home';
-import { Friends, Medals, Profile, Quests } from '../pages/Profile';
+import { Home } from '../pages/Home';
+import { AcceptInvite, FriendProfile, Friends, FriendsFeed } from '../pages/Friends';
+import { Medals, Profile, Quests } from '../pages/Profile';
 import { Analysis, Ranks, Records } from '../pages/Ranks';
 import { History, WorkoutDetail } from '../pages/Workout';
 import { StartFromTemplate, Workouts } from '../pages/Workouts';
@@ -40,6 +41,8 @@ const ROUTES: Route[] = [
   [/^#\/raenge$/, () => <Ranks />],
   [/^#\/rekorde$/, () => <Records />],
   [/^#\/freunde$/, () => <Friends />],
+  [/^#\/freunde\/add\/([A-Za-z0-9]{8})$/, (m) => <AcceptInvite code={m[1].toUpperCase()} />],
+  [/^#\/freunde\/profil\/([0-9a-f-]{36})$/, (m) => <FriendProfile userId={m[1]} />],
   [/^#\/profil$/, () => <Profile />],
   [/^#\/aufgaben$/, () => <Quests />],
   [/^#\/medaillen$/, () => <Medals />],
@@ -113,7 +116,9 @@ export function App() {
       const u = await backend.getUser();
       // Beim Öffnen der App immer auf Home starten (erst nach getUser(), damit Supabase
       // einen Login-Link mit #access_token=… schon ausgewertet hat).
-      if (location.hash !== '' && location.hash !== '#/') history.replaceState(null, '', `${location.pathname}${location.search}#/`);
+      // Ausnahme: Einladungslinks (#/freunde/add/CODE) bleiben erhalten.
+      const keep = /^#\/freunde\/add\//.test(location.hash);
+      if (!keep && location.hash !== '' && location.hash !== '#/') history.replaceState(null, '', `${location.pathname}${location.search}#/`);
       const list = u ? await backend.listExercises() : [];
       if (!alive) return;
       setApi(backend);

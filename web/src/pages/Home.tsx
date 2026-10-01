@@ -27,23 +27,6 @@ export function HomeTabs({ active }: { active: 'mine' | 'friends' }) {
   );
 }
 
-export function FriendsFeed() {
-  return (
-    <>
-      <HomeTabs active="friends" />
-      <div className="card empty-feed">
-        <div className="empty-icon" aria-hidden="true">👥</div>
-        <h3>Hier siehst du bald deine Freunde</h3>
-        <p className="muted">
-          Sobald du Freunde hinzugefügt hast, erscheinen hier ihre Trainings, Rekorde und Level-Ups – und du kannst sie anfeuern.
-        </p>
-        <p className="muted small">Freunde kommen mit Phase 3 (Freunde &amp; Community).</p>
-        <a className="btn block" href="#/freunde">Zu Freunde</a>
-      </div>
-    </>
-  );
-}
-
 function MigrateCard() {
   const { api, user, exercises, setExercises, showError, dataChanged } = useApp();
   const [status, setStatus] = useState('Die lokale Kopie bleibt zur Sicherheit erhalten.');

@@ -116,25 +116,3 @@ export function Medals() {
     </>
   );
 }
-
-export function Friends() {
-  const { api } = useApp();
-  return (
-    <>
-      <h2>Freunde</h2>
-      <div className="card">
-        <h3>Kommt in Phase 3</h3>
-        <p>Freunde brauchen echte Konten in der Cloud. Sobald die eingerichtet sind, kommen hier:</p>
-        <ul>
-          <li>Freunde per Link oder Code einladen</li>
-          <li>Profile mit Level, Rang, Serie und Körpergraph</li>
-          <li>Feed mit den Trainings deiner Freunde, Likes und Kommentare</li>
-          <li>Ranglisten und Challenges</li>
-        </ul>
-        <p className="muted small">
-          {api.mode === 'cloud' ? 'Du bist schon mit Konto angemeldet – damit bist du bereit.' : 'Du nutzt gerade den lokalen Modus ohne Konto.'}
-        </p>
-      </div>
-    </>
-  );
-}

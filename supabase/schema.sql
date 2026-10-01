@@ -295,3 +295,340 @@ set search_path = ''
 as $$ select public.credits_earned(auth.uid()) $$;
 revoke all on function public.my_credits() from public;
 grant execute on function public.my_credits() to authenticated;
+
+-- ===========================================================================
+-- Phase 3: Freunde & Community
+-- Alles Soziale läuft über Funktionen mit „security definer“, die selbst prüfen,
+-- wer was sehen darf. Die Tabellen der Trainings bleiben „nur eigene Daten“.
+-- ===========================================================================
+
+-- Profil: Anzeigename, Freundescode (zum Teilen), Sichtbarkeit für Freunde
+create table if not exists public.profiles (
+  id            uuid primary key references auth.users (id) on delete cascade,
+  display_name  text not null check (char_length(btrim(display_name)) between 1 and 30),
+  friend_code   text not null unique check (friend_code ~ '^[A-Z2-9]{8}$'),
+  visibility    text not null default 'friends' check (visibility in ('friends', 'private')),
+  created_at    timestamptz not null default now()
+);
+
+-- Freundschaften: Anfrage von requester an addressee; nach Annahme status = 'accepted'
+create table if not exists public.friendships (
+  requester   uuid not null references auth.users (id) on delete cascade,
+  addressee   uuid not null references auth.users (id) on delete cascade,
+  status      text not null default 'pending' check (status in ('pending', 'accepted')),
+  created_at  timestamptz not null default now(),
+  primary key (requester, addressee),
+  check (requester <> addressee)
+);
+create index if not exists friendships_addressee on public.friendships (addressee);
+
+-- Blockieren (Apple-Pflicht bei Nutzerinhalten): beendet Freundschaft, verhindert neue Anfragen
+create table if not exists public.blocks (
+  blocker     uuid not null references auth.users (id) on delete cascade,
+  blocked     uuid not null references auth.users (id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  primary key (blocker, blocked),
+  check (blocker <> blocked)
+);
+
+-- Meldungen (Apple-Pflicht): werden im Supabase-Dashboard geprüft
+create table if not exists public.reports (
+  id          bigint generated always as identity primary key,
+  reporter    uuid not null references auth.users (id) on delete cascade,
+  reported    uuid not null references auth.users (id) on delete cascade,
+  reason      text not null check (char_length(btrim(reason)) between 1 and 500),
+  created_at  timestamptz not null default now()
+);
+
+-- „Anfeuern“ (Like) für ein Training
+create table if not exists public.likes (
+  workout_id  bigint not null references public.workouts (id) on delete cascade,
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  primary key (workout_id, user_id)
+);
+
+-- Kein direkter Zugriff auf diese Tabellen – nur über die Funktionen unten.
+alter table public.profiles    enable row level security;
+alter table public.friendships enable row level security;
+alter table public.blocks      enable row level security;
+alter table public.reports     enable row level security;
+alter table public.likes       enable row level security;
+revoke all on public.profiles, public.friendships, public.blocks, public.reports, public.likes from anon, authenticated;
+
+-- ---- Hilfsfunktionen -------------------------------------------------------
+create or replace function public.are_friends(a uuid, b uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.friendships f
+    where f.status = 'accepted'
+      and ((f.requester = a and f.addressee = b) or (f.requester = b and f.addressee = a))
+  )
+$$;
+
+create or replace function public.is_blocked(a uuid, b uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.blocks k
+    where (k.blocker = a and k.blocked = b) or (k.blocker = b and k.blocked = a)
+  )
+$$;
+
+-- Darf viewer die Trainings von owner sehen? (selbst, oder Freund mit Sichtbarkeit „friends“, nicht blockiert)
+create or replace function public.can_see(viewer uuid, owner uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select viewer = owner or (
+    public.are_friends(viewer, owner)
+    and not public.is_blocked(viewer, owner)
+    and coalesce((select p.visibility from public.profiles p where p.id = owner), 'friends') = 'friends'
+  )
+$$;
+
+revoke all on function public.are_friends(uuid, uuid), public.is_blocked(uuid, uuid), public.can_see(uuid, uuid) from public;
+
+-- Zufälliger Freundescode aus 8 gut lesbaren Zeichen (ohne 0/O/1/I)
+create or replace function public.new_friend_code()
+returns text language plpgsql volatile security definer set search_path = '' as $$
+declare
+  alphabet constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  code text;
+begin
+  loop
+    code := '';
+    for i in 1..8 loop
+      code := code || substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1);
+    end loop;
+    exit when not exists (select 1 from public.profiles where friend_code = code);
+  end loop;
+  return code;
+end;
+$$;
+revoke all on function public.new_friend_code() from public;
+
+-- ---- Eigenes Profil ----------------------------------------------------------
+-- Legt das Profil beim ersten Aufruf an (Name = Anfang der E-Mail-Adresse).
+create or replace function public.my_profile()
+returns table (id uuid, display_name text, friend_code text, visibility text)
+language plpgsql security definer set search_path = '' as $$
+declare
+  me uuid := auth.uid();
+begin
+  if me is null then raise exception 'nicht angemeldet'; end if;
+  insert into public.profiles (id, display_name, friend_code)
+  select me,
+         left(coalesce(nullif(btrim(split_part(u.email, '@', 1)), ''), 'Sportler'), 30),
+         public.new_friend_code()
+  from auth.users u where u.id = me
+  on conflict on constraint profiles_pkey do nothing;
+  return query select p.id, p.display_name, p.friend_code, p.visibility from public.profiles p where p.id = me;
+end;
+$$;
+
+create or replace function public.update_my_profile(p_display_name text, p_visibility text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'nicht angemeldet'; end if;
+  perform public.my_profile();
+  update public.profiles
+     set display_name = left(btrim(p_display_name), 30),
+         visibility = p_visibility
+   where id = auth.uid();
+end;
+$$;
+
+-- ---- Freundschaften ----------------------------------------------------------
+-- Antwort: 'requested' | 'accepted' (Gegenanfrage lag schon vor) | 'already' | 'self' | 'not_found'
+create or replace function public.send_friend_request(p_code text)
+returns text language plpgsql security definer set search_path = '' as $$
+declare
+  me uuid := auth.uid();
+  other uuid;
+  existing public.friendships;
+begin
+  if me is null then raise exception 'nicht angemeldet'; end if;
+  perform public.my_profile();
+  select p.id into other from public.profiles p where p.friend_code = upper(btrim(p_code));
+  if other is null then return 'not_found'; end if;
+  if other = me then return 'self'; end if;
+  if public.is_blocked(me, other) then return 'not_found'; end if; -- verrät nicht, dass blockiert wurde
+  select * into existing from public.friendships f
+   where (f.requester = me and f.addressee = other) or (f.requester = other and f.addressee = me);
+  if found then
+    if existing.status = 'accepted' or existing.requester = me then return 'already'; end if;
+    update public.friendships set status = 'accepted' where requester = other and addressee = me;
+    return 'accepted';
+  end if;
+  insert into public.friendships (requester, addressee) values (me, other);
+  return 'requested';
+end;
+$$;
+
+create or replace function public.respond_friend_request(p_user uuid, p_accept boolean)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'nicht angemeldet'; end if;
+  if p_accept then
+    update public.friendships set status = 'accepted'
+     where requester = p_user and addressee = auth.uid() and status = 'pending';
+  else
+    delete from public.friendships where requester = p_user and addressee = auth.uid() and status = 'pending';
+  end if;
+end;
+$$;
+
+-- Entfernt Freund oder zieht eigene Anfrage zurück
+create or replace function public.remove_friend(p_user uuid)
+returns void language sql security definer set search_path = '' as $$
+  delete from public.friendships
+   where (requester = auth.uid() and addressee = p_user) or (requester = p_user and addressee = auth.uid())
+$$;
+
+-- Freunde und offene Anfragen. status: 'friend' | 'incoming' | 'outgoing'
+create or replace function public.my_friends()
+returns table (user_id uuid, display_name text, status text, since timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select other, coalesce(p.display_name, 'Unbekannt'),
+         case when f.status = 'accepted' then 'friend'
+              when f.addressee = auth.uid() then 'incoming' else 'outgoing' end,
+         f.created_at
+  from public.friendships f
+  cross join lateral (select case when f.requester = auth.uid() then f.addressee else f.requester end as other) o
+  left join public.profiles p on p.id = o.other
+  where (f.requester = auth.uid() or f.addressee = auth.uid())
+    and not public.is_blocked(auth.uid(), o.other)
+  order by 3, 2
+$$;
+
+-- ---- Blockieren & Melden -----------------------------------------------------
+create or replace function public.block_user(p_user uuid)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or p_user = auth.uid() then raise exception 'ungültig'; end if;
+  insert into public.blocks (blocker, blocked) values (auth.uid(), p_user) on conflict do nothing;
+  perform public.remove_friend(p_user);
+end;
+$$;
+
+create or replace function public.unblock_user(p_user uuid)
+returns void language sql security definer set search_path = '' as $$
+  delete from public.blocks where blocker = auth.uid() and blocked = p_user
+$$;
+
+create or replace function public.my_blocks()
+returns table (user_id uuid, display_name text)
+language sql stable security definer set search_path = '' as $$
+  select k.blocked, coalesce(p.display_name, 'Unbekannt')
+  from public.blocks k left join public.profiles p on p.id = k.blocked
+  where k.blocker = auth.uid()
+  order by 2
+$$;
+
+create or replace function public.report_user(p_user uuid, p_reason text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or p_user = auth.uid() then raise exception 'ungültig'; end if;
+  insert into public.reports (reporter, reported, reason) values (auth.uid(), p_user, left(btrim(p_reason), 500));
+end;
+$$;
+
+-- ---- Feed, Anfeuern, Rangliste, Profil eines Freundes ----------------------------
+-- Trainings der Freunde (neueste zuerst), mit Kennzahlen und Anfeuerungen
+create or replace function public.friend_feed(p_limit integer default 30, p_before timestamptz default null)
+returns table (
+  workout_id bigint, user_id uuid, display_name text, date date, created_at timestamptz,
+  sets integer, volume numeric, exercises text[], likes integer, liked boolean
+)
+language sql stable security definer set search_path = '' as $$
+  select w.id, w.user_id, p.display_name, w.date, w.created_at,
+         (select count(*)::int from public.sets s where s.workout_id = w.id and not s.is_warmup),
+         (select coalesce(sum(coalesce(s.reps, 0) * coalesce(s.weight_kg, 0)), 0) from public.sets s
+           where s.workout_id = w.id and not s.is_warmup),
+         (select array_agg(distinct e.name order by e.name) from public.sets s join public.exercises e on e.id = s.exercise_id
+           where s.workout_id = w.id),
+         (select count(*)::int from public.likes l where l.workout_id = w.id),
+         exists (select 1 from public.likes l where l.workout_id = w.id and l.user_id = auth.uid())
+  from public.workouts w
+  join public.profiles p on p.id = w.user_id
+  where w.user_id <> auth.uid()
+    and public.can_see(auth.uid(), w.user_id)
+    and (p_before is null or w.created_at < p_before)
+  order by w.created_at desc
+  limit least(greatest(p_limit, 1), 100)
+$$;
+
+-- Anfeuern an/aus; liefert den neuen Zustand
+create or replace function public.toggle_like(p_workout bigint)
+returns boolean language plpgsql security definer set search_path = '' as $$
+declare
+  owner uuid;
+begin
+  select w.user_id into owner from public.workouts w where w.id = p_workout;
+  if owner is null or auth.uid() is null or not public.can_see(auth.uid(), owner) then
+    raise exception 'Training nicht gefunden';
+  end if;
+  if exists (select 1 from public.likes where workout_id = p_workout and user_id = auth.uid()) then
+    delete from public.likes where workout_id = p_workout and user_id = auth.uid();
+    return false;
+  end if;
+  insert into public.likes (workout_id, user_id) values (p_workout, auth.uid());
+  return true;
+end;
+$$;
+
+-- Rangliste: du + sichtbare Freunde. Credits werden auf dem Server berechnet (nicht fälschbar).
+create or replace function public.friend_leaderboard()
+returns table (user_id uuid, display_name text, is_me boolean, credits integer, week_workouts integer, total_workouts integer)
+language sql stable security definer set search_path = '' as $$
+  with people as (
+    select auth.uid() as id
+    union
+    select case when f.requester = auth.uid() then f.addressee else f.requester end
+    from public.friendships f
+    where f.status = 'accepted' and (f.requester = auth.uid() or f.addressee = auth.uid())
+  )
+  select x.id, coalesce(p.display_name, 'Du'), x.id = auth.uid(),
+         public.credits_earned(x.id),
+         (select count(*)::int from public.workouts w
+           where w.user_id = x.id and w.date >= date_trunc('week', current_date)::date),
+         (select count(*)::int from public.workouts w where w.user_id = x.id)
+  from people x
+  left join public.profiles p on p.id = x.id
+  where auth.uid() is not null and public.can_see(auth.uid(), x.id)
+  order by 4 desc, 2
+$$;
+
+-- Daten eines Freundes für sein Profil (Level, Serie, Körpergraph, Rekorde werden in der App berechnet)
+create or replace function public.friend_profile(p_user uuid)
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or not public.can_see(auth.uid(), p_user) then
+    raise exception 'Profil nicht sichtbar';
+  end if;
+  return jsonb_build_object(
+    'profile', (select jsonb_build_object('id', p.id, 'display_name', p.display_name) from public.profiles p where p.id = p_user),
+    'workouts', coalesce((select jsonb_agg(jsonb_build_object('id', w.id, 'date', w.date)) from public.workouts w where w.user_id = p_user), '[]'::jsonb),
+    'sets', coalesce((select jsonb_agg(jsonb_build_object(
+              'workout_id', s.workout_id, 'exercise_id', s.exercise_id, 'position', s.position, 'reps', s.reps,
+              'weight_kg', s.weight_kg, 'duration_min', s.duration_min, 'distance_km', s.distance_km, 'is_warmup', s.is_warmup))
+            from public.sets s where s.user_id = p_user), '[]'::jsonb),
+    'exercises', coalesce((select jsonb_agg(jsonb_build_object('id', e.id, 'name', e.name, 'type', e.type, 'user_id', e.user_id, 'muscles', e.muscles))
+            from public.exercises e where e.id in (select s.exercise_id from public.sets s where s.user_id = p_user)), '[]'::jsonb)
+  );
+end;
+$$;
+
+-- Nur angemeldete Nutzer dürfen diese Funktionen aufrufen
+revoke all on function
+  public.my_profile(), public.update_my_profile(text, text), public.send_friend_request(text),
+  public.respond_friend_request(uuid, boolean), public.remove_friend(uuid), public.my_friends(),
+  public.block_user(uuid), public.unblock_user(uuid), public.my_blocks(), public.report_user(uuid, text),
+  public.friend_feed(integer, timestamptz), public.toggle_like(bigint), public.friend_leaderboard(),
+  public.friend_profile(uuid)
+from public;
+grant execute on function
+  public.my_profile(), public.update_my_profile(text, text), public.send_friend_request(text),
+  public.respond_friend_request(uuid, boolean), public.remove_friend(uuid), public.my_friends(),
+  public.block_user(uuid), public.unblock_user(uuid), public.my_blocks(), public.report_user(uuid, text),
+  public.friend_feed(integer, timestamptz), public.toggle_like(bigint), public.friend_leaderboard(),
+  public.friend_profile(uuid)
+to authenticated;
