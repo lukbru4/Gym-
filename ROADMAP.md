@@ -9,7 +9,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Lokaler Modus: „Alle Daten löschen“
 - [x] Menü ☰ oben rechts: Konto & Einstellungen (Konto, Stil, App-Update), Backup, Abmelden
 - [x] Supabase-Projekt anlegen und `js/config.js` eintragen
-- [ ] Anmelden mit Apple & Google (braucht Apple-Developer-Konto bzw. Google-Cloud-Projekt)
+- [x] Entscheidung: Anmeldung nur mit E-Mail + Passwort (kein Apple-/Google-Login nötig)
 
 ## Zwischendurch – Gamification (nach Vorbild deiner Screenshots)
 - [x] Ränge pro Übung (Bronze → Titan, III → I) mit eigenen Abzeichen, Gesamt-Rang
@@ -25,7 +25,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] TypeScript + React, Build mit Vite (Ordner `web/`), alle Seiten portiert
 - [x] Tests ausgebaut: 40 Unit-Tests (Vitest) + automatische Prüfung bei jedem Push (GitHub Actions)
 - [x] Veröffentlichungs-Ablauf für GitHub Pages (`.github/workflows/pages.yml`)
-- [ ] Pages auf „GitHub Actions“ umstellen (**Lukas**, Anleitung im Chat) – danach ist die React-Version live
+- [x] Pages auf „GitHub Actions“ umgestellt – die React-Version ist live
 - [ ] Alte App im Hauptordner entfernen, sobald die React-Version live läuft
 - [ ] Browser-Tests (Playwright) ins Repo übernehmen
 
@@ -39,7 +39,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Ranglisten pro Woche (Trainings, Sätze, Volumen) und pro Übung (bestes 1RM)
 - [x] Kommentare unter Trainings mit Wortfilter, Melden und Löschen
 - [x] Challenges: 7 Tage, Trainings/Sätze/Volumen, Gewinner +50 Credits
-- [ ] Neues SQL (Challenges + Kommentare) in Supabase ausführen (**Lukas**)
+- [x] Neues SQL (Challenges + Kommentare) in Supabase ausgeführt
 - [ ] Meldungen regelmäßig prüfen (Supabase → Table Editor → reports) (**Lukas**)
 
 ## Phase 4 – Shop
