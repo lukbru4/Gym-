@@ -901,3 +901,32 @@ body.picker-open { overflow: hidden; }
 .price { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; color: var(--warmup); font-variant-numeric: tabular-nums; }
 .price .coin { width: 16px; height: 16px; fill: var(--warmup); }
 .player-title { margin: -4px 0 6px; color: var(--warmup); font-weight: 800; font-size: 0.9rem; }
+
+/* Begrüßung mit Rückblick (Home) */
+.recap { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), var(--surface) 70%); }
+.recap-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.recap-head h2 { margin: 0; font-size: 1.25rem; min-width: 0; overflow-wrap: anywhere; }
+.recap-line { margin: 8px 0 4px; font-weight: 600; }
+.recap-facts { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.recap-facts li { display: flex; gap: 10px; align-items: baseline; font-size: 0.95rem; }
+.recap-facts li > span:first-child { width: 1.4em; text-align: center; flex: none; }
+.mini-seg { display: inline-flex; flex: none; background: var(--bg); border-radius: 999px; padding: 3px; }
+.mini-seg button { border: 0; background: none; color: var(--text-secondary); font: inherit; font-size: 0.85rem; font-weight: 700; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+.mini-seg button.active { background: var(--accent); color: var(--accent-text); }
+.delta { font-size: 0.8rem; font-weight: 800; padding: 1px 6px; border-radius: 6px; margin-left: 4px; }
+.delta.up { color: #157a3d; background: #d9f3e3; }
+:root[data-theme='dark'] .delta.up { color: #7ee2a2; background: #12361f; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .delta.up { color: #7ee2a2; background: #12361f; } }
+.nowrap { white-space: nowrap; }
+.delta.down { color: var(--text-secondary); background: color-mix(in srgb, var(--text-secondary) 14%, transparent); }
+
+/* Einstellungen: Dunkel-Zeiten und Akzentfarbe */
+.dark-hours { margin-bottom: 12px; }
+.accent-picker .label-text { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; }
+.swatches-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch { position: relative; width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--border); padding: 0; margin: 0; cursor: pointer; display: grid; place-items: center; font-size: 0.7rem; font-weight: 800; color: var(--text-secondary); background: var(--bg); }
+.swatch.on { outline: 3px solid var(--text); outline-offset: 2px; }
+.swatch.scheme-default { background: conic-gradient(#b6ff00, #3b82f6, #a855f7, #f97316, #b6ff00); color: #000; }
+.swatch.scheme-default span { background: #fff; border-radius: 6px; padding: 0 3px; }
+.swatch.custom { overflow: hidden; font-size: 1.2rem; }
+.swatch.custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; border: 0; padding: 0; }

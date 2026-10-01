@@ -1,4 +1,4 @@
-// Home: Umschalter „Mein Feed | Freunde“, laufendes Training, Aufgaben, Körpergraph, Wochenstatistik.
+// Home: Umschalter „Mein Feed | Freunde“, Begrüßung mit Rückblick, laufendes Training, Aufgaben, Körpergraph, Wochenstatistik.
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
@@ -6,6 +6,7 @@ import { useAsync } from '../app/useAsync';
 import { BodyGraph } from '../components/BodyGraph';
 import { CreditsRules, LoadError, Loading, QuestRows, WorkoutList } from '../components/Bits';
 import { ChartView } from '../components/ChartView';
+import { RecapCard } from '../components/Recap';
 import { migrateToCloud, migrationDone, readLocalData } from '../data/migrate';
 import { datedSets, loadDraft } from '../lib/editor';
 import { fmt, fmtDuration, fmtShortDate, plural } from '../lib/format';
@@ -81,6 +82,7 @@ export function Home() {
   return (
     <>
       <HomeTabs active="mine" />
+      <RecapCard workouts={g.workouts} sets={g.sets} today={today} />
       {draft?.blocks.length ? (
         <a className="card highlight resume-card" href="#/neu">
           <div>

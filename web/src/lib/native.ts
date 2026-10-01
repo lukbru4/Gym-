@@ -4,7 +4,8 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { subscribeTheme } from './themeStore';
 
 function syncStatusBar() {
-  const dark = document.documentElement.dataset.theme === 'dark';
+  const t = document.documentElement.dataset.theme;
+  const dark = t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
   // Style.Dark = helle Schrift für dunklen Hintergrund
   StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => {});
 }

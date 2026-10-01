@@ -9,17 +9,47 @@ import { clearDraft } from '../lib/editor';
 import { plural } from '../lib/format';
 import { todayISO } from '../lib/stats';
 import { useCosmetics } from '../lib/cosmetics';
-import { PREMIUM_SCHEMES, SCHEMES, THEME_OPTIONS, getScheme, getThemeMode, setScheme, setThemeMode, type SchemeId, type ThemeMode } from '../lib/theme';
+import {
+  ACCENT_PRESETS,
+  PREMIUM_SCHEMES,
+  SCHEMES,
+  THEME_OPTIONS,
+  getAccent,
+  getDarkHours,
+  getScheme,
+  getThemeMode,
+  setAccent,
+  setDarkHours,
+  setScheme,
+  setThemeMode,
+  timeModeLabel,
+  type SchemeId,
+  type ThemeMode,
+} from '../lib/theme';
 import { hardReload } from '../lib/update';
 import { APP_VERSION } from '../version';
 
 const confirmDelete = (what: string) =>
   prompt(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen:`)?.trim().toUpperCase() === 'LÖSCHEN';
 
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
 export function Account() {
   const { api, user, setExercises, showError, dataChanged } = useApp();
   const [scheme, setSchemeState] = useState(getScheme());
   const [themeMode, setThemeModeState] = useState(getThemeMode());
+  const [hours, setHoursState] = useState(getDarkHours());
+  const [accent, setAccentState] = useState(getAccent());
+  const changeHours = (key: 'from' | 'until', value: number) => {
+    const next = { ...hours, [key]: value };
+    if (next.from === next.until) return; // gleiche Uhrzeit ergibt keinen Zeitraum
+    setDarkHours(next);
+    setHoursState(next);
+  };
+  const changeAccent = (color: string | null) => {
+    setAccent(color);
+    setAccentState(color);
+  };
   const [busy, setBusy] = useState(false);
   const { owned } = useCosmetics();
   // Shop-Farbschemata nur zeigen, wenn gekauft (oder gerade aktiv)
@@ -113,10 +143,42 @@ export function Account() {
             }}
           >
             {THEME_OPTIONS.map(([id, label]) => (
-              <option key={id} value={id}>{label}</option>
+              <option key={id} value={id}>{id === 'time' ? timeModeLabel(hours) : label}</option>
             ))}
           </select>
         </label>
+        {themeMode === 'time' && (
+          <div className="row pair dark-hours">
+            <label>
+              Dunkel ab
+              <select id="dark-from" value={hours.from} onChange={(e) => changeHours('from', Number(e.target.value))}>
+                {HOURS.map((h) => <option key={h} value={h} disabled={h === hours.until}>{h}:00 Uhr</option>)}
+              </select>
+            </label>
+            <label>
+              Hell ab
+              <select id="dark-until" value={hours.until} onChange={(e) => changeHours('until', Number(e.target.value))}>
+                {HOURS.map((h) => <option key={h} value={h} disabled={h === hours.from}>{h}:00 Uhr</option>)}
+              </select>
+            </label>
+          </div>
+        )}
+        <div className="accent-picker">
+          <span className="label-text">Akzentfarbe (Knöpfe, Links, Diagramme)</span>
+          <div className="swatches-row" role="radiogroup" aria-label="Akzentfarbe">
+            <button type="button" role="radio" aria-checked={!accent} className={`swatch scheme-default${!accent ? ' on' : ''}`} onClick={() => changeAccent(null)} title="Wie Farbschema">
+              <span>Auto</span>
+            </button>
+            {ACCENT_PRESETS.map(([color, label]) => (
+              <button key={color} type="button" role="radio" aria-checked={accent === color} aria-label={label} title={label} className={`swatch${accent === color ? ' on' : ''}`} style={{ background: color }} data-accent={color} onClick={() => changeAccent(color)} />
+            ))}
+            <label className={`swatch custom${accent && !ACCENT_PRESETS.some(([c]) => c === accent) ? ' on' : ''}`} title="Eigene Farbe" style={accent && !ACCENT_PRESETS.some(([c]) => c === accent) ? { background: accent } : undefined}>
+              <span aria-hidden="true">＋</span>
+              <input type="color" id="accent-custom" aria-label="Eigene Farbe wählen" value={accent ?? '#b6ff00'} onChange={(e) => changeAccent(e.target.value)} />
+            </label>
+          </div>
+          <p className="muted small">Die Farbe wird für Hell und Dunkel automatisch so angepasst, dass alles gut lesbar bleibt.</p>
+        </div>
       </div>
       <div className="card">
         <h3>App</h3>

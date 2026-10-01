@@ -15,12 +15,21 @@
   <meta name="apple-mobile-web-app-title" content="Level Up">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <script>
-    // Design vor dem ersten Zeichnen setzen (gleiche Regel wie src/lib/theme.ts)
+    // Design vor dem ersten Zeichnen setzen (gleiche Regeln wie src/lib/theme.ts)
     try {
-      document.documentElement.dataset.scheme = localStorage.getItem('gym-tracker-scheme') || 'energie';
+      var r = document.documentElement;
+      r.dataset.scheme = localStorage.getItem('gym-tracker-scheme') || 'energie';
       var m = localStorage.getItem('gym-tracker-theme') || 'time', h = new Date().getHours();
-      if (m === 'time') document.documentElement.dataset.theme = h >= 18 || h < 6 ? 'dark' : 'light';
-      else if (m === 'light' || m === 'dark') document.documentElement.dataset.theme = m;
+      var hrs = JSON.parse(localStorage.getItem('gym-tracker-dark-hours') || 'null') || { from: 18, until: 6 };
+      var night = hrs.from > hrs.until ? h >= hrs.from || h < hrs.until : h >= hrs.from && h < hrs.until;
+      if (m === 'time') r.dataset.theme = night ? 'dark' : 'light';
+      else if (m === 'light' || m === 'dark') r.dataset.theme = m;
+      var a = JSON.parse(localStorage.getItem('gym-tracker-accent') || 'null');
+      if (a && a.light) {
+        var dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        r.style.setProperty('--accent', dark ? a.dark : a.light);
+        r.style.setProperty('--accent-text', dark ? a.darkText : a.lightText);
+      }
     } catch (e) {
       document.documentElement.dataset.scheme = 'energie';
       var hh = new Date().getHours();
