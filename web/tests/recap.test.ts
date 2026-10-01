@@ -45,7 +45,7 @@ describe('Rückblick', () => {
     expect(r.prs[0].exercise).toBe('Bankdrücken');
     expect(r.topExercise).toEqual({ name: 'Bankdrücken', sets: 2 });
     expect(r.topMuscle).toBe('Brust');
-    expect(r.streak).toBe(3);
+    expect(r.streak).toBe(4); // Ziel 2: Vorwochen nur je 1× (verfehlt), diese Woche 2× → Mo–Do
   });
   test('erste Ausführung einer Übung ist kein Rekord', () => {
     const first = computeRecap(workouts.slice(2), sets.filter((s) => s.workout_id >= 3), ex, '2026-10-01', 'week');

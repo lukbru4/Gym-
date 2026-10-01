@@ -20,6 +20,7 @@ import { Admin } from '../pages/Admin';
 import { getCosmetics, setCosmetics } from '../lib/cosmetics';
 import { setServerCatalog } from '../lib/shop';
 import { enforceSchemeRules } from '../lib/theme';
+import { getWeekGoal, setLocalWeekGoal } from '../lib/weekGoal';
 import { Analysis, Ranks, Records } from '../pages/Ranks';
 import { History, WorkoutDetail } from '../pages/Workout';
 import { StartFromTemplate, Workouts } from '../pages/Workouts';
@@ -68,7 +69,7 @@ function Toast({ message }: { message: string | null }) {
 
 /** Angemeldeter Bereich: Spielstand laden, Kopfzeile, Seite, Navigation */
 function Shell() {
-  const { api, exerciseMap, exercises, dataVersion } = useApp();
+  const { api, exerciseMap, exercises, dataVersion, dataChanged } = useApp();
   const hash = useHash();
   const game = useAsync(() => loadGame(api, exerciseMap()), [api, hash, exercises, dataVersion]);
   // Kopfzeile behält den letzten Stand, während die nächste Seite lädt
@@ -81,6 +82,13 @@ function Shell() {
     const social = api.social;
     if (!social) return enforceSchemeRules([], false); // lokaler Modus: kein Shop → Standardfarben
     social.catalog().then(setServerCatalog, () => {});
+    // Wochenziel aus dem Konto; ändert es sich, Spielstand (Serie) neu berechnen
+    social.myWeekGoal().then((g) => {
+      if (g !== getWeekGoal()) {
+        setLocalWeekGoal(g);
+        dataChanged();
+      }
+    }, () => {});
     social.myShop().then(
       (c) => {
         setCosmetics(c);
@@ -89,7 +97,7 @@ function Shell() {
       },
       () => setCosmetics({ owned: [], equipped: {} }),
     );
-  }, [api]);
+  }, [api, dataChanged]);
 
   let page: ReactNode = null;
   for (const [re, render] of ROUTES) {

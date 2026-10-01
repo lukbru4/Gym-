@@ -4,7 +4,9 @@ import { useApp } from '../app/context';
 import { displayName } from '../app/profile';
 import { fmt, plural } from '../lib/format';
 import { change, computeRecap, greeting, type Recap, type RecapPeriod } from '../lib/recap';
+import { trainingDaysThisWeek } from '../lib/stats';
 import type { Workout, WorkoutSet } from '../lib/types';
+import { useWeekGoal } from '../lib/weekGoal';
 
 const KEY = 'gym-tracker-recap-period';
 function readPeriod(): RecapPeriod {
@@ -20,8 +22,17 @@ function Delta({ pct }: { pct: number | null }) {
   return <span className={`delta ${pct > 0 ? 'up' : 'down'}`}>{pct > 0 ? `+${pct}` : pct} %</span>;
 }
 
-function facts(r: Recap): { icon: string; text: React.ReactNode }[] {
+function facts(r: Recap, goal: number, done: number): { icon: string; text: React.ReactNode }[] {
   const out: { icon: string; text: React.ReactNode }[] = [];
+  if (r.period === 'week')
+    out.push({
+      icon: '🎯',
+      text: done >= goal ? (
+        <>Wochenziel geschafft: <strong>{done} von {goal}</strong> – die ganze Woche zählt für deine Serie</>
+      ) : (
+        <>Wochenziel: <strong>{done} von {goal}</strong> Trainings – noch {goal - done} bis Sonntag</>
+      ),
+    });
   const prevLabel = r.period === 'week' ? 'Vorwoche' : 'Vormonat';
   out.push({
     icon: '💪',
@@ -58,7 +69,7 @@ function facts(r: Recap): { icon: string; text: React.ReactNode }[] {
     out.push({ icon: '⭐', text: <>Am meisten: <strong>{r.topExercise.name}</strong> ({plural(r.topExercise.sets, 'Satz', 'Sätze')}){r.topMuscle ? ` · Fokus ${r.topMuscle}` : ''}</> });
   if (r.cardioMin > 0 || r.distanceKm > 0)
     out.push({ icon: '🏃', text: <><strong>{fmt(r.cardioMin, 0)} Min.</strong> Cardio{r.distanceKm > 0 ? ` · ${fmt(r.distanceKm)} km` : ''}</> });
-  if (r.streak > 1) out.push({ icon: '🔥', text: <>Serie: <strong>{r.streak} Wochen</strong> in Folge trainiert</> });
+  if (r.streak > 1) out.push({ icon: '🔥', text: <>Serie: <strong>{r.streak} Tage</strong></> });
   return out;
 }
 
@@ -82,7 +93,9 @@ export function RecapCard({ workouts, sets, today }: { workouts: Workout[]; sets
       /* nur Komfort */
     }
   };
-  const r = computeRecap(workouts, sets, exerciseMap(), today, period);
+  const goal = useWeekGoal();
+  const r = computeRecap(workouts, sets, exerciseMap(), today, period, goal);
+  const done = trainingDaysThisWeek(workouts, today);
   const name = displayName(api, user);
   return (
     <section className="card recap" id="recap" aria-label="Dein Rückblick">
@@ -103,7 +116,7 @@ export function RecapCard({ workouts, sets, today }: { workouts: Workout[]; sets
       <p className="recap-line">{headline(r)}</p>
       {r.workouts > 0 && (
         <ul className="recap-facts">
-          {facts(r).map((f, i) => (
+          {facts(r, goal, done).map((f, i) => (
             <li key={i}>
               <span aria-hidden="true">{f.icon}</span>
               <span>{f.text}</span>

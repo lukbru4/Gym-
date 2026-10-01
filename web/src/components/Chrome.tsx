@@ -54,7 +54,7 @@ export function Header({ game }: { game: Game | null }) {
           </span>
         </span>
       </a>
-      <a className="hud-stat" id="hud-streak" href="#/" title="Serie: Wochen in Folge mit Training">
+      <a className="hud-stat" id="hud-streak" href="#/" title={game ? `Serie: ${game.streak} Tage · Wochenziel ${game.weekDone}/${game.weekGoal}` : "Serie"}>
         <Flame />
         <strong>{game?.streak ?? 0}</strong>
       </a>

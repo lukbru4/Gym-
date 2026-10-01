@@ -11,6 +11,7 @@ import { plural } from '../lib/format';
 import { todayISO } from '../lib/stats';
 import { useCosmetics } from '../lib/cosmetics';
 import { useShopItems } from '../lib/shop';
+import { setLocalWeekGoal, useWeekGoal } from '../lib/weekGoal';
 import {
   SCHEMES,
   THEME_OPTIONS,
@@ -30,6 +31,40 @@ import { APP_VERSION } from '../version';
 
 const confirmDelete = (what: string) =>
   prompt(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen:`)?.trim().toUpperCase() === 'LÖSCHEN';
+
+function WeekGoalCard() {
+  const { api, showError, dataChanged } = useApp();
+  const goal = useWeekGoal();
+  const change = async (n: number) => {
+    const before = goal;
+    setLocalWeekGoal(n);
+    dataChanged();
+    try {
+      await api.social?.setWeekGoal(n);
+    } catch (err) {
+      setLocalWeekGoal(before);
+      dataChanged();
+      showError(err);
+    }
+  };
+  return (
+    <div className="card" id="week-goal-card">
+      <h3>Trainingsziel</h3>
+      <label>
+        Wie oft pro Woche willst du trainieren?
+        <select id="week-goal" value={goal} onChange={(e) => change(Number(e.target.value))}>
+          {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+            <option key={n} value={n}>{n}× pro Woche</option>
+          ))}
+        </select>
+      </label>
+      <p className="muted small">
+        Deine 🔥 Serie zählt Tage: Jedes Training zählt die Tage der Woche bis dahin (Training am Mittwoch = 3 Tage). Schaffst du dein
+        Wochenziel, zählt die ganze Woche. Verpasst du es, beginnt die Serie in der nächsten Woche neu.
+      </p>
+    </div>
+  );
+}
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
@@ -114,6 +149,7 @@ export function Account() {
           </label>
         </div>
       )}
+      <WeekGoalCard />
       <div className="card">
         <h3>Stil</h3>
         <label>

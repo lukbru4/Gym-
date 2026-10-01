@@ -42,7 +42,7 @@ export interface Challenge {
   bonus: number;
 }
 export interface Comment { id: number; user_id: string; display_name: string; body: string; created_at: string; is_mine: boolean; can_delete: boolean }
-export interface FriendProfileData { profile: { id: string; display_name: string; equipped?: Equipped }; workouts: Workout[]; sets: WorkoutSet[]; exercises: Exercise[] }
+export interface FriendProfileData { profile: { id: string; display_name: string; equipped?: Equipped; week_goal?: number }; workouts: Workout[]; sets: WorkoutSet[]; exercises: Exercise[] }
 
 export interface Social {
   myProfile(): Promise<Profile>;
@@ -82,6 +82,8 @@ export interface Social {
   adminReports(): Promise<AdminReport[]>;
   adminResolveReport(id: number, deleteComment: boolean): Promise<void>;
   schemaVersion(): Promise<number>;
+  myWeekGoal(): Promise<number>;
+  setWeekGoal(goal: number): Promise<void>;
 }
 
 export interface CatalogRow { id: string; kind: string; name: string; price: number; palette: CustomPalette | null }
@@ -139,6 +141,8 @@ export function createSocial(supabase: SupabaseClient): Social {
     adminReports: () => rpc('admin_reports'),
     adminResolveReport: (p_id, p_delete_comment) => rpc('admin_resolve_report', { p_id, p_delete_comment }),
     schemaVersion: async () => Number(await rpc('schema_version')) || 0,
+    myWeekGoal: async () => Number(await rpc('my_week_goal')) || 2,
+    setWeekGoal: (p_goal) => rpc('set_week_goal', { p_goal }),
     workoutSocial: async (p_workout) => (await rpc<{ likes: number; comments: number }[]>('workout_social', { p_workout }))[0] ?? null,
   };
 }

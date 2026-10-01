@@ -77,6 +77,8 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Admin-Menü (nur Admin, vom Server geprüft): alle Farben + Akzentfarbe, Farbschema-Designer mit Shop-Angebot, Meldungen bearbeiten
 - [ ] Admin eintragen: einrichten-Seite → „Dich als Admin eintragen“ (**Lukas**)
 - [x] App zeigt dem Admin „Datenbank-Update nötig“, wenn das SQL älter ist als die App (`schema_version()`)
+- [x] Serie in Tagen mit Wochenziel (1–7× pro Woche, im Konto gespeichert, Freunde sehen es)
+- [ ] Onboarding: ~20 Fragen → persönlicher Trainingsplan, danach Pro-Abo oder gratis weiter (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
 - [ ] Eigene Domain + E-Mail-Versand (SMTP) in Supabase, deutsche E-Mail-Vorlagen (**Lukas**: Domain kaufen)
 

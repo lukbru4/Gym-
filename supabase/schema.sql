@@ -1296,10 +1296,57 @@ revoke execute on function
 from anon, authenticated;
 
 -- ===========================================================================
+-- Wochenziel (Trainings pro Woche) für die Tages-Serie; Freunde sehen es mit dem Profil
+-- ===========================================================================
+alter table public.profiles add column if not exists week_goal smallint not null default 2;
+alter table public.profiles drop constraint if exists profiles_week_goal_check;
+alter table public.profiles add constraint profiles_week_goal_check check (week_goal between 1 and 7);
+
+create or replace function public.my_week_goal()
+returns integer language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.my_profile();
+  return (select p.week_goal from public.profiles p where p.id = auth.uid());
+end;
+$$;
+
+create or replace function public.set_week_goal(p_goal integer)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if p_goal is null or p_goal not between 1 and 7 then raise exception 'Wochenziel: 1 bis 7.'; end if;
+  perform public.my_profile();
+  update public.profiles set week_goal = p_goal where id = auth.uid();
+end;
+$$;
+
+-- Profil eines Freundes: zusätzlich Wochenziel (für seine Serie)
+create or replace function public.friend_profile(p_user uuid)
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or not public.can_see(auth.uid(), p_user) then
+    raise exception 'Profil nicht sichtbar';
+  end if;
+  return jsonb_build_object(
+    'profile', (select jsonb_build_object('id', p.id, 'display_name', p.display_name, 'equipped', p.equipped, 'week_goal', p.week_goal) from public.profiles p where p.id = p_user),
+    'workouts', coalesce((select jsonb_agg(jsonb_build_object('id', w.id, 'date', w.date)) from public.workouts w where w.user_id = p_user), '[]'::jsonb),
+    'sets', coalesce((select jsonb_agg(jsonb_build_object(
+              'workout_id', s.workout_id, 'exercise_id', s.exercise_id, 'position', s.position, 'reps', s.reps,
+              'weight_kg', s.weight_kg, 'duration_min', s.duration_min, 'distance_km', s.distance_km, 'is_warmup', s.is_warmup))
+            from public.sets s where s.user_id = p_user), '[]'::jsonb),
+    'exercises', coalesce((select jsonb_agg(jsonb_build_object('id', e.id, 'name', e.name, 'type', e.type, 'user_id', e.user_id, 'muscles', e.muscles))
+            from public.exercises e where e.id in (select s.exercise_id from public.sets s where s.user_id = p_user)), '[]'::jsonb)
+  );
+end;
+$$;
+
+revoke all on function public.my_week_goal(), public.set_week_goal(integer), public.friend_profile(uuid) from public, anon;
+grant execute on function public.my_week_goal(), public.set_week_goal(integer), public.friend_profile(uuid) to authenticated;
+
+-- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 37 $$;
+returns integer language sql immutable set search_path = '' as $$ select 38 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

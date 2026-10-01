@@ -1,7 +1,7 @@
 // Rückblick für die Begrüßung auf Home: Was wurde diese Woche / diesen Monat geschafft?
 // Verglichen wird fair mit dem gleichen Zeitraum davor (bis zum gleichen Wochentag bzw. Tag im Monat).
 import { musclesOf, MUSCLE_NAMES } from './muscles';
-import { addDays, estimate1RM, isWorkingSet, setVolume, weekStart, weekStreak } from './stats';
+import { addDays, dayStreak, estimate1RM, isWorkingSet, setVolume, weekStart } from './stats';
 import type { ExerciseMap, ISODate, MuscleId, Workout, WorkoutSet } from './types';
 
 export type RecapPeriod = 'week' | 'month';
@@ -21,6 +21,7 @@ export interface Recap {
   prs: RecapPR[];
   topExercise: { name: string; sets: number } | null;
   topMuscle: string | null;
+  /** Tages-Serie mit Wochenziel */
   streak: number;
   previous: { workouts: number; volume: number; sets: number };
 }
@@ -45,7 +46,7 @@ export function recapRange(period: RecapPeriod, today: ISODate): { from: ISODate
   return { from, prevFrom, prevTo };
 }
 
-export function computeRecap(workouts: Workout[], sets: WorkoutSet[], exercises: ExerciseMap, today: ISODate, period: RecapPeriod): Recap {
+export function computeRecap(workouts: Workout[], sets: WorkoutSet[], exercises: ExerciseMap, today: ISODate, period: RecapPeriod, weekGoal = 2): Recap {
   const { from, prevFrom, prevTo } = recapRange(period, today);
   const dateOf = new Map(workouts.map((w) => [w.id, w.date]));
   const inRange = (d: ISODate | undefined, a: ISODate, b: ISODate) => !!d && d >= a && d <= b;
@@ -100,7 +101,7 @@ export function computeRecap(workouts: Workout[], sets: WorkoutSet[], exercises:
     prs,
     topExercise: top ? { name: exercises.get(top[0])?.name ?? 'Übung', sets: top[1] } : null,
     topMuscle: muscle ? MUSCLE_NAMES.get(muscle[0]) ?? null : null,
-    streak: weekStreak(workouts, today),
+    streak: dayStreak(workouts, today, weekGoal),
     previous: { workouts: prev.length, volume: prevVolume, sets: prevSets },
   };
 }

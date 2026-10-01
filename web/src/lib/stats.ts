@@ -181,3 +181,38 @@ export function weekStreak(workouts: Pick<Workout, 'date'>[], today: ISODate): n
   }
   return n;
 }
+
+/**
+ * Tages-Serie mit Wochenziel (z. B. 2 Trainings pro Woche, Woche = Mo–So):
+ * - Ein Training zählt alle Tage der Woche bis zum Trainingstag (Mittwoch → Mo, Di, Mi = 3 Tage).
+ * - Ist das Wochenziel erreicht, zählen auch die übrigen Tage bis heute bzw. bis Sonntag (ganze Woche = 7).
+ * - Wird das Ziel in einer abgeschlossenen Woche verfehlt, beginnt die Serie danach wieder bei 0.
+ * Die laufende Woche bricht die Serie nicht ab, solange sie nicht vorbei ist.
+ */
+export function dayStreak(workouts: Pick<Workout, 'date'>[], today: ISODate, goal: number): number {
+  const need = Math.min(7, Math.max(1, Math.round(goal) || 1));
+  const days = new Map<ISODate, Set<ISODate>>(); // Wochenbeginn → Trainingstage
+  for (const w of workouts) {
+    if (!w.date || w.date > today) continue;
+    const ws = weekStart(w.date);
+    if (!days.has(ws)) days.set(ws, new Set());
+    days.get(ws)!.add(w.date);
+  }
+  if (!days.size) return 0;
+  const current = weekStart(today);
+  let streak = 0;
+  for (let ws = [...days.keys()].sort()[0]; ws < current; ws = addDays(ws, 7)) {
+    streak = (days.get(ws)?.size ?? 0) >= need ? streak + 7 : 0;
+  }
+  const now = [...(days.get(current) ?? [])].sort();
+  const dayIndex = (iso: ISODate) => Math.round((Date.parse(iso) - Date.parse(current)) / 864e5) + 1;
+  if (now.length >= need) streak += dayIndex(today);
+  else if (now.length) streak += dayIndex(now[now.length - 1]);
+  return streak;
+}
+
+/** Trainingstage in der laufenden Woche (für „Wochenziel 1 von 2“) */
+export function trainingDaysThisWeek(workouts: Pick<Workout, 'date'>[], today: ISODate): number {
+  const ws = weekStart(today);
+  return new Set(workouts.filter((w) => w.date >= ws && w.date <= today).map((w) => w.date)).size;
+}

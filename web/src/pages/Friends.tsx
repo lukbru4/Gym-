@@ -304,7 +304,7 @@ export function FriendProfile({ userId }: { userId: string }) {
   if (data.status === 'error') return <LoadError error={new Error('Dieses Profil ist nicht sichtbar.')} />;
   const d = data.data!;
   const exMap: ExerciseMap = new Map(d.exercises.map((e) => [e.id, e]));
-  const g = computeGame(d.workouts, d.sets, exMap);
+  const g = computeGame(d.workouts, d.sets, exMap, todayISO(), 0, 0, d.profile.week_goal ?? 2);
   const dated = datedSets(d.workouts, d.sets);
   const levels = strengthLevels(dated, exMap, todayISO());
   const records = personalRecords(dated, exMap).filter((r) => r.type === 'strength' && r.bestE1RM);
@@ -355,7 +355,7 @@ export function FriendProfile({ userId }: { userId: string }) {
         </div>
         <Avatar level={g.player.level} skin={eq.skin} accessory={eq.accessory} />
         <p className="muted small center">
-          Level {g.player.level} · {g.overall.label} · Serie {g.streak} {g.streak === 1 ? 'Woche' : 'Wochen'} · {plural(g.workouts.length, 'Training', 'Trainings')}
+          Level {g.player.level} · {g.overall.label} · Serie {g.streak} {g.streak === 1 ? 'Tag' : 'Tage'} · {plural(g.workouts.length, 'Training', 'Trainings')}
         </p>
       </div>
       <div className="card">
