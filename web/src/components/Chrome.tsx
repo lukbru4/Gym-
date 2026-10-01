@@ -1,0 +1,164 @@
+// Rahmen der App: Kopfzeile (Level, Serie, Credits, Menü), Reiter unter „Ränge“, untere Leiste, Update-Hinweis.
+import { useEffect, useRef, useState } from 'react';
+import { useApp } from '../app/context';
+import { displayName } from '../app/profile';
+import { sectionOf, useHash } from '../app/router';
+import type { Game } from '../app/game';
+import { fmt } from '../lib/format';
+import { fetchServerVersion, hardReload } from '../lib/update';
+import { APP_VERSION } from '../version';
+import { Coin, Flame, MenuIcon } from './Icons';
+
+export function Header({ game }: { game: Game | null }) {
+  const { api, user } = useApp();
+  const [open, setOpen] = useState(false);
+  const hash = useHash();
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => setOpen(false), [hash]);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => !menuRef.current?.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('click', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('click', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  if (!user) {
+    return (
+      <header className="topbar">
+        <h1 id="app-title">
+          <a href="#/">🏋️ Level Up</a>
+        </h1>
+      </header>
+    );
+  }
+  const p = game?.player;
+  return (
+    <header className="topbar">
+      <a className="hud-player" id="hud-player" href="#/profil" aria-label="Profil">
+        <span className="avatar-sm" id="hud-avatar">{displayName(api, user).slice(0, 1).toUpperCase()}</span>
+        <span className="hud-level">
+          <strong id="hud-level">Lv.{p?.level ?? 1}</strong>
+          <span className="xp-bar">
+            <span id="hud-xp" style={{ width: p ? `${Math.round((p.into / p.needed) * 100)}%` : 0 }} />
+          </span>
+        </span>
+      </a>
+      <a className="hud-stat" id="hud-streak" href="#/" title="Serie: Wochen in Folge mit Training">
+        <Flame />
+        <strong>{game?.streak ?? 0}</strong>
+      </a>
+      <a className="hud-stat" id="hud-credits" href="#/aufgaben" title="Credits">
+        <Coin />
+        <strong>{fmt(game?.credits ?? 0, 0)}</strong>
+      </a>
+      <button
+        className="menu-btn"
+        id="menu-btn"
+        aria-label="Menü"
+        aria-expanded={open}
+        aria-controls="menu"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+      >
+        <MenuIcon />
+      </button>
+      {open && (
+        <div className="menu" id="menu" ref={menuRef}>
+          <a href="#/konto">Konto &amp; Einstellungen</a>
+          <a href="#/backup">Backup</a>
+          {api.mode === 'cloud' && (
+            <button id="menu-signout" onClick={() => api.signOut()}>
+              Abmelden
+            </button>
+          )}
+        </div>
+      )}
+    </header>
+  );
+}
+
+const SUBNAV: [string, string][] = [
+  ['#/raenge', 'Rang'],
+  ['#/koerper', 'Körpergraph'],
+  ['#/rekorde', 'Rekorde'],
+  ['#/fortschritt', 'Analyse'],
+];
+
+export function SubNav() {
+  const hash = useHash();
+  if (sectionOf(hash) !== 'raenge') return null;
+  return (
+    <nav id="subnav" className="subnav" aria-label="Ränge">
+      {SUBNAV.map(([href, label]) => (
+        <a key={href} href={href} className={hash === href ? 'active' : ''}>
+          {label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+const NAV: [string, string, string, string][] = [
+  ['#/workouts', 'workouts', '🏋️', 'Workout'],
+  ['#/', 'home', '🏠', 'Home'],
+  ['#/raenge', 'raenge', '🏅', 'Ränge'],
+  ['#/freunde', 'freunde', '👥', 'Freunde'],
+  ['#/profil', 'profil', '👤', 'Profil'],
+];
+
+export function BottomNav() {
+  const section = sectionOf(useHash());
+  return (
+    <nav id="nav" className="bottom-nav">
+      {NAV.map(([href, id, icon, label]) => (
+        <a key={id} href={href} data-section={id} className={section === id ? 'active' : ''}>
+          <span aria-hidden="true">{icon}</span>
+          {label}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+const CHECK_EVERY_MS = 5 * 60 * 1000;
+
+/** Fragt den Server nach einer neueren Version und bietet das Update an. */
+export function UpdateBanner() {
+  const [server, setServer] = useState<string | null>(null);
+  useEffect(() => {
+    let last = 0;
+    const check = async (force = false) => {
+      if (!force && Date.now() - last < CHECK_EVERY_MS) return;
+      last = Date.now();
+      const v = await fetchServerVersion();
+      if (v && v !== APP_VERSION) setServer(v);
+    };
+    const onVisible = () => document.visibilityState === 'visible' && check();
+    const onShow = () => check();
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pageshow', onShow);
+    check(true);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pageshow', onShow);
+    };
+  }, []);
+  if (!server) return null;
+  return (
+    <div id="update-banner" className="update-banner" role="status">
+      <span>
+        Neue Version verfügbar <small className="update-version">{server}</small>
+      </span>
+      <button className="btn small-btn primary" onClick={hardReload}>
+        Aktualisieren
+      </button>
+    </div>
+  );
+}

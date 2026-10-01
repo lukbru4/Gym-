@@ -1,0 +1,179 @@
+// Wurzel der App: startet das Backend, verwaltet Login und Übungen, wählt die Seite zur Adresse (#/…).
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { BottomNav, Header, SubNav, UpdateBanner } from '../components/Chrome';
+import { RestTimer } from '../components/RestTimer';
+import type { Backend } from '../data/backend';
+import { createBackend } from '../data/api';
+import { clearDraft } from '../lib/editor';
+import type { Exercise, User } from '../lib/types';
+import { Account, Backup } from '../pages/Account';
+import { Auth } from '../pages/Auth';
+import { Body } from '../pages/Body';
+import { Editor } from '../pages/Editor';
+import { FriendsFeed, Home } from '../pages/Home';
+import { Friends, Medals, Profile, Quests } from '../pages/Profile';
+import { Analysis, Ranks, Records } from '../pages/Ranks';
+import { History, WorkoutDetail } from '../pages/Workout';
+import { StartFromTemplate, Workouts } from '../pages/Workouts';
+import { AppProvider, useApp } from './context';
+import { loadGame } from './game';
+import { GameProvider } from './gameContext';
+import { redirect, useHash } from './router';
+import { useAsync } from './useAsync';
+
+type Route = [RegExp, (m: RegExpMatchArray) => ReactNode];
+const ROUTES: Route[] = [
+  [/^#?\/?$/, () => <Home />],
+  [/^#\/feed\/freunde$/, () => <FriendsFeed />],
+  [/^#\/neu$/, () => <Editor mode="live" />],
+  [/^#\/workouts$/, () => <Workouts />],
+  [/^#\/start\/(\d+)$/, (m) => <StartFromTemplate id={Number(m[1])} />],
+  [/^#\/vorlage\/neu$/, () => <Editor mode="template" />],
+  [/^#\/vorlage\/(\d+)$/, (m) => <Editor mode="template" id={Number(m[1])} />],
+  [/^#\/training\/(\d+)$/, (m) => <WorkoutDetail id={Number(m[1])} />],
+  [/^#\/training\/(\d+)\/bearbeiten$/, (m) => <Editor mode="edit" id={Number(m[1])} />],
+  [/^#\/verlauf$/, () => <History />],
+  [/^#\/fortschritt$/, () => <Analysis />],
+  [/^#\/koerper$/, () => <Body />],
+  [/^#\/backup$/, () => <Backup />],
+  [/^#\/konto$/, () => <Account />],
+  [/^#\/raenge$/, () => <Ranks />],
+  [/^#\/rekorde$/, () => <Records />],
+  [/^#\/freunde$/, () => <Friends />],
+  [/^#\/profil$/, () => <Profile />],
+  [/^#\/aufgaben$/, () => <Quests />],
+  [/^#\/medaillen$/, () => <Medals />],
+];
+
+function Toast({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <div id="toast" className="toast" role="alert">
+      Fehler: {message}
+    </div>
+  );
+}
+
+/** Angemeldeter Bereich: Spielstand laden, Kopfzeile, Seite, Navigation */
+function Shell() {
+  const { api, exerciseMap, exercises, dataVersion } = useApp();
+  const hash = useHash();
+  const game = useAsync(() => loadGame(api, exerciseMap()), [api, hash, exercises, dataVersion]);
+  // Kopfzeile behält den letzten Stand, während die nächste Seite lädt
+  const lastGame = useRef(game.status === 'ok' ? game.data : null);
+  if (game.status === 'ok') lastGame.current = game.data;
+  useEffect(() => window.scrollTo(0, 0), [hash]);
+
+  let page: ReactNode = null;
+  for (const [re, render] of ROUTES) {
+    const m = hash.match(re);
+    if (m) {
+      page = render(m);
+      break;
+    }
+  }
+  useEffect(() => {
+    if (page === null) redirect(hash === '#/gewicht' ? '#/koerper' : '#/');
+  }, [page, hash]);
+
+  return (
+    <GameProvider value={game}>
+      <Header game={lastGame.current} />
+      <UpdateBanner />
+      <SubNav />
+      <main id="view" className="container" key={hash}>
+        {page}
+      </main>
+      <BottomNav />
+      <RestTimer />
+    </GameProvider>
+  );
+}
+
+export function App() {
+  const [api, setApi] = useState<Backend | null>(null);
+  const [startError, setStartError] = useState<Error | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number>(undefined);
+
+  const showError = useCallback((err: unknown) => {
+    console.error(err);
+    const msg = (err as Error)?.message || String(err);
+    setToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 6000);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const backend = await createBackend();
+      const u = await backend.getUser();
+      // Beim Öffnen der App immer auf Home starten (erst nach getUser(), damit Supabase
+      // einen Login-Link mit #access_token=… schon ausgewertet hat).
+      if (location.hash !== '' && location.hash !== '#/') history.replaceState(null, '', `${location.pathname}${location.search}#/`);
+      const list = u ? await backend.listExercises() : [];
+      if (!alive) return;
+      setApi(backend);
+      setUser(u);
+      setExercises(list);
+      backend.onAuthChange((next) => {
+        setUser((prev) => {
+          if (next?.id === prev?.id) return prev;
+          // Supabase empfiehlt, im Auth-Callback keine weiteren Supabase-Aufrufe abzuwarten.
+          setTimeout(async () => {
+            const ex = next ? await backend.listExercises().catch((e) => (showError(e), [])) : [];
+            if (!next) clearDraft();
+            setExercises(ex);
+          }, 0);
+          return next;
+        });
+      });
+    })().catch((err) => {
+      console.error(err);
+      if (alive) setStartError(err instanceof Error ? err : new Error(String(err)));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [showError]);
+
+  if (startError) {
+    return (
+      <main id="view" className="container">
+        <div className="card">
+          <h2>App konnte nicht starten</h2>
+          <p className="muted">{startError.message}</p>
+          <p>
+            Prüfe deine Internetverbindung und lade die Seite neu. Im privaten Modus erlaubt der Browser manchmal keinen Speicher –
+            öffne die Seite dann in einem normalen Fenster.
+          </p>
+        </div>
+      </main>
+    );
+  }
+  if (!api) {
+    return (
+      <main id="view" className="container">
+        <p className="muted center">Lädt …</p>
+      </main>
+    );
+  }
+  return (
+    <AppProvider api={api} user={user} exercises={exercises} setExercises={setExercises} showError={showError}>
+      {user ? (
+        <Shell />
+      ) : (
+        <>
+          <Header game={null} />
+          <main id="view" className="container">
+            <Auth />
+          </main>
+        </>
+      )}
+      <Toast message={toast} />
+    </AppProvider>
+  );
+}

@@ -2,7 +2,7 @@
 // Übungen werden über den Namen zugeordnet; fehlende eigene Übungen werden angelegt.
 import type { Exercise, TemplateExercise } from '../lib/types';
 import type { Backend, LocalData, SetInput } from './backend';
-import { STORAGE_KEY as LOCAL_KEY } from './local';
+const LOCAL_KEY = 'gym-tracker-data'; // gleicher Schlüssel wie in local.ts
 
 const DONE_KEY = 'gym-tracker-migrated';
 const PARTIAL_KEY = 'gym-tracker-migrated-workouts'; // { [userId]: [lokale Trainings-IDs] } – verhindert Doppelte bei erneutem Versuch
