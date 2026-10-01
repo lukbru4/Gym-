@@ -1,6 +1,5 @@
-# Baut die React-App (web/) und veröffentlicht sie auf GitHub Pages.
+# Baut die App (web/) und veröffentlicht sie auf GitHub Pages.
 # Veröffentlicht wird nur, wenn in den Repo-Einstellungen „Pages → Source: GitHub Actions“ gewählt ist.
-# Solange dort noch „Deploy from a branch“ steht, wird nur gebaut und geprüft (die alte App bleibt online).
 name: Deploy to GitHub Pages
 
 on:

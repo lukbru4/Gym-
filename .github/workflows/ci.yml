@@ -1,4 +1,4 @@
-# Prüft bei jedem Push: Typen, Unit-Tests und Build der React-App (web/) sowie die Tests der bisherigen App.
+# Prüft bei jedem Push: Typen, Unit-Tests und Build der App (web/).
 name: CI
 
 on:
@@ -26,11 +26,3 @@ jobs:
       - run: npm test
       - run: npx vite build
 
-  legacy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm test

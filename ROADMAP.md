@@ -26,7 +26,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Tests ausgebaut: 40 Unit-Tests (Vitest) + automatische Prüfung bei jedem Push (GitHub Actions)
 - [x] Veröffentlichungs-Ablauf für GitHub Pages (`.github/workflows/pages.yml`)
 - [x] Pages auf „GitHub Actions“ umgestellt – die React-Version ist live
-- [ ] Alte App im Hauptordner entfernen, sobald die React-Version live läuft
+- [x] Alte App im Hauptordner entfernt, README neu
 - [ ] Browser-Tests (Playwright) ins Repo übernehmen
 
 ## Phase 3 – Freunde & Community

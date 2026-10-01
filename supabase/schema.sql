@@ -185,7 +185,7 @@ revoke all on function public.delete_my_account() from public;
 grant execute on function public.delete_my_account() to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Credits serverseitig berechnen – gleiche Regeln wie js/xp.js und js/quests.js:
+-- Credits serverseitig berechnen – gleiche Regeln wie web/src/lib/xp.ts und web/src/lib/quests.ts:
 --   Training: +20 pro Training mit mindestens einem Arbeitssatz, +2 pro Arbeitssatz,
 --             +10 wenn eine Kraftübung stärker ist als beim letzten Mal (geschätztes 1RM, Epley),
 --             +25 zusätzlich bei neuem Rekord der Übung. Aufwärmsätze zählen nicht.
