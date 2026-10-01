@@ -19,10 +19,26 @@ export interface FeedItem {
   exercises: string[] | null;
   likes: number;
   liked: boolean;
+  comments: number;
 }
 export interface LeaderRow { user_id: string; display_name: string; is_me: boolean; credits: number; week_workouts: number; total_workouts: number }
 export interface WeekRow { user_id: string; display_name: string; is_me: boolean; workouts: number; sets: number; volume: number }
 export interface ExerciseRow { user_id: string; display_name: string; is_me: boolean; best_e1rm: number; weight_kg: number; reps: number; date: ISODate }
+export type ChallengeMetric = 'workouts' | 'sets' | 'volume';
+export type ChallengeState = 'incoming' | 'outgoing' | 'running' | 'won' | 'lost' | 'tie';
+export interface Challenge {
+  id: number;
+  other_id: string;
+  other_name: string;
+  metric: ChallengeMetric;
+  state: ChallengeState;
+  start_date: ISODate | null;
+  end_date: ISODate | null;
+  my_score: number;
+  their_score: number;
+  bonus: number;
+}
+export interface Comment { id: number; user_id: string; display_name: string; body: string; created_at: string; is_mine: boolean; can_delete: boolean }
 export interface FriendProfileData { profile: { id: string; display_name: string }; workouts: Workout[]; sets: WorkoutSet[]; exercises: Exercise[] }
 
 export interface Social {
@@ -43,6 +59,16 @@ export interface Social {
   exerciseList(): Promise<{ name: string; people: number }[]>;
   exerciseBoard(exercise: string): Promise<ExerciseRow[]>;
   friendProfile(userId: string): Promise<FriendProfileData>;
+  challenges(): Promise<Challenge[]>;
+  createChallenge(opponent: string, metric: ChallengeMetric): Promise<number>;
+  respondChallenge(id: number, accept: boolean): Promise<void>;
+  cancelChallenge(id: number): Promise<void>;
+  challengeBonus(): Promise<number>;
+  comments(workoutId: number): Promise<Comment[]>;
+  addComment(workoutId: number, body: string): Promise<number>;
+  deleteComment(id: number): Promise<void>;
+  reportComment(id: number, reason: string): Promise<void>;
+  workoutSocial(workoutId: number): Promise<{ likes: number; comments: number } | null>;
 }
 
 export function createSocial(supabase: SupabaseClient): Social {
@@ -69,6 +95,16 @@ export function createSocial(supabase: SupabaseClient): Social {
     exerciseList: () => rpc('friend_exercise_list'),
     exerciseBoard: (p_exercise) => rpc('friend_exercise_board', { p_exercise }),
     friendProfile: (p_user) => rpc('friend_profile', { p_user }),
+    challenges: () => rpc('my_challenges'),
+    createChallenge: (p_opponent, p_metric) => rpc('create_challenge', { p_opponent, p_metric }),
+    respondChallenge: (p_id, p_accept) => rpc('respond_challenge', { p_id, p_accept }),
+    cancelChallenge: (p_id) => rpc('cancel_challenge', { p_id }),
+    challengeBonus: () => rpc('my_challenge_bonus'),
+    comments: (p_workout) => rpc('workout_comments', { p_workout }),
+    addComment: (p_workout, p_body) => rpc('add_comment', { p_workout, p_body }),
+    deleteComment: (p_id) => rpc('delete_comment', { p_id }),
+    reportComment: (p_id, p_reason) => rpc('report_comment', { p_id, p_reason }),
+    workoutSocial: async (p_workout) => (await rpc<{ likes: number; comments: number }[]>('workout_social', { p_workout }))[0] ?? null,
   };
 }
 

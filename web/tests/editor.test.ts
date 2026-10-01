@@ -123,3 +123,13 @@ describe('Vorlagen', () => {
     ]);
   });
 });
+
+describe('Kommentar-Filter', async () => {
+  const { isOffensive } = await import('../src/lib/moderation');
+  test('sperrt Beleidigungen, lässt normale Kommentare durch', () => {
+    expect(isOffensive('Stark gemacht! 💪')).toBe(false);
+    expect(isOffensive('Starke Leistung, weiter so')).toBe(false);
+    expect(isOffensive('Du ARSCHLOCH')).toBe(true);
+    expect(isOffensive('what the fuck')).toBe(true);
+  });
+});

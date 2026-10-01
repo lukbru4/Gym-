@@ -9,6 +9,8 @@ import { Avatar } from '../components/Avatar';
 import { BodyGraph } from '../components/BodyGraph';
 import { LoadError, Loading } from '../components/Bits';
 import { Flame } from '../components/Icons';
+import { Challenges } from '../components/Challenges';
+import { Comments } from '../components/Comments';
 import { Leaderboards } from '../components/Leaderboards';
 import { RankBadge } from '../components/RankBadge';
 import { inviteLink, requestMessage, type FeedItem, type Friend, type Social } from '../data/social';
@@ -152,6 +154,8 @@ export function Friends() {
         </div>
       )}
 
+      <Challenges social={social} friends={friends} />
+
       <Leaderboards social={social} total={board} />
 
       <div className="card">
@@ -214,6 +218,7 @@ export function AcceptInvite({ code }: { code: string }) {
 
 function FeedCard({ item, social, onChange }: { item: FeedItem; social: Social; onChange: (i: FeedItem) => void }) {
   const { showError } = useApp();
+  const [open, setOpen] = useState(false);
   const like = async () => {
     try {
       const liked = await social.toggleLike(item.workout_id);
@@ -233,9 +238,20 @@ function FeedCard({ item, social, onChange }: { item: FeedItem; social: Social; 
         {Number(item.volume) > 0 ? ` · ${fmt(item.volume, 0)} kg Volumen` : ''}
       </p>
       {item.exercises?.length ? <p className="muted small">{item.exercises.join(' · ')}</p> : null}
-      <button className={`btn small-btn cheer ${item.liked ? 'on' : ''}`} aria-pressed={item.liked} onClick={like}>
-        <Flame /> {item.liked ? 'Angefeuert' : 'Anfeuern'}{item.likes ? ` · ${item.likes}` : ''}
-      </button>
+      <div className="feed-actions">
+        <button className={`btn small-btn cheer ${item.liked ? 'on' : ''}`} aria-pressed={item.liked} onClick={like}>
+          <Flame /> {item.liked ? 'Angefeuert' : 'Anfeuern'}{item.likes ? ` · ${item.likes}` : ''}
+        </button>
+        <button
+          className={`btn small-btn comment-toggle${open ? ' on' : ''}`}
+          aria-expanded={open}
+          aria-label={item.comments === 1 ? '1 Kommentar' : `${item.comments} Kommentare`}
+          onClick={() => setOpen((o) => !o)}
+        >
+          💬 {item.comments ? item.comments : 'Kommentieren'}
+        </button>
+      </div>
+      {open && <Comments social={social} workoutId={item.workout_id} onCount={(n) => n !== item.comments && onChange({ ...item, comments: n })} />}
     </div>
   );
 }

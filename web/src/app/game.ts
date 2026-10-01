@@ -20,10 +20,11 @@ export interface Game {
   streak: number;
 }
 
-export function computeGame(workouts: Workout[], sets: WorkoutSet[], exercises: ExerciseMap, today = todayISO()): Game {
+/** bonus: Credits aus Challenges (vom Server, nur Cloud) */
+export function computeGame(workouts: Workout[], sets: WorkoutSet[], exercises: ExerciseMap, today = todayISO(), bonus = 0): Game {
   const progress = computeProgress(workouts, sets, exercises);
   const quests = computeQuests(progress.perWorkout, today);
-  const credits = progress.total + quests.total;
+  const credits = progress.total + quests.total + bonus;
   const strength = [...progress.perExercise.entries()].filter(([id]) => exercises.get(id)?.type !== 'cardio');
   const overall = rankFromPoints(overallPoints(strength.map(([, st]) => st.xp)));
   return {
@@ -34,6 +35,11 @@ export function computeGame(workouts: Workout[], sets: WorkoutSet[], exercises: 
 }
 
 export async function loadGame(api: Backend, exercises: ExerciseMap): Promise<Game> {
-  const [workouts, sets] = await Promise.all([api.listWorkouts(), api.listSets()]);
-  return computeGame(workouts, sets, exercises);
+  const [workouts, sets, bonus] = await Promise.all([
+    api.listWorkouts(),
+    api.listSets(),
+    // Challenge-Bonus gibt es nur in der Cloud; fehlt das SQL dafür noch, zählt er einfach 0
+    api.social ? api.social.challengeBonus().catch(() => 0) : 0,
+  ]);
+  return computeGame(workouts, sets, exercises, todayISO(), Number(bonus) || 0);
 }

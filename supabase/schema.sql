@@ -348,13 +348,27 @@ create table if not exists public.likes (
   primary key (workout_id, user_id)
 );
 
+-- Kommentare unter Trainings (kurz, gefiltert, meldbar, löschbar)
+create table if not exists public.comments (
+  id          bigint generated always as identity primary key,
+  workout_id  bigint not null references public.workouts (id) on delete cascade,
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  body        text not null check (char_length(btrim(body)) between 1 and 300),
+  created_at  timestamptz not null default now()
+);
+create index if not exists comments_workout on public.comments (workout_id, created_at);
+
+-- Meldungen können sich auf einen Kommentar beziehen
+alter table public.reports add column if not exists comment_id bigint references public.comments (id) on delete set null;
+
 -- Kein direkter Zugriff auf diese Tabellen – nur über die Funktionen unten.
 alter table public.profiles    enable row level security;
 alter table public.friendships enable row level security;
 alter table public.blocks      enable row level security;
 alter table public.reports     enable row level security;
 alter table public.likes       enable row level security;
-revoke all on public.profiles, public.friendships, public.blocks, public.reports, public.likes from anon, authenticated;
+alter table public.comments    enable row level security;
+revoke all on public.profiles, public.friendships, public.blocks, public.reports, public.likes, public.comments from anon, authenticated;
 
 -- ---- Hilfsfunktionen -------------------------------------------------------
 create or replace function public.are_friends(a uuid, b uuid)
@@ -533,10 +547,11 @@ $$;
 
 -- ---- Feed, Anfeuern, Rangliste, Profil eines Freundes ----------------------------
 -- Trainings der Freunde (neueste zuerst), mit Kennzahlen und Anfeuerungen
-create or replace function public.friend_feed(p_limit integer default 30, p_before timestamptz default null)
+drop function if exists public.friend_feed(integer, timestamptz);
+create function public.friend_feed(p_limit integer default 30, p_before timestamptz default null)
 returns table (
   workout_id bigint, user_id uuid, display_name text, date date, created_at timestamptz,
-  sets integer, volume numeric, exercises text[], likes integer, liked boolean
+  sets integer, volume numeric, exercises text[], likes integer, liked boolean, comments integer
 )
 language sql stable security definer set search_path = '' as $$
   select w.id, w.user_id, p.display_name, w.date, w.created_at,
@@ -546,7 +561,9 @@ language sql stable security definer set search_path = '' as $$
          (select array_agg(distinct e.name order by e.name) from public.sets s join public.exercises e on e.id = s.exercise_id
            where s.workout_id = w.id),
          (select count(*)::int from public.likes l where l.workout_id = w.id),
-         exists (select 1 from public.likes l where l.workout_id = w.id and l.user_id = auth.uid())
+         exists (select 1 from public.likes l where l.workout_id = w.id and l.user_id = auth.uid()),
+         (select count(*)::int from public.comments c
+           where c.workout_id = w.id and not public.is_blocked(auth.uid(), c.user_id))
   from public.workouts w
   join public.profiles p on p.id = w.user_id
   where w.user_id <> auth.uid()
@@ -699,3 +716,255 @@ $$;
 
 revoke all on function public.friend_week_board(), public.friend_exercise_list(), public.friend_exercise_board(text) from public;
 grant execute on function public.friend_week_board(), public.friend_exercise_list(), public.friend_exercise_board(text) to authenticated;
+
+-- ===========================================================================
+-- Challenges: Freund herausfordern – 7 Tage ab Annahme, wer mehr schafft, gewinnt.
+-- Gewinner +50 Credits, bei Gleichstand beide +25 (zählen ab Ende der Challenge).
+-- ===========================================================================
+create table if not exists public.challenges (
+  id          bigint generated always as identity primary key,
+  creator     uuid not null references auth.users (id) on delete cascade,
+  opponent    uuid not null references auth.users (id) on delete cascade,
+  metric      text not null check (metric in ('workouts', 'sets', 'volume')),
+  status      text not null default 'pending' check (status in ('pending', 'active', 'declined', 'cancelled')),
+  start_date  date,
+  end_date    date,
+  created_at  timestamptz not null default now(),
+  check (creator <> opponent)
+);
+create index if not exists challenges_creator on public.challenges (creator);
+create index if not exists challenges_opponent on public.challenges (opponent);
+alter table public.challenges enable row level security;
+revoke all on public.challenges from anon, authenticated;
+
+-- Punktestand einer Person im Zeitraum (Arbeitssätze, Aufwärmsätze zählen nicht)
+create or replace function public.challenge_score(p_user uuid, p_metric text, p_from date, p_to date)
+returns numeric language sql stable security definer set search_path = '' as $$
+  select case p_metric
+    when 'workouts' then (select count(distinct w.id) from public.workouts w join public.sets s on s.workout_id = w.id
+                          where w.user_id = p_user and not s.is_warmup and w.date between p_from and p_to)
+    when 'sets' then (select count(*) from public.sets s join public.workouts w on w.id = s.workout_id
+                      where w.user_id = p_user and not s.is_warmup and w.date between p_from and p_to)
+    else (select coalesce(sum(coalesce(s.reps, 0) * coalesce(s.weight_kg, 0)), 0) from public.sets s join public.workouts w on w.id = s.workout_id
+          where w.user_id = p_user and not s.is_warmup and w.date between p_from and p_to)
+  end
+$$;
+
+-- Bonus-Credits aus beendeten Challenges
+create or replace function public.challenge_bonus(p_user uuid)
+returns integer language sql stable security definer set search_path = '' as $$
+  select coalesce(sum(
+           case
+             when me > them then 50
+             when me = them and me > 0 then 25
+             else 0
+           end), 0)::int
+  from (
+    select public.challenge_score(p_user, c.metric, c.start_date, c.end_date) as me,
+           public.challenge_score(case when c.creator = p_user then c.opponent else c.creator end, c.metric, c.start_date, c.end_date) as them
+    from public.challenges c
+    where c.status = 'active' and c.end_date < current_date and (c.creator = p_user or c.opponent = p_user)
+  ) x
+$$;
+
+-- Credits gesamt = Trainings + Aufgaben + Challenge-Bonus
+create or replace function public.credits_total(p_user uuid)
+returns integer language sql stable security definer set search_path = '' as $$
+  select public.credits_earned(p_user) + public.challenge_bonus(p_user)
+$$;
+revoke all on function public.challenge_score(uuid, text, date, date), public.challenge_bonus(uuid), public.credits_total(uuid) from public;
+
+-- my_credits und Rangliste zählen ab jetzt den Challenge-Bonus mit
+create or replace function public.my_credits()
+returns integer language sql stable security definer set search_path = '' as $$ select public.credits_total(auth.uid()) $$;
+revoke all on function public.my_credits() from public;
+grant execute on function public.my_credits() to authenticated;
+
+create or replace function public.my_challenge_bonus()
+returns integer language sql stable security definer set search_path = '' as $$ select public.challenge_bonus(auth.uid()) $$;
+
+create or replace function public.friend_leaderboard()
+returns table (user_id uuid, display_name text, is_me boolean, credits integer, week_workouts integer, total_workouts integer)
+language sql stable security definer set search_path = '' as $$
+  select x.id, coalesce(p.display_name, 'Du'), x.id = auth.uid(),
+         public.credits_total(x.id),
+         (select count(*)::int from public.workouts w
+           where w.user_id = x.id and w.date >= date_trunc('week', current_date)::date),
+         (select count(*)::int from public.workouts w where w.user_id = x.id)
+  from public.board_people() x
+  left join public.profiles p on p.id = x.id
+  order by 4 desc, 2
+$$;
+
+-- Herausfordern (nur Freunde, höchstens 3 offene Challenges pro Paar)
+create or replace function public.create_challenge(p_opponent uuid, p_metric text)
+returns bigint language plpgsql security definer set search_path = '' as $$
+declare
+  new_id bigint;
+begin
+  if auth.uid() is null then raise exception 'nicht angemeldet'; end if;
+  if not public.are_friends(auth.uid(), p_opponent) or public.is_blocked(auth.uid(), p_opponent) then
+    raise exception 'Nur Freunde können herausgefordert werden.';
+  end if;
+  if (select count(*) from public.challenges c
+      where c.status in ('pending', 'active') and (c.end_date is null or c.end_date >= current_date)
+        and ((c.creator = auth.uid() and c.opponent = p_opponent) or (c.creator = p_opponent and c.opponent = auth.uid()))) >= 3 then
+    raise exception 'Ihr habt schon 3 offene Challenges.';
+  end if;
+  insert into public.challenges (creator, opponent, metric) values (auth.uid(), p_opponent, p_metric) returning id into new_id;
+  return new_id;
+end;
+$$;
+
+-- Annehmen startet die 7 Tage ab heute; Ablehnen beendet sie
+create or replace function public.respond_challenge(p_id bigint, p_accept boolean)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  update public.challenges
+     set status = case when p_accept then 'active' else 'declined' end,
+         start_date = case when p_accept then current_date end,
+         end_date = case when p_accept then current_date + 6 end
+   where id = p_id and opponent = auth.uid() and status = 'pending';
+end;
+$$;
+
+-- Eigene, noch nicht angenommene Herausforderung zurückziehen
+create or replace function public.cancel_challenge(p_id bigint)
+returns void language sql security definer set search_path = '' as $$
+  update public.challenges set status = 'cancelled' where id = p_id and creator = auth.uid() and status = 'pending'
+$$;
+
+-- Alle eigenen Challenges mit Punktestand. state: 'incoming' | 'outgoing' | 'running' | 'won' | 'lost' | 'tie'
+create or replace function public.my_challenges()
+returns table (
+  id bigint, other_id uuid, other_name text, metric text, state text,
+  start_date date, end_date date, my_score numeric, their_score numeric, bonus integer
+)
+language sql stable security definer set search_path = '' as $$
+  with c as (
+    select c.*, case when c.creator = auth.uid() then c.opponent else c.creator end as other
+    from public.challenges c
+    where (c.creator = auth.uid() or c.opponent = auth.uid())
+      and c.status in ('pending', 'active')
+      and (c.end_date is null or c.end_date >= current_date - 30) -- beendete 30 Tage lang anzeigen
+  ), s as (
+    select c.*,
+           case when c.status = 'active' then public.challenge_score(auth.uid(), c.metric, c.start_date, c.end_date) else 0 end as mine,
+           case when c.status = 'active' then public.challenge_score(c.other, c.metric, c.start_date, c.end_date) else 0 end as theirs
+    from c
+    where not public.is_blocked(auth.uid(), c.other)
+  )
+  select s.id, s.other, coalesce(p.display_name, 'Unbekannt'), s.metric,
+         case
+           when s.status = 'pending' and s.opponent = auth.uid() then 'incoming'
+           when s.status = 'pending' then 'outgoing'
+           when s.end_date >= current_date then 'running'
+           when s.mine > s.theirs then 'won'
+           when s.mine < s.theirs then 'lost'
+           else 'tie'
+         end,
+         s.start_date, s.end_date, s.mine, s.theirs,
+         case
+           when s.status <> 'active' or s.end_date >= current_date then 0
+           when s.mine > s.theirs then 50
+           when s.mine = s.theirs and s.mine > 0 then 25
+           else 0
+         end
+  from s
+  left join public.profiles p on p.id = s.other
+  order by (s.status = 'pending') desc, s.end_date desc nulls first, s.created_at desc
+$$;
+
+-- ===========================================================================
+-- Kommentare
+-- ===========================================================================
+-- Einfacher Wortfilter gegen Beleidigungen (Apple verlangt einen Filter bei Nutzerinhalten).
+-- Gleiche Liste in web/src/lib/moderation.ts für sofortiges Feedback in der App.
+create or replace function public.is_offensive(p_text text)
+returns boolean language sql immutable set search_path = '' as $$
+  select lower(p_text) ~ '(arschloch|hurensohn|wichser|fotze|missgeburt|spast|schlampe|nutte|fick|fuck|shit|bitch|cunt|nigg|neger|faggot|schwuchtel|bastard|kanake|behindert|retard|kys|kill yourself|bring dich um|nazi|heil hitler)'
+$$;
+
+create or replace function public.add_comment(p_workout bigint, p_body text)
+returns bigint language plpgsql security definer set search_path = '' as $$
+declare
+  owner uuid;
+  clean text := btrim(p_body);
+  new_id bigint;
+begin
+  select w.user_id into owner from public.workouts w where w.id = p_workout;
+  if owner is null or auth.uid() is null or not public.can_see(auth.uid(), owner) then
+    raise exception 'Training nicht gefunden';
+  end if;
+  if char_length(clean) not between 1 and 300 then raise exception 'Kommentar: 1 bis 300 Zeichen.'; end if;
+  if public.is_offensive(clean) then raise exception 'Bitte bleib freundlich – der Kommentar enthält ein gesperrtes Wort.'; end if;
+  if (select count(*) from public.comments c where c.user_id = auth.uid() and c.created_at > now() - interval '1 minute') >= 5 then
+    raise exception 'Zu viele Kommentare in kurzer Zeit. Bitte warte kurz.';
+  end if;
+  insert into public.comments (workout_id, user_id, body) values (p_workout, auth.uid(), clean) returning id into new_id;
+  return new_id;
+end;
+$$;
+
+-- Kommentare zu einem Training (ohne blockierte Personen). can_delete: eigener Kommentar oder eigenes Training
+create or replace function public.workout_comments(p_workout bigint)
+returns table (id bigint, user_id uuid, display_name text, body text, created_at timestamptz, is_mine boolean, can_delete boolean)
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  owner uuid;
+begin
+  select w.user_id into owner from public.workouts w where w.id = p_workout;
+  if owner is null or auth.uid() is null or not public.can_see(auth.uid(), owner) then
+    raise exception 'Training nicht gefunden';
+  end if;
+  return query
+    select c.id, c.user_id, coalesce(p.display_name, 'Unbekannt'), c.body, c.created_at,
+           c.user_id = auth.uid(), c.user_id = auth.uid() or owner = auth.uid()
+    from public.comments c
+    left join public.profiles p on p.id = c.user_id
+    where c.workout_id = p_workout and not public.is_blocked(auth.uid(), c.user_id)
+    order by c.created_at;
+end;
+$$;
+
+-- Anfeuerungen und Kommentare zum eigenen Training (für die Detailansicht)
+create or replace function public.workout_social(p_workout bigint)
+returns table (likes integer, comments integer)
+language sql stable security definer set search_path = '' as $$
+  select (select count(*)::int from public.likes l where l.workout_id = w.id),
+         (select count(*)::int from public.comments c where c.workout_id = w.id and not public.is_blocked(auth.uid(), c.user_id))
+  from public.workouts w
+  where w.id = p_workout and public.can_see(auth.uid(), w.user_id)
+$$;
+
+create or replace function public.delete_comment(p_id bigint)
+returns void language sql security definer set search_path = '' as $$
+  delete from public.comments c
+  using public.workouts w
+  where c.id = p_id and w.id = c.workout_id and (c.user_id = auth.uid() or w.user_id = auth.uid())
+$$;
+
+create or replace function public.report_comment(p_id bigint, p_reason text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  author uuid;
+begin
+  select c.user_id into author from public.comments c where c.id = p_id;
+  if author is null or auth.uid() is null or author = auth.uid() then raise exception 'ungültig'; end if;
+  insert into public.reports (reporter, reported, reason, comment_id)
+  values (auth.uid(), author, left(coalesce(nullif(btrim(p_reason), ''), 'Kommentar gemeldet'), 500), p_id);
+end;
+$$;
+
+revoke all on function
+  public.my_challenge_bonus(), public.friend_leaderboard(), public.create_challenge(uuid, text),
+  public.respond_challenge(bigint, boolean), public.cancel_challenge(bigint), public.my_challenges(),
+  public.add_comment(bigint, text), public.workout_comments(bigint), public.workout_social(bigint),
+  public.delete_comment(bigint), public.report_comment(bigint, text), public.friend_feed(integer, timestamptz)
+from public;
+grant execute on function
+  public.my_challenge_bonus(), public.friend_leaderboard(), public.create_challenge(uuid, text),
+  public.respond_challenge(bigint, boolean), public.cancel_challenge(bigint), public.my_challenges(),
+  public.add_comment(bigint, text), public.workout_comments(bigint), public.workout_social(bigint),
+  public.delete_comment(bigint), public.report_comment(bigint, text), public.friend_feed(integer, timestamptz)
+to authenticated;

@@ -37,8 +37,10 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Sichtbarkeit (Freunde/privat), Melden & Blockieren (Apple-Pflicht bei Nutzerinhalten)
 - [x] Neues SQL in Supabase ausgeführt
 - [x] Ranglisten pro Woche (Trainings, Sätze, Volumen) und pro Übung (bestes 1RM)
-- [ ] Kommentare (dafür braucht es Filter für unangemessene Inhalte – Apple-Pflicht)
-- [ ] Challenges (Freunde herausfordern)
+- [x] Kommentare unter Trainings mit Wortfilter, Melden und Löschen
+- [x] Challenges: 7 Tage, Trainings/Sätze/Volumen, Gewinner +50 Credits
+- [ ] Neues SQL (Challenges + Kommentare) in Supabase ausführen (**Lukas**)
+- [ ] Meldungen regelmäßig prüfen (Supabase → Table Editor → reports) (**Lukas**)
 
 ## Phase 4 – Shop
 - [ ] Designs, Körpergraph-Skins, Avatar-Items mit Credits kaufen (serverseitig geprüft)

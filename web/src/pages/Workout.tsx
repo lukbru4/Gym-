@@ -4,6 +4,8 @@ import { useGame } from '../app/gameContext';
 import { navigate } from '../app/router';
 import { useAsync } from '../app/useAsync';
 import { LoadError, Loading, WorkoutList } from '../components/Bits';
+import { Comments } from '../components/Comments';
+import type { Social } from '../data/social';
 import { groupSets, numberSets } from '../lib/editor';
 import { fmt, fmtDate } from '../lib/format';
 import { playerLevel } from '../lib/xp';
@@ -17,6 +19,19 @@ export function History() {
       <h2>Verlauf</h2>
       <WorkoutList workouts={game.data.workouts} sets={game.data.sets} empty={<p className="muted">Noch keine Trainings erfasst.</p>} />
     </>
+  );
+}
+
+/** Reaktionen der Freunde auf das eigene Training (nur Cloud) */
+function WorkoutSocial({ social, id }: { social: Social; id: number }) {
+  const info = useAsync(() => social.workoutSocial(id).catch(() => null), [social, id]);
+  if (info.status !== 'ok' || !info.data) return null;
+  return (
+    <div className="card" id="workout-social">
+      <h3>Freunde</h3>
+      <p className="small">🔥 {info.data.likes === 1 ? '1 Anfeuerung' : `${info.data.likes} Anfeuerungen`}</p>
+      <Comments social={social} workoutId={id} />
+    </div>
   );
 }
 
@@ -117,6 +132,7 @@ export function WorkoutDetail({ id }: { id: number }) {
       ) : (
         <p className="muted">Keine Sätze gespeichert.</p>
       )}
+      {api.social && <WorkoutSocial social={api.social} id={id} />}
       <div className="row">
         <a className="btn" href={`#/training/${id}/bearbeiten`}>Bearbeiten</a>
         <button className="btn danger" id="delete" onClick={remove}>Löschen</button>
