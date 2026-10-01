@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
+import { isNative } from './lib/platform';
 import { initTheme } from './lib/theme';
 import { notifyThemeChanged } from './lib/themeStore';
 import './styles.css';
@@ -24,6 +25,9 @@ preventZoom();
 initTheme(notifyThemeChanged);
 createRoot(document.getElementById('root')!).render(<App />);
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if (isNative) {
+  // Updates der nativen App kommen über App Store / Play Store, kein Service Worker nötig.
+  import('./lib/native').then((m) => m.initNative());
+} else if ('serviceWorker' in navigator && import.meta.env.PROD) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }

@@ -1,6 +1,7 @@
 // Freunde & Community (nur Cloud). Alle Abfragen laufen über Server-Funktionen in supabase/schema.sql,
 // die selbst prüfen, wer was sehen darf.
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { publicUrl } from '../lib/platform';
 import type { Equipped } from '../lib/shop';
 import type { Exercise, ISODate, Workout, WorkoutSet } from '../lib/types';
 
@@ -129,4 +130,4 @@ export function requestMessage(r: RequestResult): string {
 }
 
 /** Einladungslink, der direkt die Anfrage öffnet */
-export const inviteLink = (code: string) => `${location.origin}${location.pathname}#/freunde/add/${code}`;
+export const inviteLink = (code: string) => `${publicUrl()}#/freunde/add/${code}`;

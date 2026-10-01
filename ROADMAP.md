@@ -50,8 +50,14 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [ ] SQL im Supabase-Projekt erneut ausführen (**Lukas**)
 
 ## Phase 5 – Native Apps (Capacitor)
-- [ ] iOS- und Android-Projekt, Builds (iOS über Cloud-Mac, z. B. GitHub Actions oder Codemagic)
-- [ ] Push-Nachrichten, Pause-Timer-Benachrichtigung, Apple Health / Health Connect
+- [x] iOS- und Android-Projekt mit Capacitor (`web/ios`, `web/android`, App-ID `com.lukbru4.levelup`)
+- [x] Cloud-Builds über GitHub Actions (`native.yml`): Android-Test-APK, iOS-Simulator-Build
+- [x] App-Icon und Startbildschirm, Hochformat, Statusleiste passend zu Hell/Dunkel, Android-Zurück-Taste
+- [x] Pause-Timer: Benachrichtigung auch bei gesperrtem Handy, Vibration am Pausenende
+- [x] Links in E-Mails/Einladungen zeigen aus der App auf die Web-Adresse
+- [ ] App auf echtem iPhone testen: braucht Apple-Developer-Konto + TestFlight (**Lukas**, siehe Phase 6)
+- [ ] Push-Nachrichten (Apple-Schlüssel bzw. Firebase nötig), Apple Health / Health Connect
+- [ ] Einladungs- und Passwort-Links direkt in der App öffnen (Universal Links / App Links)
 
 ## Phase 6 – Veröffentlichung vorbereiten
 - [ ] Apple Developer Program (99 USD/Jahr) und Google Play Console (25 USD einmalig) (**Lukas**)

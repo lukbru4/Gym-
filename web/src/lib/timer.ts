@@ -2,6 +2,8 @@
 // und Neuladen übersteht. Am Ende: Ton + Vibration (sofern das Gerät es unterstützt).
 // Kleiner Store mit subscribe(), damit React-Komponenten mitbekommen, wenn er startet/endet.
 
+import { cancelRestEnd, restEndHaptic, scheduleRestEnd } from './restNotify';
+
 const STATE_KEY = 'gym-tracker-rest';
 const SETTINGS_KEY = 'gym-tracker-settings';
 export const REST_OPTIONS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300];
@@ -72,6 +74,7 @@ export function checkRestFinished() {
     stopRest();
     beep();
     navigator.vibrate?.([200, 100, 200]);
+    restEndHaptic();
   }
 }
 
@@ -86,10 +89,12 @@ export function startRest(seconds: number) {
   }
   state = { endAt: Date.now() + seconds * 1000, total: seconds };
   write(STATE_KEY, state);
+  scheduleRestEnd(state.endAt);
   emit();
 }
 
 export function stopRest() {
+  if (state && state.endAt > Date.now()) cancelRestEnd(); // vorzeitig beendet
   state = null;
   write(STATE_KEY, null);
   emit();
@@ -99,5 +104,6 @@ export function adjustRest(delta: number) {
   if (!state) return;
   state = { endAt: state.endAt + delta * 1000, total: Math.max(state.total + delta, 1) };
   write(STATE_KEY, state);
+  scheduleRestEnd(state.endAt);
   emit();
 }

@@ -2,8 +2,11 @@
 // iOS oft nur aus dem Speicher zurückgeholt. Deshalb fragt die App selbst nach, ob auf dem
 // Server eine neuere Version liegt (version.json), und bietet ein Update an.
 
+import { isNative } from './platform';
+
 export async function fetchServerVersion(): Promise<string | null> {
-  if (location.protocol === 'file:') return null;
+  // Native App: Updates kommen über den Store; version.json liegt dort nur lokal.
+  if (location.protocol === 'file:' || isNative) return null;
   try {
     const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return null;
