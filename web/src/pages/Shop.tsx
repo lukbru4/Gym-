@@ -1,5 +1,5 @@
 // Shop: Guthaben, Artikel nach Bereichen, kaufen (Server prüft) und ausrüsten.
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
 import { Avatar } from '../components/Avatar';
@@ -8,7 +8,7 @@ import { Coin } from '../components/Icons';
 import { getCosmetics, setCosmetics, useCosmetics } from '../lib/cosmetics';
 import { fmt } from '../lib/format';
 import { SHOP_ITEMS, SHOP_SECTIONS, type ShopItem } from '../lib/shop';
-import { PREMIUM_SCHEMES, getScheme, setScheme, type SchemeId } from '../lib/theme';
+import { PREMIUM_SCHEMES, getPreviewScheme, getScheme, setPreviewScheme, setScheme, subscribePreview, type SchemeId } from '../lib/theme';
 
 const schemeOf = (itemId: string) => (Object.entries(PREMIUM_SCHEMES).find(([, id]) => id === itemId)?.[0] ?? null) as SchemeId | null;
 
@@ -16,11 +16,22 @@ function Preview({ item, level }: { item: ShopItem; level: number }) {
   if (item.kind === 'skin') return <div className="shop-preview"><Avatar level={level} skin={item.id} /></div>;
   if (item.kind === 'accessory') return <div className="shop-preview"><Avatar level={level} accessory={item.id} /></div>;
   if (item.kind === 'title') return <div className="shop-preview title-preview" lang="de">„{item.name}“</div>;
+  // Farbschema: Mini-Ansicht der App in Hell und Dunkel
+  const pal = item.palette;
+  if (!pal) return <div className="shop-preview swatches"><span style={{ background: item.color }} /></div>;
+  const mini = ([bg, card, accent, onAccent]: string[], label: string) => (
+    <div className="mini-app" style={{ background: bg }} aria-hidden="true">
+      <span className="mini-card" style={{ background: card }}>
+        <i style={{ background: accent }} />
+        <i style={{ background: accent, opacity: 0.35 }} />
+      </span>
+      <span className="mini-btn" style={{ background: accent, color: onAccent }}>{label}</span>
+    </div>
+  );
   return (
-    <div className="shop-preview swatches" data-scheme-preview={item.id}>
-      <span style={{ background: '#0b0a08' }} />
-      <span style={{ background: item.color }} />
-      <span style={{ background: '#ffffff' }} />
+    <div className="shop-preview scheme-preview" data-scheme-preview={item.id}>
+      {mini(pal.light, 'Hell')}
+      {mini(pal.dark, 'Dunkel')}
     </div>
   );
 }
@@ -31,6 +42,7 @@ export function Shop() {
   const cosmetics = useCosmetics();
   const [busy, setBusy] = useState<string | null>(null);
   const [scheme, setSchemeState] = useState(getScheme());
+  const previewing = useSyncExternalStore(subscribePreview, getPreviewScheme);
   const social = api.social;
 
   if (!social)
@@ -113,6 +125,16 @@ export function Shop() {
                   <Preview item={item} level={g.player.level} />
                   <h4>{item.name}</h4>
                   <p>{item.description}</p>
+                  {item.kind === 'scheme' && !(has && active) && (
+                    <button
+                      className={`btn eye-btn${previewing === schemeOf(item.id) ? ' on' : ''}`}
+                      data-preview={item.id}
+                      aria-pressed={previewing === schemeOf(item.id)}
+                      onClick={() => setPreviewScheme(previewing === schemeOf(item.id) ? null : schemeOf(item.id))}
+                    >
+                      {previewing === schemeOf(item.id) ? '👁 Vorschau aus' : '👁 Ansehen'}
+                    </button>
+                  )}
                   {has ? (
                     <button className={`btn ${active ? '' : 'primary'}`} onClick={() => use(item)} disabled={active && item.kind === 'scheme'}>
                       {active ? (item.kind === 'scheme' ? 'Aktiv ✓' : 'Aktiv ✓ · ablegen') : 'Benutzen'}

@@ -93,6 +93,10 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
       return next;
     });
   const typeOf = (b: Block) => exerciseById(b.exercise_id)!.type;
+  // Nach dem Training: Vorlage aktualisieren (Training aus Vorlage) bzw. als neue Vorlage speichern
+  const [keepTemplate, setKeepTemplate] = useState(true);
+  const [asTemplate, setAsTemplate] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
 
   const addBlock = (ex: Exercise) => update((s) => void s.blocks.push(blockFor(ex, prev.get(ex.id))));
 
@@ -171,7 +175,7 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
       if (live) {
         clearDraft();
         stopRest();
-        if (state.template_id) await offerTemplateUpdate();
+        await storeTemplate(); // Fehler hier dürfen das gespeicherte Training nicht blockieren
       }
       dataChanged();
       navigate(`#/training/${savedId}`);
@@ -181,16 +185,25 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
     }
   }
 
-  /** Nach dem Training: Vorlage mit den heute geschafften Werten als neue Zielwerte aktualisieren? */
-  async function offerTemplateUpdate() {
-    let template;
+  /** Nach dem Training: heutige Übungen, Sätze und Werte in die Vorlage übernehmen bzw. neue Vorlage anlegen */
+  async function storeTemplate() {
     try {
-      template = await api.getTemplate(state.template_id!);
-    } catch {
-      return; // Vorlage wurde inzwischen gelöscht
+      const exercisesOut = templateFromWorkout(state.blocks, exerciseById);
+      if (!exercisesOut.length) return;
+      if (state.template_id && keepTemplate) {
+        let template;
+        try {
+          template = await api.getTemplate(state.template_id);
+        } catch {
+          template = null; // Vorlage wurde inzwischen gelöscht → als neue anlegen
+        }
+        await api.saveTemplate({ id: template?.id ?? null, name: template?.name ?? (state.name || 'Training'), exercises: exercisesOut });
+      } else if (!state.template_id && asTemplate) {
+        await api.saveTemplate({ id: null, name: newTemplateName.trim() || state.name || 'Mein Training', exercises: exercisesOut });
+      }
+    } catch (err) {
+      showError(new Error(`Training gespeichert, aber die Vorlage nicht: ${err instanceof Error ? err.message : String(err)}`));
     }
-    if (!confirm(`Vorlage „${template.name}“ mit den Werten von heute aktualisieren?`)) return;
-    await api.saveTemplate({ id: template.id, name: template.name, exercises: templateFromWorkout(state.blocks, exerciseById) });
   }
 
   function cancel() {
@@ -299,6 +312,28 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
             Notizen
             <textarea id="w-notes" rows={3} maxLength={2000} placeholder="Wie lief's?" value={state.notes} onChange={(e) => update((s) => void (s.notes = e.target.value))} />
           </label>
+        </div>
+      )}
+      {live && state.blocks.length > 0 && (
+        <div className="card template-save">
+          {state.template_id ? (
+            <label className="check-row">
+              <input type="checkbox" id="update-template" checked={keepTemplate} onChange={(e) => setKeepTemplate(e.target.checked)} />
+              <span>
+                Vorlage <strong>„{state.name || 'Training'}“</strong> mit den heutigen Übungen, Sätzen und Werten aktualisieren
+              </span>
+            </label>
+          ) : (
+            <>
+              <label className="check-row">
+                <input type="checkbox" id="save-as-template" checked={asTemplate} onChange={(e) => setAsTemplate(e.target.checked)} />
+                <span>Als Vorlage speichern (für das nächste Mal)</span>
+              </label>
+              {asTemplate && (
+                <input id="new-template-name" maxLength={80} placeholder="Name der Vorlage, z. B. Push" value={newTemplateName} onChange={(e) => setNewTemplateName(e.target.value)} />
+              )}
+            </>
+          )}
         </div>
       )}
       <div className="row">

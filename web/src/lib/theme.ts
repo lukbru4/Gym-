@@ -6,20 +6,31 @@
 const KEY = 'gym-tracker-theme';
 const SCHEME_KEY = 'gym-tracker-scheme';
 
-export type SchemeId = 'energie' | 'violett' | 'ozean' | 'glut' | 'klassisch' | 'gold' | 'eis';
+export type SchemeId =
+  | 'energie' | 'klassisch'
+  | 'ozean' | 'violett' | 'glut' | 'kirsche' | 'wald' | 'mitternacht' | 'sunset' | 'mono' | 'gold' | 'eis';
 export type ThemeMode = 'time' | 'system' | 'light' | 'dark';
 
 export const SCHEMES: [SchemeId, string][] = [
   ['energie', 'Energie (Schwarz + Neon-Grün)'],
-  ['violett', 'Nacht-Violett'],
-  ['ozean', 'Ozean (Petrol)'],
-  ['glut', 'Glut (warmes Orange)'],
   ['klassisch', 'Klassisch'],
+  ['ozean', 'Ozean (Shop)'],
+  ['violett', 'Nacht-Violett (Shop)'],
+  ['glut', 'Glut (Shop)'],
+  ['kirsche', 'Kirschblüte (Shop)'],
+  ['wald', 'Wald (Shop)'],
+  ['mitternacht', 'Mitternacht (Shop)'],
+  ['sunset', 'Sonnenuntergang (Shop)'],
+  ['mono', 'Schwarz-Weiß (Shop)'],
   ['gold', 'Schwarz-Gold (Shop)'],
   ['eis', 'Eisblau (Shop)'],
 ];
-/** Farbschemata, die man im Shop kaufen muss: Schema → Shop-Artikel */
-export const PREMIUM_SCHEMES: Partial<Record<SchemeId, string>> = { gold: 'scheme_gold', eis: 'scheme_eis' };
+/** Farbschemata, die man im Shop kaufen muss: Schema → Shop-Artikel. Wer eines davon schon aktiv hatte,
+ *  bevor es in den Shop kam, behält es, bis er wechselt. */
+export const PREMIUM_SCHEMES: Partial<Record<SchemeId, string>> = {
+  ozean: 'scheme_ozean', violett: 'scheme_violett', glut: 'scheme_glut', kirsche: 'scheme_kirsche', wald: 'scheme_wald',
+  mitternacht: 'scheme_mitternacht', sunset: 'scheme_sunset', mono: 'scheme_mono', gold: 'scheme_gold', eis: 'scheme_eis',
+};
 export const DEFAULT_SCHEME: SchemeId = 'energie';
 export const THEME_OPTIONS: [ThemeMode, string][] = [
   ['time', 'Nach Uhrzeit'],
@@ -128,6 +139,21 @@ function write(key: string, value: string) {
 }
 
 export const getScheme = () => read(SCHEME_KEY, SCHEMES, DEFAULT_SCHEME);
+
+// ---- Vorschau aus dem Shop: Farbschema nur anschauen, nicht speichern ----------------
+let preview: SchemeId | null = null;
+const previewListeners = new Set<() => void>();
+export const getPreviewScheme = () => preview;
+export function subscribePreview(cb: () => void) {
+  previewListeners.add(cb);
+  return () => void previewListeners.delete(cb);
+}
+/** null beendet die Vorschau; danach gilt wieder das eigene Farbschema */
+export function setPreviewScheme(id: SchemeId | null) {
+  preview = id;
+  applyTheme();
+  previewListeners.forEach((l) => l());
+}
 export const getThemeMode = () => read(KEY, THEME_OPTIONS, 'time');
 
 /** Liefert 'dark', 'light' oder null (= Gerät entscheidet) */
@@ -142,12 +168,12 @@ let onChangeCb: (() => void) | null = null;
 export function applyTheme() {
   const root = document.documentElement;
   const before = `${root.dataset.theme ?? ''}|${root.dataset.scheme ?? ''}|${root.dataset.accent ?? ''}`;
-  root.dataset.scheme = getScheme();
+  root.dataset.scheme = preview ?? getScheme();
   const theme = resolveTheme(getThemeMode());
   if (theme) root.dataset.theme = theme;
   else delete root.dataset.theme;
   const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-  const accent = getAccent();
+  const accent = preview ? null : getAccent(); // in der Vorschau die echten Schema-Farben zeigen
   if (accent) {
     const v = accentVariants(accent);
     root.style.setProperty('--accent', dark ? v.dark : v.light);
@@ -165,6 +191,7 @@ export function applyTheme() {
 
 export function setScheme(scheme: SchemeId) {
   write(SCHEME_KEY, scheme);
+  preview = null;
   applyTheme();
 }
 export function setThemeMode(mode: ThemeMode) {
