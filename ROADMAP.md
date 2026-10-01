@@ -61,12 +61,26 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 
 ## Phase 6 – Veröffentlichung vorbereiten
 - [ ] Apple Developer Program (99 USD/Jahr) und Google Play Console (25 USD einmalig) (**Lukas**)
-- [ ] Datenschutzerklärung, Impressum, Nutzungsbedingungen
+- [x] Entwürfe: Datenschutzerklärung, Impressum, Nutzungsbedingungen (`web/public/*.html`), in der App verlinkt
+- [x] Registrierung nur mit Zustimmung (inkl. Einwilligung Gesundheitsdaten), Version + Zeitpunkt im Konto
+- [ ] Platzhalter ausfüllen (Name, Anschrift, Kontakt, Supabase-Region) und Texte rechtlich prüfen lassen (**Lukas**)
+- [ ] Auftragsverarbeitungsvertrag (DPA) mit Supabase bestätigen (**Lukas**)
 - [ ] Store-Einträge, Screenshots, Datenschutz-Angaben, Altersfreigabe
 - [ ] Testphase: TestFlight bzw. geschlossener Test (Google: 12 Tester, 14 Tage für neue private Konten)
+
+## Zwischendurch – Wünsche
+- [x] Begrüßung auf Home mit Wochen-/Monatsrückblick
+- [x] Mehr Farben: eigene Akzentfarbe, Dunkel-Zeiten selbst wählen
 
 ## Phase 7 – Veröffentlichung
 
 ## Phase 8 – Einnahmen
 - [ ] Belohnte Werbung (AdMob) mit Einwilligung (DSGVO) und ATT auf iOS
-- [ ] Premium-Abo (In-App-Kauf, z. B. über RevenueCat)
+- [ ] **Pro-Abo** (In-App-Kauf über Apple/Google, verwaltet z. B. mit RevenueCat)
+  - Grundsatz: Trainieren, Statistiken und Freunde bleiben kostenlos – Pro ist ein Extra
+  - Ideen für Pro: exklusive Looks/Farbschemata/Titel, Pro-Abzeichen, erweiterte Statistiken
+    (Monats-/Jahresberichte, Export), mehr gleichzeitige Challenges, keine Werbung (sobald es Werbung gibt)
+  - Preis-Idee (zu entscheiden): ca. 2,99–4,99 €/Monat, Jahresabo mit Rabatt, kostenlose Testwoche
+  - Technik: Kauf in der App → RevenueCat → Webhook an Supabase setzt `pro_until`; Server prüft Pro-Funktionen
+  - Pflichten: „Käufe wiederherstellen“-Knopf, Abo-Bedingungen in Nutzungsbedingungen/Store, Kündigung über Apple/Google
+  - Voraussetzung: Entwickler-Konten, Steuer- und Bankdaten bei Apple/Google hinterlegt (**Lukas**)
