@@ -632,3 +632,70 @@ grant execute on function
   public.friend_feed(integer, timestamptz), public.toggle_like(bigint), public.friend_leaderboard(),
   public.friend_profile(uuid)
 to authenticated;
+
+-- ---- Ranglisten pro Woche und pro Übung ----------------------------------------
+-- Personen in der Rangliste: du + Freunde, deren Trainings du sehen darfst
+create or replace function public.board_people()
+returns table (id uuid)
+language sql stable security definer set search_path = '' as $$
+  select auth.uid() where auth.uid() is not null
+  union
+  select case when f.requester = auth.uid() then f.addressee else f.requester end
+  from public.friendships f
+  where f.status = 'accepted' and (f.requester = auth.uid() or f.addressee = auth.uid())
+    and public.can_see(auth.uid(), case when f.requester = auth.uid() then f.addressee else f.requester end)
+$$;
+revoke all on function public.board_people() from public;
+
+-- Diese Woche (ab Montag): Trainings, Arbeitssätze, Volumen
+create or replace function public.friend_week_board()
+returns table (user_id uuid, display_name text, is_me boolean, workouts integer, sets integer, volume numeric)
+language sql stable security definer set search_path = '' as $$
+  select x.id, coalesce(p.display_name, 'Du'), x.id = auth.uid(),
+         (select count(*)::int from public.workouts w
+           where w.user_id = x.id and w.date >= date_trunc('week', current_date)::date),
+         (select count(*)::int from public.sets s join public.workouts w on w.id = s.workout_id
+           where w.user_id = x.id and not s.is_warmup and w.date >= date_trunc('week', current_date)::date),
+         (select coalesce(sum(coalesce(s.reps, 0) * coalesce(s.weight_kg, 0)), 0) from public.sets s join public.workouts w on w.id = s.workout_id
+           where w.user_id = x.id and not s.is_warmup and w.date >= date_trunc('week', current_date)::date)
+  from public.board_people() x
+  left join public.profiles p on p.id = x.id
+  order by 4 desc, 5 desc, 6 desc, 2
+$$;
+
+-- Kraftübungen, die du oder deine Freunde gemacht haben (für die Auswahl), mit Anzahl Personen
+create or replace function public.friend_exercise_list()
+returns table (name text, people integer)
+language sql stable security definer set search_path = '' as $$
+  select min(e.name), count(distinct s.user_id)::int
+  from public.sets s
+  join public.exercises e on e.id = s.exercise_id
+  where e.type = 'strength' and not s.is_warmup and coalesce(s.reps, 0) > 0 and coalesce(s.weight_kg, 0) > 0
+    and s.user_id in (select id from public.board_people())
+  group by lower(e.name)
+  order by 2 desc, 1
+$$;
+
+-- Bestwert pro Person für eine Übung (Name, Groß-/Kleinschreibung egal): geschätztes 1RM nach Epley
+create or replace function public.friend_exercise_board(p_exercise text)
+returns table (user_id uuid, display_name text, is_me boolean, best_e1rm numeric, weight_kg numeric, reps integer, date date)
+language sql stable security definer set search_path = '' as $$
+  select * from (
+    select distinct on (x.id)
+           x.id, coalesce(p.display_name, 'Du'), x.id = auth.uid(),
+           round(case when s.reps = 1 then s.weight_kg else s.weight_kg * (1 + s.reps / 30.0) end, 1) as best,
+           s.weight_kg, s.reps, w.date
+    from public.board_people() x
+    join public.sets s on s.user_id = x.id
+    join public.workouts w on w.id = s.workout_id
+    join public.exercises e on e.id = s.exercise_id
+    left join public.profiles p on p.id = x.id
+    where lower(e.name) = lower(btrim(p_exercise)) and e.type = 'strength'
+      and not s.is_warmup and coalesce(s.reps, 0) > 0 and coalesce(s.weight_kg, 0) > 0
+    order by x.id, case when s.reps = 1 then s.weight_kg else s.weight_kg * (1 + s.reps / 30.0) end desc, w.date
+  ) b
+  order by b.best desc
+$$;
+
+revoke all on function public.friend_week_board(), public.friend_exercise_list(), public.friend_exercise_board(text) from public;
+grant execute on function public.friend_week_board(), public.friend_exercise_list(), public.friend_exercise_board(text) to authenticated;

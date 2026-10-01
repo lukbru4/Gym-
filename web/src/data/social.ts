@@ -21,6 +21,8 @@ export interface FeedItem {
   liked: boolean;
 }
 export interface LeaderRow { user_id: string; display_name: string; is_me: boolean; credits: number; week_workouts: number; total_workouts: number }
+export interface WeekRow { user_id: string; display_name: string; is_me: boolean; workouts: number; sets: number; volume: number }
+export interface ExerciseRow { user_id: string; display_name: string; is_me: boolean; best_e1rm: number; weight_kg: number; reps: number; date: ISODate }
 export interface FriendProfileData { profile: { id: string; display_name: string }; workouts: Workout[]; sets: WorkoutSet[]; exercises: Exercise[] }
 
 export interface Social {
@@ -37,6 +39,9 @@ export interface Social {
   feed(before?: string | null): Promise<FeedItem[]>;
   toggleLike(workoutId: number): Promise<boolean>;
   leaderboard(): Promise<LeaderRow[]>;
+  weekBoard(): Promise<WeekRow[]>;
+  exerciseList(): Promise<{ name: string; people: number }[]>;
+  exerciseBoard(exercise: string): Promise<ExerciseRow[]>;
   friendProfile(userId: string): Promise<FriendProfileData>;
 }
 
@@ -60,6 +65,9 @@ export function createSocial(supabase: SupabaseClient): Social {
     feed: (p_before = null) => rpc('friend_feed', { p_limit: 30, p_before }),
     toggleLike: (p_workout) => rpc('toggle_like', { p_workout }),
     leaderboard: () => rpc('friend_leaderboard'),
+    weekBoard: () => rpc('friend_week_board'),
+    exerciseList: () => rpc('friend_exercise_list'),
+    exerciseBoard: (p_exercise) => rpc('friend_exercise_board', { p_exercise }),
     friendProfile: (p_user) => rpc('friend_profile', { p_user }),
   };
 }

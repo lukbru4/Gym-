@@ -9,6 +9,7 @@ import { Avatar } from '../components/Avatar';
 import { BodyGraph } from '../components/BodyGraph';
 import { LoadError, Loading } from '../components/Bits';
 import { Flame } from '../components/Icons';
+import { Leaderboards } from '../components/Leaderboards';
 import { RankBadge } from '../components/RankBadge';
 import { inviteLink, requestMessage, type FeedItem, type Friend, type Social } from '../data/social';
 import { datedSets } from '../lib/editor';
@@ -151,23 +152,7 @@ export function Friends() {
         </div>
       )}
 
-      <div className="card">
-        <h3>Rangliste</h3>
-        <p className="muted small">Credits insgesamt (vom Server berechnet) und Trainings diese Woche.</p>
-        <ol className="leaderboard">
-          {board.map((r, i) => (
-            <li key={r.user_id} className={r.is_me ? 'me' : ''}>
-              <span className="lb-rank">{i + 1}</span>
-              {r.is_me ? <span className="lb-name">{r.display_name} (du)</span> : (
-                <a className="lb-name" href={`#/freunde/profil/${r.user_id}`}>{r.display_name}</a>
-              )}
-              <span className="lb-week" title="Trainings diese Woche">{r.week_workouts}× </span>
-              <strong className="lb-credits">{fmt(r.credits, 0)}</strong>
-            </li>
-          ))}
-        </ol>
-        {board.length <= 1 && <p className="muted small">Lade Freunde ein, um euch zu vergleichen.</p>}
-      </div>
+      <Leaderboards social={social} total={board} />
 
       <div className="card">
         <h3>Deine Freunde</h3>

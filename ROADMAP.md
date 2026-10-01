@@ -35,9 +35,10 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Freunde-Feed auf Home mit „Anfeuern“
 - [x] Rangliste mit Freunden (Credits vom Server berechnet, Trainings pro Woche)
 - [x] Sichtbarkeit (Freunde/privat), Melden & Blockieren (Apple-Pflicht bei Nutzerinhalten)
-- [ ] Neues SQL in Supabase ausführen (**Lukas**, Kopier-Seite: /Gym-/supabase/einrichten.html)
+- [x] Neues SQL in Supabase ausgeführt
+- [x] Ranglisten pro Woche (Trainings, Sätze, Volumen) und pro Übung (bestes 1RM)
 - [ ] Kommentare (dafür braucht es Filter für unangemessene Inhalte – Apple-Pflicht)
-- [ ] Ranglisten pro Übung und pro Woche, Challenges
+- [ ] Challenges (Freunde herausfordern)
 
 ## Phase 4 – Shop
 - [ ] Designs, Körpergraph-Skins, Avatar-Items mit Credits kaufen (serverseitig geprüft)
