@@ -1364,7 +1364,7 @@ body.picker-open { overflow: hidden; }
 
 /* Eigene Dialoge (statt System-Popups) */
 .dialog-backdrop {
-  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px;
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; grid-template-columns: minmax(0, 1fr); padding: 20px;
   background: rgb(0 0 0 / 0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
   animation: dlg-fade 0.15s ease-out;
 }
@@ -1382,3 +1382,32 @@ body.picker-open { overflow: hidden; }
 @keyframes dlg-fade { from { opacity: 0; } }
 @keyframes dlg-pop { from { opacity: 0; transform: scale(0.96) translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .dialog-backdrop, .dialog { animation: none; } }
+
+/* Wisch-Leiste für Zahlen (Gewicht, Wiederholungen …) */
+.dialog.num-picker { max-width: 440px; padding: 18px 16px 16px; min-width: 0; overflow: hidden; }
+.dialog { min-width: 0; }
+.picker-title { text-align: center; color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-value { display: flex; align-items: baseline; justify-content: center; gap: 6px; margin: 4px 0 10px; }
+.picker-value input {
+  min-height: 0; height: auto; padding: 0; margin: 0; border: 0; background: none; text-align: center; max-width: 7ch;
+  font-size: 3rem; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+.picker-value input:focus { outline: none; border-bottom: 2px solid var(--accent); }
+.picker-unit { font-size: 1.1rem; font-weight: 800; color: var(--text-secondary); min-width: 3ch; }
+.picker-ruler-wrap { position: relative; margin: 0 -16px; overflow: hidden; }
+.picker-center { position: absolute; z-index: 1; left: 50%; top: 0; bottom: 18px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--accent); pointer-events: none; box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent); }
+.picker-ruler-wrap::before, .picker-ruler-wrap::after { content: ""; position: absolute; z-index: 1; top: 0; bottom: 0; width: 56px; pointer-events: none; }
+.picker-ruler-wrap::before { left: 0; background: linear-gradient(90deg, var(--surface), transparent); }
+.picker-ruler-wrap::after { right: 0; background: linear-gradient(-90deg, var(--surface), transparent); }
+.picker-ruler {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  padding: 0 calc(50% - var(--item-w) / 2); height: 78px; touch-action: pan-x; overscroll-behavior-x: contain;
+}
+.picker-ruler::-webkit-scrollbar { display: none; }
+.picker-ruler .tick { flex: 0 0 var(--item-w); width: var(--item-w); position: relative; scroll-snap-align: center; }
+.picker-ruler .tick::before { content: ""; position: absolute; left: 50%; top: 10px; width: 2px; margin-left: -1px; height: 14px; border-radius: 1px; background: var(--border); }
+.picker-ruler .tick.half::before { height: 22px; background: color-mix(in srgb, var(--text-secondary) 50%, var(--border)); }
+.picker-ruler .tick.major::before { height: 32px; background: var(--text-secondary); }
+.picker-ruler .tick b { position: absolute; left: 50%; top: 48px; transform: translateX(-50%); font-size: 0.8rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.picker-actions { display: flex; gap: 10px; margin: 8px 0 12px; }
+.picker-actions .btn { flex: 1; margin: 0; min-height: 44px; font-variant-numeric: tabular-nums; }

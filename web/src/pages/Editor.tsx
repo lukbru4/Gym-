@@ -30,6 +30,7 @@ import { REST_OPTIONS, getDefaultRest, startRest, stopRest } from '../lib/timer'
 import type { Exercise, ExerciseType, MuscleId, WorkoutSet } from '../lib/types';
 import type { SetInput } from '../data/backend';
 import { ask } from '../components/Dialog';
+import { PICK_SPECS, pickNumber } from '../components/NumberPicker';
 
 interface Loaded { state: EditorState; prev: Map<number, WorkoutSet[]> }
 
@@ -388,11 +389,23 @@ function BlockCard(props: {
   const cardio = ex.type === 'cardio';
   let workNo = 0;
 
-  const field = (si: number, f: RowField, inputMode: 'decimal' | 'numeric', aria: string, ph: Partial<Record<RowField, string>>) => {
+  const DEFAULTS: Record<RowField, string> = { weight_kg: '20', reps: '10', duration_min: '20', distance_km: '3' };
+  const NAMES: Record<RowField, string> = { weight_kg: 'Gewicht', reps: 'Wiederholungen', duration_min: 'Dauer', distance_km: 'Distanz' };
+  /** Antippen öffnet die Wisch-Leiste; Startwert: eingetragen → Vorschlag → letzter Satz → Standard */
+  const openPicker = async (si: number, f: RowField, label: string, ph: Partial<Record<RowField, string>>) => {
+    const prevRow = si > 0 ? b.sets[si - 1][f] : '';
+    const start = b.sets[si][f] || ph[f] || prevRow || DEFAULTS[f];
+    const v = await pickNumber({ ...PICK_SPECS[f], title: `${ex.name} · Satz ${label} · ${NAMES[f]}`, value: start });
+    if (v !== null) update((s) => void (s.blocks[bi].sets[si][f] = v));
+  };
+  const field = (si: number, f: RowField, inputMode: 'decimal' | 'numeric', aria: string, ph: Partial<Record<RowField, string>>, label = '') => {
     const value = b.sets[si][f] ?? '';
     return (
       <input
-        inputMode={inputMode}
+        // Auf dem Handy keine Tastatur: Antippen öffnet die Wisch-Leiste (Eintippen geht dort)
+        inputMode="none"
+        data-input-mode={inputMode}
+        onClick={() => openPicker(si, f, label, ph)}
         data-b={bi}
         data-s={si}
         data-f={f}
@@ -463,13 +476,13 @@ function BlockCard(props: {
               {live && <span className="prev small">{prevText}</span>}
               {cardio ? (
                 <>
-                  {field(si, 'duration_min', 'decimal', 'Dauer in Minuten', ph)}
-                  {field(si, 'distance_km', 'decimal', 'Distanz in km', ph)}
+                  {field(si, 'duration_min', 'decimal', 'Dauer in Minuten', ph, label)}
+                  {field(si, 'distance_km', 'decimal', 'Distanz in km', ph, label)}
                 </>
               ) : (
                 <>
-                  {field(si, 'weight_kg', 'decimal', 'Gewicht in kg', ph)}
-                  {field(si, 'reps', 'numeric', 'Wiederholungen', ph)}
+                  {field(si, 'weight_kg', 'decimal', 'Gewicht in kg', ph, label)}
+                  {field(si, 'reps', 'numeric', 'Wiederholungen', ph, label)}
                 </>
               )}
               {live ? (
