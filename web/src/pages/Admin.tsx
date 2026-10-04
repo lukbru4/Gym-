@@ -1,5 +1,6 @@
 // Admin-Menü (nur für den Admin; der Server prüft jede Aktion selbst):
 // alle Farben frei wählen, eigene Farbschemata entwerfen und im Shop anbieten, Meldungen bearbeiten.
+import { ask } from '../components/Dialog';
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
@@ -93,7 +94,7 @@ function Designer() {
     const n = name.trim();
     if (!n) return showError(new Error('Bitte gib dem Farbschema einen Namen.'));
     const id = editId ?? schemeIdFromName(n);
-    if (!editId && custom.some((c) => c.id === id) && !confirm(`Es gibt schon „${id}“. Überschreiben?`)) return;
+    if (!editId && custom.some((c) => c.id === id) && !(await ask(`Es gibt schon „${id}“.`, { title: 'Überschreiben?', ok: 'Überschreiben' }))) return;
     try {
       await social.adminSaveScheme(id, n, Math.max(0, Math.round(Number(price) || 0)), palette);
       await reloadCatalog();
@@ -115,7 +116,7 @@ function Designer() {
     setNote('');
   };
   const hide = async (id: string, label: string) => {
-    if (!confirm(`„${label}“ aus dem Shop nehmen? Wer es gekauft hat, behält es.`)) return;
+    if (!(await ask('Wer es gekauft hat, behält es.', { title: `„${label}“ aus dem Shop nehmen?`, ok: 'Entfernen', danger: true }))) return;
     try {
       await social.adminHideScheme(id);
       await reloadCatalog();
@@ -241,7 +242,7 @@ function Reports() {
   const [version, setVersion] = useState(0);
   const list = useAsync(() => api.social!.adminReports(), [api, version]);
   const resolve = async (r: AdminReport, deleteComment: boolean) => {
-    if (deleteComment && !confirm('Kommentar löschen und Meldung schließen?')) return;
+    if (deleteComment && !(await ask('Der Kommentar wird gelöscht und die Meldung geschlossen.', { title: 'Kommentar löschen?', ok: 'Löschen', danger: true }))) return;
     try {
       await api.social!.adminResolveReport(r.id, deleteComment);
       setVersion((v) => v + 1);

@@ -4,6 +4,7 @@ import { useApp } from '../app/context';
 import { PasswordInput } from '../components/PasswordInput';
 import { authErrorMessage } from '../lib/authErrors';
 import { MAIL_SENDER, legalUrl } from '../lib/legal';
+import { notify } from '../components/Dialog';
 
 type Mode = 'login' | 'signup' | 'reset' | 'check-mail';
 
@@ -146,7 +147,7 @@ export function SetNewPassword({ onDone }: { onDone: () => void }) {
     setBusy(true);
     try {
       await api.updatePassword!(pw);
-      alert('Dein neues Passwort ist gespeichert.');
+      await notify('Dein neues Passwort ist gespeichert.', { title: 'Gespeichert' });
       onDone();
     } catch (err) {
       showError(new Error(authErrorMessage(err)));

@@ -21,6 +21,7 @@ import { strengthLevels } from '../lib/muscles';
 import { personalRecords, todayISO } from '../lib/stats';
 import type { ExerciseMap } from '../lib/types';
 import { HomeTabs } from './Home';
+import { ask, askText, notify } from '../components/Dialog';
 
 /** Hinweis im lokalen Modus: Freunde brauchen ein Konto */
 function NeedsAccount() {
@@ -312,7 +313,7 @@ export function FriendProfile({ userId }: { userId: string }) {
   const eq = d.profile.equipped ?? {};
 
   const remove = async () => {
-    if (!confirm(`${name} als Freund entfernen?`)) return;
+    if (!(await ask(`${name} wird aus deinen Freunden entfernt.`, { title: 'Freund entfernen?', ok: 'Entfernen', danger: true }))) return;
     try {
       await social.removeFriend(userId);
       dataChanged();
@@ -322,7 +323,7 @@ export function FriendProfile({ userId }: { userId: string }) {
     }
   };
   const block = async () => {
-    if (!confirm(`${name} blockieren? Ihr seid dann keine Freunde mehr und ${name} kann dir keine Anfragen mehr schicken.`)) return;
+    if (!(await ask(`Ihr seid dann keine Freunde mehr und ${name} kann dir keine Anfragen mehr schicken.`, { title: `${name} blockieren?`, ok: 'Blockieren', danger: true }))) return;
     try {
       await social.block(userId);
       dataChanged();
@@ -332,11 +333,11 @@ export function FriendProfile({ userId }: { userId: string }) {
     }
   };
   const report = async () => {
-    const reason = prompt(`Warum möchtest du ${name} melden? (z. B. beleidigender Name)`);
+    const reason = await askText(`Warum möchtest du ${name} melden?`, { title: 'Melden', ok: 'Melden', placeholder: 'z. B. beleidigender Name' });
     if (!reason?.trim()) return;
     try {
       await social.report(userId, reason);
-      alert('Danke! Die Meldung wurde gespeichert und wird geprüft.');
+      await notify('Die Meldung wurde gespeichert und wird geprüft.', { title: 'Danke!' });
     } catch (err) {
       showError(err);
     }

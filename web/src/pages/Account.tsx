@@ -1,4 +1,5 @@
 // Konto & Einstellungen sowie Backup (nur lokaler Modus).
+import { ask, askText } from '../components/Dialog';
 import { useState, type ChangeEvent } from 'react';
 import { useAsync } from '../app/useAsync';
 import { LegalLinks } from './Auth';
@@ -30,7 +31,7 @@ import { hardReload } from '../lib/update';
 import { APP_VERSION } from '../version';
 
 const confirmDelete = (what: string) =>
-  prompt(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen:`)?.trim().toUpperCase() === 'LÖSCHEN';
+  askText(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen.`, { title: 'Wirklich löschen?', ok: 'Endgültig löschen', danger: true, requireText: 'LÖSCHEN' }).then((t) => t?.trim().toUpperCase() === 'LÖSCHEN');
 
 function WeekGoalCard() {
   const { api, showError, dataChanged } = useApp();
@@ -90,7 +91,7 @@ export function Account() {
   ];
 
   const deleteAccount = async () => {
-    if (!confirmDelete('Das Löschen deines Kontos')) return;
+    if (!(await confirmDelete('Das Löschen deines Kontos'))) return;
     setBusy(true);
     try {
       await api.deleteAccount!();
@@ -101,7 +102,7 @@ export function Account() {
     }
   };
   const deleteLocal = async () => {
-    if (!confirmDelete('Das Löschen aller Daten')) return;
+    if (!(await confirmDelete('Das Löschen aller Daten'))) return;
     try {
       api.deleteAllData!();
       setExercises(await api.listExercises());
@@ -316,7 +317,7 @@ export function Backup() {
     if (!file) return;
     try {
       const obj = api.validateBackup!(JSON.parse(await file.text()));
-      if (!confirm('Alle aktuellen Daten in diesem Browser werden ersetzt. Fortfahren?')) return;
+      if (!(await ask('Alle aktuellen Daten in diesem Browser werden ersetzt.', { title: 'Backup einspielen?', ok: 'Ersetzen', danger: true }))) return;
       api.importData!(obj);
       setExercises(await api.listExercises());
       clearDraft();

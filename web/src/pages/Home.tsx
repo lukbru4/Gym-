@@ -13,6 +13,7 @@ import { fmt, fmtShortDate, plural } from '../lib/format';
 import { strengthLevels } from '../lib/muscles';
 import { todayISO, weeklySummary } from '../lib/stats';
 import { APP_VERSION } from '../version';
+import { notify } from '../components/Dialog';
 
 export function HomeTabs({ active }: { active: 'mine' | 'friends' }) {
   const tab = (id: 'mine' | 'friends', href: string, label: string) => (
@@ -39,7 +40,7 @@ function MigrateCard() {
     try {
       const r = await migrateToCloud(localData, api, exercises, user.id, setStatus);
       setExercises(r.cloudExercises);
-      alert(`Übertragen: ${plural(r.workouts, 'Training', 'Trainings')}, ${plural(r.weights, 'Gewichtseintrag', 'Gewichtseinträge')}, ${plural(r.templates, 'Vorlage', 'Vorlagen')}.`);
+      await notify(`Übertragen: ${plural(r.workouts, 'Training', 'Trainings')}, ${plural(r.weights, 'Gewichtseintrag', 'Gewichtseinträge')}, ${plural(r.templates, 'Vorlage', 'Vorlagen')}.`);
       dataChanged();
     } catch (err) {
       setBusy(false);

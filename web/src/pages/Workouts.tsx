@@ -9,6 +9,7 @@ import { fmtDuration, plural } from '../lib/format';
 import { STARTER_TEMPLATES, type StarterTemplate } from '../lib/starterTemplates';
 import { REST_OPTIONS, getDefaultRest, setDefaultRest } from '../lib/timer';
 import type { Exercise, Template, TemplateExercise } from '../lib/types';
+import { ask } from '../components/Dialog';
 
 export function Workouts() {
   const { api, exerciseById, exercises, addExercise, showError, dataVersion, dataChanged } = useApp();
@@ -41,8 +42,8 @@ export function Workouts() {
     }
   }
 
-  const startEmpty = () => {
-    if (hasDraft() && !confirm('Es läuft bereits ein Training. Verwerfen und leer neu starten?')) return;
+  const startEmpty = async () => {
+    if (hasDraft() && !(await ask('Es läuft bereits ein Training. Verwerfen und leer neu starten?', { title: 'Training läuft', ok: 'Neu starten', danger: true }))) return;
     saveDraft(newLiveState());
     navigate('#/neu');
   };
@@ -139,8 +140,8 @@ export function StartFromTemplate({ id }: { id: number }) {
     if (started.current) return;
     started.current = true;
     api.getTemplate(id).then(
-      (t) => {
-        if (hasDraft() && !confirm(`Es läuft bereits ein Training. Verwerfen und „${t.name}“ starten?`)) {
+      async (t) => {
+        if (hasDraft() && !(await ask(`Es läuft bereits ein Training. Verwerfen und „${t.name}“ starten?`, { title: 'Training läuft', ok: 'Neu starten', danger: true }))) {
           redirect('#/neu');
           return;
         }

@@ -29,6 +29,7 @@ import { fmt, fmtDuration, parseNum, toInput } from '../lib/format';
 import { REST_OPTIONS, getDefaultRest, startRest, stopRest } from '../lib/timer';
 import type { Exercise, ExerciseType, MuscleId, WorkoutSet } from '../lib/types';
 import type { SetInput } from '../data/backend';
+import { ask } from '../components/Dialog';
 
 interface Loaded { state: EditorState; prev: Map<number, WorkoutSet[]> }
 
@@ -167,7 +168,7 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
     if (!state.date) return showError(new Error('Bitte ein Datum angeben.'));
     if (!sets.length && !state.notes.trim()) return showError(new Error('Das Training ist noch leer.'));
     if (live && state.blocks.some((b) => b.sets.some((r) => !r.done && !parseRowSafe(r, typeOf(b) === 'cardio')))) {
-      if (!confirm('Nicht abgehakte, leere Sätze werden nicht gespeichert. Training beenden?')) return;
+      if (!(await ask('Nicht abgehakte, leere Sätze werden nicht gespeichert.', { title: 'Training beenden?', ok: 'Beenden' }))) return;
     }
     setSaving(true);
     try {
@@ -206,17 +207,17 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
     }
   }
 
-  function cancel() {
+  async function cancel() {
     if (mode === 'edit') return navigate(`#/training/${state.id}`);
     if (mode === 'template') return navigate('#/workouts');
-    if (state.blocks.length && !confirm('Training verwerfen? Die Eingaben gehen verloren.')) return;
+    if (state.blocks.length && !(await ask('Die Eingaben gehen verloren.', { title: 'Training verwerfen?', ok: 'Verwerfen', danger: true }))) return;
     clearDraft();
     stopRest();
     navigate('#/workouts');
   }
 
   async function deleteTemplate() {
-    if (!confirm(`Vorlage „${state.name}“ löschen?`)) return;
+    if (!(await ask(`Vorlage „${state.name}“ wird gelöscht.`, { title: 'Vorlage löschen?', ok: 'Löschen', danger: true }))) return;
     try {
       await api.deleteTemplate(state.id!);
       dataChanged();
@@ -412,7 +413,7 @@ function BlockCard(props: {
           className="icon-btn"
           data-action="remove-block"
           aria-label="Übung entfernen"
-          onClick={() => confirm('Übung mit allen Sätzen entfernen?') && update((s) => void s.blocks.splice(bi, 1))}
+          onClick={async () => (await ask('Die Übung wird mit allen Sätzen entfernt.', { title: 'Übung entfernen?', ok: 'Entfernen', danger: true })) && update((s) => void s.blocks.splice(bi, 1))}
         >
           ✕
         </button>

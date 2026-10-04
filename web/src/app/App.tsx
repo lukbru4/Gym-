@@ -29,6 +29,7 @@ import { loadGame } from './game';
 import { GameProvider } from './gameContext';
 import { redirect, useHash } from './router';
 import { useAsync } from './useAsync';
+import { DialogHost } from '../components/Dialog';
 
 type Route = [RegExp, (m: RegExpMatchArray) => ReactNode];
 const ROUTES: Route[] = [
@@ -223,6 +224,7 @@ export function App() {
         </>
       )}
       <Toast message={toast} />
+      <DialogHost />
     </AppProvider>
   );
 }

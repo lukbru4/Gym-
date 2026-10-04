@@ -9,6 +9,7 @@ import type { Social } from '../data/social';
 import { groupSets, numberSets } from '../lib/editor';
 import { fmt, fmtDate } from '../lib/format';
 import { playerLevel } from '../lib/xp';
+import { ask } from '../components/Dialog';
 
 export function History() {
   const game = useGame();
@@ -53,7 +54,7 @@ export function WorkoutDetail({ id }: { id: number }) {
   const levelBefore = isLatest ? playerLevel(g.credits - earned.credits - questBonus).level : levelAfter;
 
   const remove = async () => {
-    if (!confirm('Dieses Training wirklich löschen?')) return;
+    if (!(await ask('Das Training wird endgültig gelöscht.', { title: 'Training löschen?', ok: 'Löschen', danger: true }))) return;
     try {
       await api.deleteWorkout(id);
       dataChanged();

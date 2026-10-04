@@ -9,6 +9,7 @@ import { getCosmetics, setCosmetics, useCosmetics } from '../lib/cosmetics';
 import { fmt } from '../lib/format';
 import { SHOP_SECTIONS, useShopItems, type ShopItem } from '../lib/shop';
 import { PREMIUM_SCHEMES, getPreviewScheme, getScheme, setPreviewScheme, setScheme, subscribePreview, type SchemeChoice } from '../lib/theme';
+import { ask } from '../components/Dialog';
 
 /** Shop-Artikel → Farbschema (fest eingebaut oder vom Admin entworfen) */
 const schemeOf = (itemId: string): SchemeChoice | null =>
@@ -67,7 +68,7 @@ export function Shop() {
   const reloadShop = async () => setCosmetics(await social.myShop());
 
   const buy = async (item: ShopItem) => {
-    if (!confirm(`„${item.name}“ für ${fmt(item.price, 0)} Credits kaufen?`)) return;
+    if (!(await ask(`„${item.name}“ für ${fmt(item.price, 0)} Credits kaufen?`, { title: 'Kaufen?', ok: 'Kaufen' }))) return;
     setBusy(item.id);
     try {
       await social.buy(item.id);

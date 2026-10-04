@@ -4,6 +4,7 @@ import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
 import type { Social } from '../data/social';
 import { COMMENT_MAX, isOffensive } from '../lib/moderation';
+import { ask, askText, notify } from './Dialog';
 
 function timeAgo(iso: string) {
   const min = Math.round((Date.now() - Date.parse(iso)) / 60000);
@@ -44,7 +45,7 @@ export function Comments({ social, workoutId, onCount }: { social: Social; worko
     }
   };
   const remove = async (id: number) => {
-    if (!confirm('Kommentar löschen?')) return;
+    if (!(await ask('Der Kommentar wird endgültig entfernt.', { title: 'Kommentar löschen?', ok: 'Löschen', danger: true }))) return;
     try {
       await social.deleteComment(id);
       reload();
@@ -53,11 +54,11 @@ export function Comments({ social, workoutId, onCount }: { social: Social; worko
     }
   };
   const report = async (id: number) => {
-    const reason = prompt('Warum meldest du diesen Kommentar?');
+    const reason = await askText('Warum meldest du diesen Kommentar?', { title: 'Kommentar melden', ok: 'Melden', placeholder: 'z. B. Beleidigung' });
     if (reason === null) return;
     try {
       await social.reportComment(id, reason);
-      alert('Danke! Der Kommentar wurde gemeldet und wird geprüft.');
+      await notify('Der Kommentar wurde gemeldet und wird geprüft.', { title: 'Danke!' });
     } catch (err) {
       showError(err);
     }

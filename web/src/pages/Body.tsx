@@ -13,6 +13,7 @@ import { fmt, fmtDate, fmtShortDate, parseNum } from '../lib/format';
 import { LEVELS, MUSCLE_NAMES, musclesOf, strengthLevels } from '../lib/muscles';
 import { todayISO } from '../lib/stats';
 import type { Exercise, MuscleId } from '../lib/types';
+import { ask } from '../components/Dialog';
 
 const pct = (g: number | null) => (g == null ? '' : `${g >= 0 ? '+' : ''}${fmt(g * 100, 0)} %`);
 
@@ -71,7 +72,7 @@ export function Body() {
     }
   };
   const removeWeight = async (id: number) => {
-    if (!confirm('Eintrag löschen?')) return;
+    if (!(await ask('Der Gewichtseintrag wird gelöscht.', { title: 'Eintrag löschen?', ok: 'Löschen', danger: true }))) return;
     try {
       await api.deleteBodyWeight(id);
       dataChanged();
