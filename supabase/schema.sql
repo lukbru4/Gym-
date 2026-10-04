@@ -48,6 +48,8 @@ create table if not exists public.sets (
   is_warmup     boolean not null default false
 );
 alter table public.sets add column if not exists is_warmup boolean not null default false;
+-- Einseitige Übungen (einarmig/einbeinig): L = links, R = rechts, leer = beidseitig
+alter table public.sets add column if not exists side text check (side in ('L', 'R'));
 
 create index if not exists sets_workout on public.sets (workout_id);
 create index if not exists sets_user_exercise on public.sets (user_id, exercise_id);
@@ -626,7 +628,7 @@ begin
     'workouts', coalesce((select jsonb_agg(jsonb_build_object('id', w.id, 'date', w.date)) from public.workouts w where w.user_id = p_user), '[]'::jsonb),
     'sets', coalesce((select jsonb_agg(jsonb_build_object(
               'workout_id', s.workout_id, 'exercise_id', s.exercise_id, 'position', s.position, 'reps', s.reps,
-              'weight_kg', s.weight_kg, 'duration_min', s.duration_min, 'distance_km', s.distance_km, 'is_warmup', s.is_warmup))
+              'weight_kg', s.weight_kg, 'duration_min', s.duration_min, 'distance_km', s.distance_km, 'is_warmup', s.is_warmup, 'side', s.side))
             from public.sets s where s.user_id = p_user), '[]'::jsonb),
     'exercises', coalesce((select jsonb_agg(jsonb_build_object('id', e.id, 'name', e.name, 'type', e.type, 'user_id', e.user_id, 'muscles', e.muscles))
             from public.exercises e where e.id in (select s.exercise_id from public.sets s where s.user_id = p_user)), '[]'::jsonb)
@@ -1105,7 +1107,7 @@ begin
     'workouts', coalesce((select jsonb_agg(jsonb_build_object('id', w.id, 'date', w.date)) from public.workouts w where w.user_id = p_user), '[]'::jsonb),
     'sets', coalesce((select jsonb_agg(jsonb_build_object(
               'workout_id', s.workout_id, 'exercise_id', s.exercise_id, 'position', s.position, 'reps', s.reps,
-              'weight_kg', s.weight_kg, 'duration_min', s.duration_min, 'distance_km', s.distance_km, 'is_warmup', s.is_warmup))
+              'weight_kg', s.weight_kg, 'duration_min', s.duration_min, 'distance_km', s.distance_km, 'is_warmup', s.is_warmup, 'side', s.side))
             from public.sets s where s.user_id = p_user), '[]'::jsonb),
     'exercises', coalesce((select jsonb_agg(jsonb_build_object('id', e.id, 'name', e.name, 'type', e.type, 'user_id', e.user_id, 'muscles', e.muscles))
             from public.exercises e where e.id in (select s.exercise_id from public.sets s where s.user_id = p_user)), '[]'::jsonb)
@@ -1331,7 +1333,7 @@ begin
     'workouts', coalesce((select jsonb_agg(jsonb_build_object('id', w.id, 'date', w.date)) from public.workouts w where w.user_id = p_user), '[]'::jsonb),
     'sets', coalesce((select jsonb_agg(jsonb_build_object(
               'workout_id', s.workout_id, 'exercise_id', s.exercise_id, 'position', s.position, 'reps', s.reps,
-              'weight_kg', s.weight_kg, 'duration_min', s.duration_min, 'distance_km', s.distance_km, 'is_warmup', s.is_warmup))
+              'weight_kg', s.weight_kg, 'duration_min', s.duration_min, 'distance_km', s.distance_km, 'is_warmup', s.is_warmup, 'side', s.side))
             from public.sets s where s.user_id = p_user), '[]'::jsonb),
     'exercises', coalesce((select jsonb_agg(jsonb_build_object('id', e.id, 'name', e.name, 'type', e.type, 'user_id', e.user_id, 'muscles', e.muscles))
             from public.exercises e where e.id in (select s.exercise_id from public.sets s where s.user_id = p_user)), '[]'::jsonb)
@@ -1347,6 +1349,6 @@ grant execute on function public.my_week_goal(), public.set_week_goal(integer), 
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 38 $$;
+returns integer language sql immutable set search_path = '' as $$ select 39 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

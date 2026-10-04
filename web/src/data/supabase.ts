@@ -35,6 +35,25 @@ function backend(supabase: SupabaseClient): Backend {
   }
 
   const EXERCISE_COLS = 'id, name, type, user_id, muscles';
+  // Spalte „side“ (einseitig L/R) gibt es erst ab Datenbank-Version 39. Fehlt sie noch,
+  // läuft die App ohne L/R weiter, bis der Admin das SQL-Update eingespielt hat.
+  const SET_COLS = 'workout_id, exercise_id, position, reps, weight_kg, duration_min, distance_km, is_warmup';
+  let hasSide = true;
+  const missingSide = (err: unknown) => {
+    const e = err as { code?: string; message?: string } | null;
+    return Boolean(e && (e.code === '42703' || e.code === 'PGRST204') && /side/.test(e.message ?? ''));
+  };
+  async function withSideFallback<T>(run: (cols: string) => Promise<T>): Promise<T> {
+    if (hasSide) {
+      try {
+        return await run(`${SET_COLS}, side`);
+      } catch (err) {
+        if (!missingSide(err)) throw err;
+        hasSide = false;
+      }
+    }
+    return run(SET_COLS);
+  }
 
   return {
     mode: 'cloud',
@@ -75,18 +94,11 @@ function backend(supabase: SupabaseClient): Backend {
     // ---- Trainings -----------------------------------------------------------
     listWorkouts: () =>
       fetchAll<Workout>(() => supabase.from('workouts').select('id, date, notes').order('date', { ascending: false }).order('id', { ascending: false })),
-    listSets: () =>
-      fetchAll<WorkoutSet>(() =>
-        supabase.from('sets').select('id, workout_id, exercise_id, position, reps, weight_kg, duration_min, distance_km, is_warmup').order('id'),
-      ),
+    listSets: () => withSideFallback((cols) => fetchAll<WorkoutSet>(() => supabase.from('sets').select(`id, ${cols}`).order('id'))),
     async getWorkout(id) {
       const workout = check<Workout>(await supabase.from('workouts').select('id, date, notes').eq('id', id).single());
-      const sets = check<WorkoutSet[]>(
-        await supabase
-          .from('sets')
-          .select('workout_id, exercise_id, position, reps, weight_kg, duration_min, distance_km, is_warmup')
-          .eq('workout_id', id)
-          .order('position'),
+      const sets = await withSideFallback(async (cols) =>
+        check<WorkoutSet[]>((await supabase.from('sets').select(cols).eq('workout_id', id).order('position')) as Result<WorkoutSet[]>),
       );
       return { ...workout, sets };
     },
@@ -100,7 +112,9 @@ function backend(supabase: SupabaseClient): Backend {
         workoutId = check<{ id: number }>(await supabase.from('workouts').insert({ date, notes }).select('id').single()).id;
       }
       if (sets.length) {
-        check(await supabase.from('sets').insert(sets.map((s, i) => ({ ...s, workout_id: workoutId, position: i }))));
+        const rows = (keepSide: boolean) =>
+          sets.map(({ side, ...s }, i) => ({ ...s, ...(keepSide && side ? { side } : {}), workout_id: workoutId, position: i }));
+        await withSideFallback(async (cols) => check(await supabase.from('sets').insert(rows(cols.endsWith('side')))));
       }
       return workoutId;
     },

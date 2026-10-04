@@ -41,7 +41,12 @@ export interface WorkoutSet {
   duration_min?: number | string | null;
   distance_km?: number | string | null;
   is_warmup?: boolean;
+  /** Einseitige Übung: linke bzw. rechte Seite */
+  side?: Side | null;
 }
+
+/** Seite bei einseitigen (einarmigen/einbeinigen) Übungen */
+export type Side = 'L' | 'R';
 
 /** Satz mit dem Datum seines Trainings (für Verlauf, Rekorde, Körpergraph) */
 export interface DatedSet extends WorkoutSet {
@@ -56,6 +61,7 @@ export interface BodyWeight {
 
 export interface TemplateSet {
   warmup?: boolean;
+  side?: Side | null;
   reps?: number | null;
   weight_kg?: number | null;
   duration_min?: number | null;

@@ -1,7 +1,7 @@
 // Reine Logik für den Trainings-/Vorlagen-Editor (ohne React), damit sie testbar ist.
 import { parseNum, toInput } from './format';
 import { todayISO } from './stats';
-import type { DatedSet, Exercise, ExerciseType, ISODate, Template, TemplateExercise, TemplateSet, Workout, WorkoutSet } from './types';
+import type { DatedSet, Exercise, ExerciseType, ISODate, Side, Template, TemplateExercise, TemplateSet, Workout, WorkoutSet } from './types';
 import type { SetInput } from '../data/backend';
 
 const DRAFT_KEY = 'gym-tracker-draft';
@@ -9,6 +9,8 @@ const DRAFT_KEY = 'gym-tracker-draft';
 /** Eine Eingabezeile im Editor. Werte sind Texte (wie im Eingabefeld). */
 export interface Row {
   warmup?: boolean;
+  /** Einseitige Übung: L = links, R = rechts (ein Satz = L- und R-Zeile) */
+  side?: Side | null;
   reps?: string;
   weight_kg?: string;
   duration_min?: string;
@@ -76,10 +78,35 @@ export function datedSets(workouts: Workout[], sets: WorkoutSet[]): DatedSet[] {
   return sets.map((x) => ({ ...x, date: dateOf.get(x.workout_id)! })).filter((x) => x.date);
 }
 
-/** Satznummern: Aufwärmsätze heißen "A", Arbeitssätze werden durchgezählt. */
-export function numberSets<T extends { is_warmup?: boolean }>(sets: T[]): [T, string][] {
+/** Satznummern: Aufwärmsätze heißen "A", Arbeitssätze werden durchgezählt.
+ *  Einseitig zählt das Paar L/R als ein Satz: 1L, 1R, 2L, 2R … */
+export function numberSets<T extends { is_warmup?: boolean; side?: Side | null }>(sets: T[]): [T, string][] {
   let n = 0;
-  return sets.map((s) => [s, s.is_warmup ? 'A' : String(++n)]);
+  return sets.map((s) => [s, (s.is_warmup ? 'A' : String(s.side === 'R' && n > 0 ? n : ++n)) + (s.side ?? '')]);
+}
+
+/** Satz-Beschriftungen im Editor (wie numberSets) */
+export const rowLabels = (rows: Row[], cardio = false) =>
+  numberSets(rows.map((r) => ({ is_warmup: !cardio && Boolean(r.warmup), side: r.side }))).map(([, l]) => l);
+
+export const isUnilateral = (b: Pick<Block, 'sets'>) => b.sets.some((r) => r.side);
+
+/** Einseitig an/aus: an → jeder Satz wird zu L + R (gleiche Werte), aus → R-Zeilen fallen weg */
+export function setUnilateral(b: Block, on: boolean): Block {
+  const sets = on
+    ? isUnilateral(b)
+      ? b.sets
+      : b.sets.flatMap((r) => [{ ...r, side: 'L' as const }, { ...r, side: 'R' as const }])
+    : b.sets.filter((r) => r.side !== 'R').map(({ side: _side, ...r }) => r);
+  return { ...b, sets: sets.length ? sets : b.sets };
+}
+
+/** Partnerzeile (L↔R) eines einseitigen Satzes, sonst -1 */
+export function partnerOf(sets: Row[], si: number): number {
+  const side = sets[si]?.side;
+  if (side === 'L' && sets[si + 1]?.side === 'R') return si + 1;
+  if (side === 'R' && sets[si - 1]?.side === 'L') return si - 1;
+  return -1;
 }
 
 /** Aufeinanderfolgende Sätze derselben Übung zu Blöcken zusammenfassen. */
@@ -113,12 +140,20 @@ export function lastPerformance(workouts: Workout[], sets: WorkoutSet[], exclude
   return result;
 }
 
-/** Passender Vorher-Satz: n-ter Aufwärmsatz ↔ n-ter Aufwärmsatz, n-ter Arbeitssatz ↔ n-ter Arbeitssatz. */
+/** Passender Vorher-Satz: n-ter Aufwärmsatz ↔ n-ter Aufwärmsatz, n-ter Arbeitssatz ↔ n-ter Arbeitssatz,
+ *  einseitig zusätzlich dieselbe Seite (1L ↔ 1L). War es letztes Mal beidseitig, gilt der n-te Satz für L und R. */
 export function previousFor(prevSets: WorkoutSet[] | undefined, block: Block, si: number): WorkoutSet | null {
   if (!prevSets) return null;
-  const warm = Boolean(block.sets[si].warmup);
-  const idx = block.sets.slice(0, si).filter((r) => Boolean(r.warmup) === warm).length;
-  return prevSets.filter((p) => Boolean(p.is_warmup) === warm)[idx] || null;
+  const row = block.sets[si];
+  const warm = Boolean(row.warmup);
+  const side = row.side ?? null;
+  const idx = block.sets.slice(0, si).filter((r) => Boolean(r.warmup) === warm && (r.side ?? null) === side).length;
+  const same = prevSets.filter((p) => Boolean(p.is_warmup) === warm && (p.side ?? null) === side);
+  if (same.length) return same[idx] || null;
+  // Seiten passen nicht zusammen (vorher beidseitig ↔ jetzt einseitig oder umgekehrt)
+  const warmOnly = prevSets.filter((p) => Boolean(p.is_warmup) === warm && p.side !== 'R');
+  const n = side ? idx : block.sets.slice(0, si).filter((r) => Boolean(r.warmup) === warm).length;
+  return warmOnly[n] || null;
 }
 
 type ExerciseLookup = (id: number) => Exercise | undefined;
@@ -137,6 +172,7 @@ export function stateFromTemplate(t: Template, exerciseById: ExerciseLookup): Ed
           rest_seconds: e.rest_seconds ?? null,
           sets: e.sets.map((s) => ({
             ...emptySet(type, Boolean(s.warmup)),
+            ...(type !== 'cardio' && s.side ? { side: s.side } : {}),
             target:
               type === 'cardio'
                 ? { duration_min: s.duration_min ?? null, distance_km: s.distance_km ?? null }
@@ -159,7 +195,7 @@ export function templateBlocks(t: Pick<Template, 'exercises'>, exerciseById: Exe
         sets: e.sets.map((s) =>
           type === 'cardio'
             ? { duration_min: toInput(s.duration_min), distance_km: toInput(s.distance_km) }
-            : { warmup: Boolean(s.warmup), reps: toInput(s.reps), weight_kg: toInput(s.weight_kg) },
+            : { warmup: Boolean(s.warmup), ...(s.side ? { side: s.side } : {}), reps: toInput(s.reps), weight_kg: toInput(s.weight_kg) },
         ),
       };
     });
@@ -171,7 +207,7 @@ export function editBlocks(sets: WorkoutSet[], exerciseById: ExerciseLookup): Bl
     sets: g.sets.map((s) =>
       exerciseById(g.exercise)?.type === 'cardio'
         ? { duration_min: toInput(s.duration_min), distance_km: toInput(s.distance_km) }
-        : { warmup: Boolean(s.is_warmup), reps: toInput(s.reps), weight_kg: toInput(s.weight_kg) },
+        : { warmup: Boolean(s.is_warmup), ...(s.side ? { side: s.side } : {}), reps: toInput(s.reps), weight_kg: toInput(s.weight_kg) },
     ),
   }));
 }
@@ -190,7 +226,7 @@ export function parseRow(row: Row, cardio: boolean): Omit<SetInput, 'exercise_id
   if (Number.isNaN(reps) || Number.isNaN(weight_kg)) throw new Error('Bitte nur Zahlen eingeben.');
   if (reps == null && weight_kg == null) return null;
   if (!reps || !Number.isInteger(reps)) throw new Error('Jeder Kraftsatz braucht eine ganze Zahl an Wiederholungen.');
-  return { reps, weight_kg: weight_kg ?? 0, is_warmup: Boolean(row.warmup) };
+  return { reps, weight_kg: weight_kg ?? 0, is_warmup: Boolean(row.warmup), ...(row.side ? { side: row.side } : {}) };
 }
 
 export function parseRowSafe(row: Row, cardio: boolean) {
@@ -211,7 +247,7 @@ export function parseRowLoose(row: Row, cardio: boolean): TemplateSet {
   if (cardio) return { duration_min: num(row.duration_min), distance_km: num(row.distance_km) };
   const reps = num(row.reps);
   if (reps != null && !Number.isInteger(reps)) throw new Error('Wiederholungen müssen ganze Zahlen sein.');
-  return { warmup: Boolean(row.warmup), reps, weight_kg: num(row.weight_kg) };
+  return { warmup: Boolean(row.warmup), ...(row.side ? { side: row.side } : {}), reps, weight_kg: num(row.weight_kg) };
 }
 
 /** Vorlage aus dem Editor-Zustand (wirft bei ungültigen Zahlen) */
@@ -239,6 +275,7 @@ export function templateFromWorkout(blocks: Block[], exerciseById: ExerciseLooku
         }
         return {
           warmup: Boolean(row.warmup),
+          ...(row.side ? { side: row.side } : {}),
           reps: v ? v.reps ?? null : row.target?.reps ?? null,
           weight_kg: v ? v.weight_kg ?? null : row.target?.weight_kg ?? null,
         };
@@ -250,7 +287,7 @@ export function templateFromWorkout(blocks: Block[], exerciseById: ExerciseLooku
 /** Neue Sätze für eine hinzugefügte Übung: Struktur des letzten Trainings übernehmen */
 export function blockFor(ex: Exercise, prevSets: WorkoutSet[] | undefined): Block {
   const sets = prevSets?.length
-    ? prevSets.map((p) => ({ ...emptySet(ex.type, Boolean(p.is_warmup)), done: false }))
+    ? prevSets.map((p) => ({ ...emptySet(ex.type, Boolean(p.is_warmup)), ...(ex.type !== 'cardio' && p.side ? { side: p.side } : {}), done: false }))
     : [emptySet(ex.type)];
   return { exercise_id: ex.id, rest_seconds: null, sets };
 }

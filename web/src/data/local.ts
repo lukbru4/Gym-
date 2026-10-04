@@ -131,6 +131,7 @@ export function create(storage: Storage = globalThis.localStorage): Backend {
           duration_min: s.duration_min ?? null,
           distance_km: s.distance_km ?? null,
           is_warmup: Boolean(s.is_warmup),
+          side: s.side ?? null,
         });
       });
       persist();

@@ -1,6 +1,6 @@
 // Gemeinsame Schnittstelle für den lokalen Speicher (Browser) und die Cloud (Supabase).
 import type { Social } from './social';
-import type { BodyWeight, Exercise, ExerciseType, ISODate, MuscleId, Template, TemplateExercise, User, Workout, WorkoutSet } from '../lib/types';
+import type { Side, BodyWeight, Exercise, ExerciseType, ISODate, MuscleId, Template, TemplateExercise, User, Workout, WorkoutSet } from '../lib/types';
 
 export interface SetInput {
   exercise_id: number;
@@ -9,6 +9,7 @@ export interface SetInput {
   duration_min?: number | null;
   distance_km?: number | null;
   is_warmup?: boolean;
+  side?: Side | null;
 }
 export interface WorkoutInput { id: number | null; date: ISODate; notes: string | null; sets: SetInput[] }
 export interface WorkoutWithSets extends Workout { sets: WorkoutSet[] }

@@ -9,13 +9,17 @@ import {
   blockFor,
   clearDraft,
   editBlocks,
+  isUnilateral,
   lastPerformance,
   loadDraft,
   newLiveState,
   parseRow,
   parseRowSafe,
+  partnerOf,
   previousFor,
+  rowLabels,
   saveDraft,
+  setUnilateral,
   templateBlocks,
   templateFromBlocks,
   templateFromWorkout,
@@ -387,7 +391,15 @@ function BlockCard(props: {
   const { block: b, bi, mode, exercise: ex, update } = props;
   const live = mode === 'live';
   const cardio = ex.type === 'cardio';
-  let workNo = 0;
+  const uni = !cardio && isUnilateral(b);
+  const labels = rowLabels(b.sets, cardio);
+  /** Zeile entfernen – einseitig immer das ganze Paar L+R */
+  const removeRow = (st: EditorState, si: number) => {
+    const sets = st.blocks[bi].sets;
+    const p = partnerOf(sets, si);
+    sets.splice(p >= 0 ? Math.min(si, p) : si, p >= 0 ? 2 : 1);
+    if (!sets.length) st.blocks.splice(bi, 1);
+  };
 
   const DEFAULTS: Record<RowField, string> = { weight_kg: '20', reps: '10', duration_min: '20', distance_km: '3' };
   const NAMES: Record<RowField, string> = { weight_kg: 'Gewicht', reps: 'Wiederholungen', duration_min: 'Dauer', distance_km: 'Distanz' };
@@ -422,6 +434,19 @@ function BlockCard(props: {
     <div className="card block">
       <div className="block-head">
         <h3>{ex.name}</h3>
+        {!cardio && (
+          <button
+            type="button"
+            className={`side-toggle ${uni ? 'on' : ''}`}
+            data-action="toggle-side"
+            aria-pressed={uni}
+            title={uni ? 'Einseitig (links/rechts) – tippen für beidseitig' : 'Einseitig trainieren (links/rechts getrennt)'}
+            aria-label={uni ? 'Einseitig: an' : 'Einseitig: aus'}
+            onClick={() => update((st) => void (st.blocks[bi] = setUnilateral(st.blocks[bi], !uni)))}
+          >
+            L/R
+          </button>
+        )}
         <button
           className="icon-btn"
           data-action="remove-block"
@@ -455,7 +480,7 @@ function BlockCard(props: {
           <span />
         </div>
         {b.sets.map((s, si) => {
-          const label = !cardio && s.warmup ? 'A' : String(++workNo);
+          const label = labels[si];
           const p = live ? previousFor(props.prevSets, b, si) : null;
           const ph = props.placeholders(si);
           const prevText = p ? (cardio ? `${fmt(p.duration_min)} min · ${fmt(p.distance_km, 2)} km` : `${fmt(p.weight_kg, 2)} × ${p.reps}`) : '–';
@@ -466,9 +491,17 @@ function BlockCard(props: {
               ) : (
                 <button
                   data-action="toggle-warmup"
-                  className={`set-no set-type ${s.warmup ? 'warmup' : ''}`}
-                  aria-label={`Satz ${label}: ${s.warmup ? 'Aufwärmsatz' : 'Arbeitssatz'} – tippen zum Umschalten`}
-                  onClick={() => update((st) => void (st.blocks[bi].sets[si].warmup = !st.blocks[bi].sets[si].warmup))}
+                  className={`set-no set-type ${s.warmup ? 'warmup' : ''}${s.side ? ` side-${s.side}` : ''}`}
+                  aria-label={`Satz ${label}: ${s.warmup ? 'Aufwärmsatz' : 'Arbeitssatz'}${s.side === 'L' ? ' links' : s.side === 'R' ? ' rechts' : ''} – tippen zum Umschalten`}
+                  onClick={() =>
+                    update((st) => {
+                      const sets = st.blocks[bi].sets;
+                      const warmup = !sets[si].warmup;
+                      sets[si].warmup = warmup;
+                      const p = partnerOf(sets, si);
+                      if (p >= 0) sets[p].warmup = warmup;
+                    })
+                  }
                 >
                   {label}
                 </button>
@@ -494,12 +527,7 @@ function BlockCard(props: {
                   className="icon-btn"
                   data-action="remove-set"
                   aria-label="Satz entfernen"
-                  onClick={() =>
-                    update((st) => {
-                      st.blocks[bi].sets.splice(si, 1);
-                      if (!st.blocks[bi].sets.length) st.blocks.splice(bi, 1);
-                    })
-                  }
+                  onClick={() => update((st) => removeRow(st, si))}
                 >
                   −
                 </button>
@@ -516,6 +544,13 @@ function BlockCard(props: {
             update((st) => {
               const sets = st.blocks[bi].sets;
               const last = sets[sets.length - 1];
+              if (uni) {
+                // Einseitig: neues Paar L + R mit den Werten des letzten Paars
+                const l = [...sets].reverse().find((x) => x.side === 'L') ?? last;
+                const r = [...sets].reverse().find((x) => x.side === 'R') ?? last;
+                sets.push({ ...l, side: 'L', warmup: false, done: false }, { ...r, side: 'R', warmup: false, done: false });
+                return;
+              }
               sets.push(last ? { ...last, warmup: false, done: false } : cardio ? { duration_min: '', distance_km: '' } : { warmup: false, reps: '', weight_kg: '' });
             })
           }
@@ -527,12 +562,7 @@ function BlockCard(props: {
             className="btn small-btn"
             data-action="remove-last"
             aria-label="Letzten Satz entfernen"
-            onClick={() =>
-              update((st) => {
-                st.blocks[bi].sets.pop();
-                if (!st.blocks[bi].sets.length) st.blocks.splice(bi, 1);
-              })
-            }
+            onClick={() => update((st) => removeRow(st, st.blocks[bi].sets.length - 1))}
           >
             − Satz
           </button>

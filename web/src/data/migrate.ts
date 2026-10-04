@@ -85,6 +85,7 @@ export async function migrateToCloud(
         duration_min: (s.duration_min as number) ?? null,
         distance_km: (s.distance_km as number) ?? null,
         is_warmup: Boolean(s.is_warmup),
+        side: s.side === 'L' || s.side === 'R' ? s.side : null,
       });
     }
     await api.saveWorkout({ id: null, date: w.date, notes: w.notes ?? null, sets });

@@ -3,10 +3,14 @@ import {
   blockFor,
   groupSets,
   lastPerformance,
+  isUnilateral,
   numberSets,
+  partnerOf,
   parseRow,
   parseRowLoose,
   previousFor,
+  rowLabels,
+  setUnilateral,
   stateFromTemplate,
   templateFromWorkout,
   type Block,
@@ -131,5 +135,51 @@ describe('Kommentar-Filter', async () => {
     expect(isOffensive('Starke Leistung, weiter so')).toBe(false);
     expect(isOffensive('Du ARSCHLOCH')).toBe(true);
     expect(isOffensive('what the fuck')).toBe(true);
+  });
+});
+
+describe('einseitig (L/R)', () => {
+  const ws = (o: Partial<WorkoutSet>): WorkoutSet => ({ workout_id: 1, exercise_id: 5, ...o });
+
+  test('numberSets zählt L/R-Paare als einen Satz', () => {
+    const labels = numberSets([{ is_warmup: true, side: 'L' as const }, { is_warmup: true, side: 'R' as const }, { side: 'L' as const }, { side: 'R' as const }, { side: 'L' as const }, { side: 'R' as const }]).map(([, l]) => l);
+    expect(labels).toEqual(['AL', 'AR', '1L', '1R', '2L', '2R']);
+    expect(rowLabels([{ warmup: true }, {}, {}])).toEqual(['A', '1', '2']);
+  });
+
+  test('setUnilateral verdoppelt Sätze und nimmt sie wieder zurück', () => {
+    const b: Block = { exercise_id: 5, sets: [{ warmup: true, reps: '12', weight_kg: '8' }, { reps: '10', weight_kg: '12' }] };
+    const on = setUnilateral(b, true);
+    expect(on.sets.map((r) => `${r.side}${r.reps}`)).toEqual(['L12', 'R12', 'L10', 'R10']);
+    expect(isUnilateral(on)).toBe(true);
+    expect(setUnilateral(on, true)).toEqual(on);
+    const off = setUnilateral(on, false);
+    expect(off.sets).toEqual(b.sets);
+    expect(partnerOf(on.sets, 2)).toBe(3);
+    expect(partnerOf(on.sets, 3)).toBe(2);
+    expect(partnerOf(b.sets, 0)).toBe(-1);
+  });
+
+  test('previousFor: gleiche Seite, sonst n-ter Satz für beide Seiten', () => {
+    const block: Block = { exercise_id: 5, sets: [{ side: 'L' }, { side: 'R' }, { side: 'L' }, { side: 'R' }] };
+    const uni = [ws({ reps: 10, side: 'L' }), ws({ reps: 9, side: 'R' }), ws({ reps: 8, side: 'L' }), ws({ reps: 7, side: 'R' })];
+    expect([0, 1, 2, 3].map((i) => previousFor(uni, block, i)?.reps)).toEqual([10, 9, 8, 7]);
+    const both = [ws({ reps: 12 }), ws({ reps: 11 })];
+    expect([0, 1, 2, 3].map((i) => previousFor(both, block, i)?.reps)).toEqual([12, 12, 11, 11]);
+    const plain: Block = { exercise_id: 5, sets: [{}, {}] };
+    expect([0, 1].map((i) => previousFor(uni, plain, i)?.reps)).toEqual([10, 8]);
+  });
+
+  test('Seite wird gespeichert, in Vorlagen übernommen und wieder geladen', () => {
+    expect(parseRow({ side: 'R', reps: '8', weight_kg: '14' }, false)).toEqual({ reps: 8, weight_kg: 14, is_warmup: false, side: 'R' });
+    expect(parseRow({ reps: '8', weight_kg: '14' }, false)).not.toHaveProperty('side');
+    expect(parseRowLoose({ side: 'L', reps: '', weight_kg: '' }, false)).toMatchObject({ side: 'L' });
+    const ex: Exercise = { id: 5, name: 'Kurzhantel-Curl einarmig', type: 'strength', user_id: null };
+    const blocks: Block[] = [{ exercise_id: 5, sets: [{ side: 'L', reps: '10', weight_kg: '12' }, { side: 'R', reps: '9', weight_kg: '12' }] }];
+    const t = templateFromWorkout(blocks, () => ex);
+    expect(t[0].sets.map((s) => s.side)).toEqual(['L', 'R']);
+    const st = stateFromTemplate({ id: 1, name: 'Arme', exercises: t }, () => ex);
+    expect(st.blocks[0].sets.map((r) => r.side)).toEqual(['L', 'R']);
+    expect(blockFor(ex, [ws({ side: 'L' }), ws({ side: 'R' })]).sets.map((r) => r.side)).toEqual(['L', 'R']);
   });
 });
