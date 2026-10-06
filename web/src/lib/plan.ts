@@ -29,11 +29,12 @@ export const QUESTIONS: Question[] = [
   { id: 'weight', q: 'Wie viel wiegst du?', type: 'range', min: 35, max: 200, def: 75, step: 0.5, unit: 'kg' },
   { id: 'exp', q: 'Wie lange trainierst du schon mit Gewichten?', type: 'one', options: [['neu', 'Gar nicht / gerade angefangen'], ['basis', 'Unter 1 Jahr'], ['mittel', '1–3 Jahre'], ['profi', 'Über 3 Jahre']] },
   { id: 'days', q: 'Wie oft pro Woche willst du trainieren?', hint: 'Wird dein Wochenziel für die Serie.', type: 'one', options: [['1', '1× pro Woche'], ['2', '2× pro Woche'], ['3', '3× pro Woche'], ['4', '4× pro Woche'], ['5', '5× pro Woche'], ['6', '6× pro Woche']] },
+  { id: 'split', q: 'Welche Aufteilung möchtest du?', hint: 'Wie die Trainings über die Woche verteilt werden.', type: 'one', options: [['auto', 'Automatisch (passend zu meinen Tagen)'], ['ppl', 'Push / Pull / Beine'], ['ganz', 'Ganzkörper'], ['ob', 'Oberkörper / Unterkörper']] },
   { id: 'duration', q: 'Wie lange darf ein Training dauern?', type: 'one', options: [['30', '30 Minuten'], ['45', '45 Minuten'], ['60', '60 Minuten'], ['90', '90 Minuten']] },
   { id: 'place', q: 'Wo trainierst du?', type: 'one', options: [['gym', 'Im Fitnessstudio'], ['homeDb', 'Zuhause mit Gewichten'], ['homeBw', 'Zuhause ohne Geräte']] },
   { id: 'equip', q: 'Welche Geräte hast du zuhause?', hint: 'Mehrere möglich.', type: 'multi', when: (a) => a.place === 'homeDb', options: [['lh', 'Langhantel'], ['kh', 'Kurzhanteln'], ['kl', 'Klimmzugstange'], ['ba', 'Bänder']] },
   { id: 'focus', q: 'Welche Muskeln sind dir besonders wichtig?', hint: 'Mehrere möglich.', type: 'multi', options: [['brust', 'Brust'], ['ruecken', 'Rücken'], ['schultern', 'Schultern'], ['arme', 'Arme'], ['beine', 'Beine'], ['bauch', 'Bauch'], ['alles', 'Alles gleich']] },
-  { id: 'fav', q: 'Welche Übungen magst du?', hint: 'Kommen bevorzugt in deinen Plan. Mehrere möglich.', type: 'multi', options: [['bank', 'Bankdrücken'], ['squat', 'Kniebeuge'], ['dead', 'Kreuzheben'], ['pull', 'Klimmzüge'], ['ohp', 'Schulterdrücken'], ['row', 'Rudern'], ['lat', 'Latziehen'], ['curl', 'Bizepscurls']] },
+  { id: 'fav', q: 'Welche Übungen willst du unbedingt machen?', hint: 'Kommen bevorzugt in deinen Plan (wenn sie zu Aufteilung, Geräten und Beschwerden passen). Mehrere möglich.', type: 'multi', options: [] },
   { id: 'pain', q: 'Hast du Beschwerden?', hint: 'Solche Übungen lassen wir weg. Bei Schmerzen bitte ärztlich abklären.', type: 'multi', options: [['keine', 'Keine'], ['knie', 'Knie'], ['ruecken', 'Unterer Rücken'], ['schulter', 'Schulter'], ['ellbogen', 'Ellbogen'], ['handgelenk', 'Handgelenk']] },
   { id: 'cardio', q: 'Wie viel Cardio möchtest du pro Training?', type: 'one', options: [['0', 'Keins'], ['10', 'Ein bisschen (10 Min.)'], ['20', 'Regelmäßig (20 Min.)']] },
   { id: 'weekdays', q: 'An welchen Tagen kannst du?', hint: 'Mehrere möglich – darauf verteilen wir die Trainings.', type: 'multi', options: WEEKDAYS },
@@ -91,9 +92,8 @@ const P = {
   crunch: E('Crunches', ['none'], ['bauch']),
   plank: E('Plank', ['none'], ['bauch']),
 };
-const FAV: Record<string, Pick[]> = {
-  bank: [P.bank, P.khBank], squat: [P.squat], dead: [P.dead], pull: [P.pullup], ohp: [P.ohp], row: [P.bbRow, P.cableRow], lat: [P.lat], curl: [P.curl, P.hammer],
-};
+// Alle Kraftübungen als Auswahl bei „Welche Übungen willst du unbedingt machen?“
+QUESTIONS.find((q) => q.id === 'fav')!.options = Object.values(P).map((p) => [p.name, p.name] as [string, string]);
 
 /** Plätze pro Trainingsart: je Platz mehrere Kandidaten, der passendste wird gewählt */
 type Kind = 'ganz' | 'push' | 'pull' | 'beine' | 'oben' | 'unten';
@@ -132,13 +132,19 @@ const DEFAULT_DAYS: Record<number, string[]> = { 1: ['Mi'], 2: ['Mo', 'Do'], 3: 
 export function generatePlan(a: Answers): Plan {
   const days = Math.min(6, Math.max(1, Number(a.days) || 3));
   const count = ({ '30': 4, '45': 5, '60': 6, '90': 8 } as Record<string, number>)[String(a.duration)] ?? 5;
-  const kinds: Kind[] = days === 1 ? ['ganz'] : days === 2 ? ['ganz', 'ganz'] : days === 3 ? ['push', 'pull', 'beine'] : days === 4 ? ['oben', 'unten', 'oben', 'unten'] : ['push', 'pull', 'beine'];
+  const split = String(a.split ?? 'auto');
+  const cycle = (list: Kind[]) => Array.from({ length: days }, (_, i) => list[i % list.length]);
+  const kinds: Kind[] =
+    split === 'ganz' ? cycle(['ganz'])
+    : split === 'ppl' ? cycle(['push', 'pull', 'beine'])
+    : split === 'ob' ? cycle(['oben', 'unten'])
+    : days === 1 ? ['ganz'] : days === 2 ? ['ganz', 'ganz'] : days === 3 ? ['push', 'pull', 'beine'] : days === 4 ? ['oben', 'unten', 'oben', 'unten'] : ['push', 'pull', 'beine'];
   const names: Record<Kind, string> = { ganz: 'Ganzkörper', push: 'Push', pull: 'Pull', beine: 'Beine', oben: 'Oberkörper', unten: 'Unterkörper' };
 
   const equip = available(a);
   const pain = new Set(asList(a.pain).filter((p) => p !== 'keine'));
   const focus = new Set(asList(a.focus).filter((f) => f !== 'alles'));
-  const favNames = new Set(asList(a.fav).flatMap((f) => (FAV[f] ?? []).map((p) => p.name)));
+  const favNames = new Set(asList(a.fav));
   const ok = (p: Pick) => p.equip.some((e) => equip.has(e)) && !p.pain?.some((x) => pain.has(x));
   const score = (p: Pick) => (favNames.has(p.name) ? 3 : 0) + (p.muscles.some((m) => focus.has(m)) ? 2 : 0);
 
@@ -183,7 +189,7 @@ export function generatePlan(a: Answers): Plan {
       const outdoor = a.place !== 'gym';
       exercises.push({ name: outdoor ? 'Laufen (draußen)' : 'Laufband', muscles: [], cardio: true, sets: [{ duration_min: cardioMin }] });
     }
-    const label = names[kind] + (kinds.filter((k) => k === kind).length > 1 ? ` ${'AB'[variant] ?? variant + 1}` : '');
+    const label = names[kind] + (kinds.filter((k) => k === kind).length > 1 ? ` ${'ABCDEF'[variant] ?? variant + 1}` : '');
     const name = PLAN_PREFIX + label;
     if (!templates.some((t) => t.name === name)) templates.push({ name, exercises });
     order.push(name);
@@ -201,6 +207,8 @@ export function generatePlan(a: Answers): Plan {
     'Gewichte trägst du beim ersten Training ein – die App merkt sich deine Werte und zeigt sie beim nächsten Mal.',
     'Wähle Gewichte, mit denen du die Wiederholungen sauber schaffst.',
   ];
+  if (split === 'ppl' && days < 3) notes.push('Push / Pull / Beine braucht mindestens 3 Trainingstage, damit alle Teile drankommen – mit weniger Tagen ist Ganzkörper besser.');
+  if (split === 'ob' && days < 2) notes.push('Oberkörper / Unterkörper braucht mindestens 2 Trainingstage.');
   if (pain.size) notes.push('Übungen, die zu deinen Beschwerden passen, haben wir weggelassen. Bei Schmerzen bitte ärztlich abklären.');
   if (picked.length && picked.length < days) notes.push(`Du hast nur ${picked.length} Tage gewählt – die übrigen Tage haben wir passend ergänzt.`);
   return { templates, week, weekGoal: days, notes };

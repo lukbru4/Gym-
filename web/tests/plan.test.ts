@@ -54,6 +54,23 @@ describe('Trainingsplan aus dem Fragebogen', () => {
     expect(p.templates[0].exercises[0].sets[0].warmup).toBe(true);
     expect(p.templates[0].exercises[1].sets.some((s) => s.warmup)).toBe(false);
   });
+  test('Aufteilung: Ganzkörper, Push/Pull/Beine und Oberkörper/Unterkörper', () => {
+    const g = generatePlan({ ...base, days: '3', split: 'ganz' });
+    expect(g.templates.map((t) => t.name)).toEqual(['Plan · Ganzkörper A', 'Plan · Ganzkörper B', 'Plan · Ganzkörper C']);
+    const p = generatePlan({ ...base, days: '6', split: 'ppl' });
+    expect(p.templates.map((t) => t.name)).toEqual(['Plan · Push A', 'Plan · Pull A', 'Plan · Beine A', 'Plan · Push B', 'Plan · Pull B', 'Plan · Beine B']);
+    expect(p.week.length).toBe(6);
+    const o = generatePlan({ ...base, days: '2', split: 'ob' });
+    expect(o.templates.map((t) => t.name)).toEqual(['Plan · Oberkörper', 'Plan · Unterkörper']);
+    expect(generatePlan({ ...base, days: '2', split: 'ppl' }).notes.join(' ')).toMatch(/mindestens 3/);
+  });
+  test('ausgewählte Übungen kommen in den Plan, alle Auswahl-Übungen gibt es im Katalog', () => {
+    const opts = QUESTIONS.find((q) => q.id === 'fav')!.options!.map((o) => o[0]);
+    expect(opts.length).toBeGreaterThan(20);
+    for (const n of opts) expect(catalog.has(n), n).toBe(true);
+    const all = generatePlan({ ...base, days: '3', split: 'ppl', duration: '90', fav: ['Face Pulls', 'Hammercurls', 'Wadenheben'] }).templates.flatMap((t) => t.exercises.map((e) => e.name));
+    for (const n of ['Face Pulls', 'Hammercurls', 'Wadenheben']) expect(all).toContain(n);
+  });
   test('Fragen: Geräte-Frage nur bei „Zuhause mit Gewichten“, Antworten lesbar', () => {
     expect(activeQuestions({ place: 'gym' }).some((q) => q.id === 'equip')).toBe(false);
     expect(activeQuestions({ place: 'homeDb' }).some((q) => q.id === 'equip')).toBe(true);
