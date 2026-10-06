@@ -7,6 +7,7 @@ import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ExercisePicker } from '../components/ExercisePicker';
 import {
   blockFor,
+  blocksSignature,
   clearDraft,
   editBlocks,
   isUnilateral,
@@ -100,7 +101,8 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
     });
   const typeOf = (b: Block) => exerciseById(b.exercise_id)!.type;
   // Nach dem Training: Vorlage aktualisieren (Training aus Vorlage) bzw. als neue Vorlage speichern
-  const [keepTemplate, setKeepTemplate] = useState(true);
+  // „Vorlage so lassen“ ist Standard; Änderungen übernimmt man nur bewusst
+  const [updateTemplate, setUpdateTemplate] = useState(false);
   const [asTemplate, setAsTemplate] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
 
@@ -196,7 +198,7 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
     try {
       const exercisesOut = templateFromWorkout(state.blocks, exerciseById);
       if (!exercisesOut.length) return;
-      if (state.template_id && keepTemplate) {
+      if (state.template_id && updateTemplate) {
         let template;
         try {
           template = await api.getTemplate(state.template_id);
@@ -328,12 +330,20 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
       {live && state.blocks.length > 0 && (
         <div className="card template-save">
           {state.template_id ? (
-            <label className="check-row">
-              <input type="checkbox" id="update-template" checked={keepTemplate} onChange={(e) => setKeepTemplate(e.target.checked)} />
-              <span>
-                Vorlage <strong>„{state.name || 'Training'}“</strong> mit den heutigen Übungen, Sätzen und Werten aktualisieren
-              </span>
-            </label>
+            <fieldset className="tpl-choice" id="template-choice">
+              <legend>Vorlage <strong>„{state.name || 'Training'}“</strong></legend>
+              {state.template_sig !== undefined && state.template_sig !== blocksSignature(state.blocks) && (
+                <p className="notice small" id="template-changed">Du hast Übungen oder Sätze gegenüber der Vorlage geändert.</p>
+              )}
+              <label className={`check-row${!updateTemplate ? ' on' : ''}`}>
+                <input type="radio" name="tpl" id="tpl-keep" checked={!updateTemplate} onChange={() => setUpdateTemplate(false)} />
+                <span><strong>Vorlage wie vorher lassen</strong><small className="muted">Nur dieses Training wird gespeichert.</small></span>
+              </label>
+              <label className={`check-row${updateTemplate ? ' on' : ''}`}>
+                <input type="radio" name="tpl" id="tpl-update" checked={updateTemplate} onChange={() => setUpdateTemplate(true)} />
+                <span><strong>Vorlage speichern</strong><small className="muted">Übungen, Sätze und Werte von heute kommen in die Vorlage.</small></span>
+              </label>
+            </fieldset>
           ) : (
             <>
               <label className="check-row">

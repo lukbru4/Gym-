@@ -32,6 +32,8 @@ export interface EditorState {
   mode: EditorMode;
   id: number | null;
   template_id?: number | null;
+  /** Übungen und Satzzahlen der Vorlage beim Start (um Änderungen am Ende zu erkennen) */
+  template_sig?: string;
   name: string;
   date: ISODate;
   notes: string;
@@ -41,6 +43,9 @@ export interface EditorState {
 
 export const emptySet = (type: ExerciseType, warmup = false): Row =>
   type === 'cardio' ? { duration_min: '', distance_km: '' } : { warmup, reps: '', weight_kg: '' };
+
+/** Kurzform von Übungen und Satzzahlen, um zu erkennen, ob sich das Training von der Vorlage unterscheidet */
+export const blocksSignature = (blocks: Pick<Block, 'exercise_id' | 'sets'>[]) => blocks.map((b) => `${b.exercise_id}:${b.sets.length}`).join('|');
 
 export const newLiveState = (): EditorState => ({
   mode: 'live', id: null, template_id: null, name: '', date: todayISO(), notes: '', started_at: Date.now(), blocks: [],
@@ -159,7 +164,7 @@ export function previousFor(prevSets: WorkoutSet[] | undefined, block: Block, si
 type ExerciseLookup = (id: number) => Exercise | undefined;
 
 export function stateFromTemplate(t: Template, exerciseById: ExerciseLookup): EditorState {
-  return {
+  const state: EditorState = {
     ...newLiveState(),
     template_id: t.id,
     name: t.name,
@@ -182,6 +187,8 @@ export function stateFromTemplate(t: Template, exerciseById: ExerciseLookup): Ed
         };
       }),
   };
+  state.template_sig = blocksSignature(state.blocks);
+  return state;
 }
 
 export function templateBlocks(t: Pick<Template, 'exercises'>, exerciseById: ExerciseLookup): Block[] {

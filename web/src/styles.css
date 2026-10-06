@@ -1533,3 +1533,11 @@ body.picker-open { overflow: hidden; }
 .tile-link:not(.wide) { flex-direction: column; justify-content: center; text-align: center; gap: 8px; padding: 14px 8px; }
 .tile-link .tile-text { overflow-wrap: normal; }
 .tile-link:not(.wide) .tile-text strong { font-size: 0.95rem; }
+
+/* Training beenden: Vorlage lassen oder speichern */
+.tpl-choice { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tpl-choice legend { padding: 0; margin-bottom: 8px; }
+.tpl-choice .check-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; }
+.tpl-choice .check-row.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.tpl-choice .check-row span { display: flex; flex-direction: column; gap: 2px; }
+.tpl-choice input[type=radio] { margin-top: 3px; width: auto; flex: none; accent-color: var(--accent); }
