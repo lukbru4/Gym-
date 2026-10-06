@@ -10,4 +10,4 @@ export const USE_CLOUD = import.meta.env.VITE_BACKEND !== 'local';
 
 /** Muss zu public.schema_version() am Ende von supabase/schema.sql passen (ein Test prüft das).
  *  Ist die Datenbank älter, zeigt die App dem Admin „Datenbank-Update nötig“. */
-export const SCHEMA_VERSION = 43;
+export const SCHEMA_VERSION = 44;

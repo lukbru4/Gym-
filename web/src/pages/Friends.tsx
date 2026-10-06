@@ -151,7 +151,7 @@ export function Friends() {
           <ul className="friend-rows">
             {incoming.map((f) => (
               <li key={f.user_id} className="friend-request">
-                <AvatarDot name={f.display_name} />
+                <AvatarDot name={f.display_name} userId={f.user_id} />
                 <strong className="friend-meta">{f.display_name}</strong>
                 <span className="friend-actions">
                   <button className="btn small-btn primary" onClick={() => act(() => social.respond(f.user_id, true))}>Annehmen</button>
@@ -170,7 +170,7 @@ export function Friends() {
             {accepted.map((f) => (
               <li key={f.user_id}>
                 <a href={`#/freunde/profil/${f.user_id}`}>
-                  <AvatarDot name={f.display_name} />
+                  <AvatarDot name={f.display_name} userId={f.user_id} />
                   <span className="friend-meta">
                     <strong>{f.display_name}</strong>
                     <small className="muted">Freunde seit {fmtDate(f.since.slice(0, 10), false)}</small>
@@ -189,7 +189,7 @@ export function Friends() {
             <ul className="friend-rows">
               {outgoing.map((f) => (
                 <li key={f.user_id} className="friend-request">
-                  <AvatarDot name={f.display_name} />
+                  <AvatarDot name={f.display_name} userId={f.user_id} />
                   <span className="friend-meta">{f.display_name}</span>
                   <button className="link small" onClick={() => act(() => social.removeFriend(f.user_id))}>Zurückziehen</button>
                 </li>
@@ -364,9 +364,12 @@ export function FriendProfile({ userId }: { userId: string }) {
       <p><a href="#/freunde" className="link">← Freunde</a></p>
       <div className="profile-hero">
         <div className="profile-top">
-          <div>
-            <h2>{name}</h2>
-            {itemById(eq.title) && <p className="player-title">„{itemById(eq.title)!.name}“</p>}
+          <div className="profile-id">
+            <AvatarDot name={name} userId={userId} size={56} />
+            <div>
+              <h2>{name}</h2>
+              {itemById(eq.title) && <p className="player-title">„{itemById(eq.title)!.name}“</p>}
+            </div>
           </div>
           <RankBadge rank={g.overall} size={72} />
         </div>

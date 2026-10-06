@@ -93,3 +93,25 @@ export async function searchFood(query: string, fetchImpl: Fetch = fetch): Promi
   const data = (await res.json()) as { products?: OffProduct[] };
   return (data.products ?? []).map(parseProduct).filter((x): x is FoodItem => x !== null);
 }
+
+// ---- Kalorienziel schätzen ----------------------------------------------------------------
+export interface CalorieSuggestion { kcal: number; bmr: number; tdee: number; note: string }
+const toNum = (v: unknown) => {
+  const n = Number(String(v ?? '').replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+/** Grobe Schätzung aus den Antworten der Fragen (Mifflin-St-Jeor + Aktivität + Ziel). Nur ein Richtwert. */
+export function suggestCalories(a: Record<string, string | string[] | undefined>): CalorieSuggestion | null {
+  const weight = toNum(a.weight), height = toNum(a.height), age = toNum(a.age);
+  if (!weight || !height || !age) return null;
+  const offset = a.sex === 'm' ? 5 : a.sex === 'w' ? -161 : -78; // divers/keine Angabe: Mittelwert
+  const bmr = 10 * weight + 6.25 * height - 5 * age + offset;
+  const days = toNum(a.days) ?? 3;
+  const factor = days <= 2 ? 1.375 : days <= 4 ? 1.55 : 1.725;
+  const tdee = bmr * factor;
+  const goal = String(a.goal ?? '');
+  const adjust = goal === 'abnehmen' ? -400 : goal === 'muskel' ? 250 : goal === 'kraft' ? 150 : 0;
+  const note = goal === 'abnehmen' ? 'zum Abnehmen etwa 400 kcal unter deinem Verbrauch' : goal === 'muskel' ? 'zum Muskelaufbau etwa 250 kcal über deinem Verbrauch' : goal === 'kraft' ? 'etwas über deinem Verbrauch für mehr Kraft' : 'etwa dein geschätzter Verbrauch';
+  const kcal = Math.min(6000, Math.max(1200, Math.round((tdee + adjust) / 50) * 50));
+  return { kcal, bmr: Math.round(bmr), tdee: Math.round(tdee), note };
+}

@@ -1463,10 +1463,73 @@ grant execute on function public.food_add(date, text, text, text, numeric, numer
   public.food_list(date), public.food_delete(bigint), public.my_nutrition_goal(), public.set_nutrition_goal(integer) to authenticated;
 
 -- ===========================================================================
+-- Profilbild: privater Speicher „avatars“, ein Bild pro Nutzer unter <user-id>/avatar.jpg.
+-- Sehen dürfen es nur der Besitzer und bestätigte Freunde (gleiche Regel wie das Profil, can_see).
+-- Die App lädt ein verkleinertes Quadrat (max. 256 × 256 px) hoch und holt Freundesbilder über kurzlebige Links.
+-- ===========================================================================
+alter table public.profiles add column if not exists avatar_v integer;
+
+create or replace function public.can_view_avatar(p_owner text)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select auth.uid() is not null
+     and p_owner ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+     and public.can_see(auth.uid(), p_owner::uuid)
+$$;
+revoke all on function public.can_view_avatar(text) from public, anon;
+grant execute on function public.can_view_avatar(text) to authenticated;
+
+-- Version des eigenen Bildes (null = keins); beim Hochladen hochzählen, damit Bilder neu geladen werden
+create or replace function public.set_my_avatar(p_on boolean)
+returns integer language plpgsql security definer set search_path = '' as $$
+declare v integer;
+begin
+  if auth.uid() is null then raise exception 'nicht angemeldet'; end if;
+  perform public.my_profile();
+  update public.profiles
+     set avatar_v = case when p_on then coalesce(avatar_v, 0) + 1 else null end
+   where id = auth.uid()
+  returning avatar_v into v;
+  return v;
+end;
+$$;
+
+create or replace function public.my_avatar()
+returns integer language sql stable security definer set search_path = '' as $$
+  select p.avatar_v from public.profiles p where p.id = auth.uid()
+$$;
+
+-- Freunde (und ich), die ein Bild haben und es mir zeigen dürfen
+create or replace function public.friend_avatars()
+returns table (user_id uuid, v integer) language sql stable security definer set search_path = '' as $$
+  select p.id, p.avatar_v from public.profiles p
+  where p.avatar_v is not null and auth.uid() is not null and public.can_see(auth.uid(), p.id)
+$$;
+revoke all on function public.set_my_avatar(boolean), public.my_avatar(), public.friend_avatars() from public, anon;
+grant execute on function public.set_my_avatar(boolean), public.my_avatar(), public.friend_avatars() to authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('avatars', 'avatars', false, 524288, array['image/jpeg'])
+on conflict (id) do update set public = false, file_size_limit = 524288, allowed_mime_types = array['image/jpeg'];
+
+drop policy if exists "avatars: sehen (ich und Freunde)" on storage.objects;
+create policy "avatars: sehen (ich und Freunde)" on storage.objects for select to authenticated
+  using (bucket_id = 'avatars' and public.can_view_avatar((storage.foldername(name))[1]));
+drop policy if exists "avatars: eigenes hochladen" on storage.objects;
+create policy "avatars: eigenes hochladen" on storage.objects for insert to authenticated
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text and name = auth.uid()::text || '/avatar.jpg');
+drop policy if exists "avatars: eigenes ersetzen" on storage.objects;
+create policy "avatars: eigenes ersetzen" on storage.objects for update to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text and name = auth.uid()::text || '/avatar.jpg');
+drop policy if exists "avatars: eigenes löschen" on storage.objects;
+create policy "avatars: eigenes löschen" on storage.objects for delete to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 43 $$;
+returns integer language sql immutable set search_path = '' as $$ select 44 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

@@ -77,6 +77,11 @@ export interface Social {
   myShop(): Promise<{ owned: string[]; equipped: Equipped; admin?: boolean }>;
   /** Pro-Abo (Status kommt nur vom Server) */
   myPro(): Promise<{ pro: boolean; until: string | null; admin: boolean }>;
+  /** Profilbild: Freunde (und ich) mit Bild, Hochladen/Entfernen, kurzlebige Links */
+  friendAvatars(): Promise<{ user_id: string; v: number }[]>;
+  uploadAvatar(blob: Blob): Promise<void>;
+  removeAvatar(): Promise<void>;
+  avatarUrls(userIds: string[]): Promise<Record<string, string>>;
   /** Essen tracken (Hinzufügen nur mit Pro, prüft der Server) */
   foodList(date: string): Promise<FoodEntry[]>;
   foodAdd(e: { date: string; meal: Meal; name: string; brand?: string | null; amount_g?: number | null; kcal: number; protein: number; carbs: number; fat: number; barcode?: string | null; source: FoodEntry['source'] }): Promise<number>;
@@ -143,6 +148,28 @@ export function createSocial(supabase: SupabaseClient): Social {
     wallet: async () => (await rpc<{ earned: number; spent: number; balance: number }[]>('my_wallet'))[0] ?? { earned: 0, spent: 0, balance: 0 },
     myShop: () => rpc('my_shop'),
     myPro: () => rpc('my_pro'),
+    friendAvatars: () => rpc('friend_avatars'),
+    uploadAvatar: async (blob) => {
+      const uid = (await supabase.auth.getSession()).data.session?.user.id;
+      if (!uid) throw new Error('Bitte melde dich erneut an.');
+      const { error } = await supabase.storage.from('avatars').upload(`${uid}/avatar.jpg`, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '3600' });
+      if (error) throw error;
+      await rpc('set_my_avatar', { p_on: true });
+    },
+    removeAvatar: async () => {
+      const uid = (await supabase.auth.getSession()).data.session?.user.id;
+      if (!uid) return;
+      await supabase.storage.from('avatars').remove([`${uid}/avatar.jpg`]);
+      await rpc('set_my_avatar', { p_on: false });
+    },
+    avatarUrls: async (ids) => {
+      if (!ids.length) return {};
+      const { data, error } = await supabase.storage.from('avatars').createSignedUrls(ids.map((id) => `${id}/avatar.jpg`), 3600);
+      if (error) throw error;
+      const out: Record<string, string> = {};
+      for (const row of data ?? []) if (row.signedUrl && row.path) out[row.path.split('/')[0]] = row.signedUrl;
+      return out;
+    },
     foodList: async (p_date) => (await rpc<FoodEntry[]>('food_list', { p_date })).map((e) => ({ ...e, kcal: Number(e.kcal), protein: Number(e.protein), carbs: Number(e.carbs), fat: Number(e.fat), amount_g: e.amount_g == null ? null : Number(e.amount_g) })),
     foodAdd: (e) =>
       rpc('food_add', { p_date: e.date, p_meal: e.meal, p_name: e.name, p_brand: e.brand ?? null, p_amount: e.amount_g ?? null, p_kcal: e.kcal, p_protein: e.protein, p_carbs: e.carbs, p_fat: e.fat, p_barcode: e.barcode ?? null, p_source: e.source }),

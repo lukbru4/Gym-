@@ -93,6 +93,9 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [ ] Echte Käufe: Apple-/Google-Konto (**Lukas**), RevenueCat, Server-Eintrag in `subscriptions`
 - [x] Essen tracken (nur Pro, SQL-Version 43): Tag/Mahlzeiten, Tagesziel, Suche + Barcode (Open Food Facts), Kamera-Scan, manuell – Server prüft Pro beim Hinzufügen
 - [ ] Barcode-Kamera auf dem echten Handy prüfen (Kamera-Erlaubnis in iOS/Android eingetragen, nicht getestet)
+- [x] Training beenden: „Vorlage wie vorher lassen“ oder „Vorlage speichern“ (Standard: lassen)
+- [x] Kalorienziel-Vorschlag aus den Fragen (Größe, Gewicht, Alter, Ziel)
+- [x] Profilbild (SQL-Version 44): privater Speicher, nur Freunde sehen es, Foto wird auf 256 px verkleinert
 - [ ] Foto-KI für Essen: Server-Funktion (Supabase Edge Function) mit eigenem KI-Schlüssel, Pro-Prüfung, Tageslimit
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

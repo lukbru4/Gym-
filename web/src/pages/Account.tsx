@@ -14,6 +14,9 @@ import { useCosmetics } from '../lib/cosmetics';
 import { useShopItems } from '../lib/shop';
 import { activeQuestions, isAnswered, loadQuiz } from '../lib/plan';
 import { usePro } from '../lib/pro';
+import { refreshAvatars, useAvatarUrl } from '../lib/avatars';
+import { toSquareJpeg } from '../lib/image';
+import { AvatarDot } from '../components/AvatarDot';
 import { setLocalWeekGoal, useWeekGoal } from '../lib/weekGoal';
 import {
   SCHEMES,
@@ -125,6 +128,7 @@ export function Account() {
     if (!(await confirmDelete('Das Löschen deines Kontos'))) return;
     setBusy(true);
     try {
+      await api.social?.removeAvatar().catch(() => {}); // Profilbild mitlöschen
       await api.deleteAccount!();
       clearDraft();
     } catch (err) {
@@ -257,6 +261,49 @@ export function Account() {
 }
 
 /** Profil für Freunde (Cloud): Anzeigename, Sichtbarkeit, blockierte Personen */
+function AvatarEditor({ name }: { name: string }) {
+  const { api, user, showError } = useApp();
+  const social = api.social!;
+  const url = useAvatarUrl(user?.id);
+  const [busy, setBusy] = useState(false);
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      await social.uploadAvatar(await toSquareJpeg(file));
+      await refreshAvatars(social);
+    } catch (err) {
+      showError(err instanceof Error && /bucket|not found|storage|function/i.test(err.message) ? new Error('Profilbild ist noch nicht verfügbar – in Supabase fehlt das neue SQL (Version 44).') : err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    setBusy(true);
+    try {
+      await social.removeAvatar();
+      await refreshAvatars(social);
+    } catch (err) {
+      showError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="avatar-editor" id="avatar-editor">
+      <AvatarDot name={name} userId={user?.id} size={72} me />
+      <div className="avatar-editor-actions">
+        <label className={`btn small-btn${busy ? ' disabled' : ''}`}>
+          {url ? 'Foto ändern' : 'Foto wählen'}
+          <input type="file" id="avatar-file" accept="image/*" hidden disabled={busy} onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }} />
+        </label>
+        {url && <button className="btn small-btn" id="avatar-remove" disabled={busy} onClick={remove}>Entfernen</button>}
+        <p className="muted small">Nur deine Freunde sehen dein Foto. Es wird auf 256 × 256 Pixel verkleinert.</p>
+      </div>
+    </div>
+  );
+}
+
 function SocialSettings() {
   const { api, showError, dataVersion, dataChanged } = useApp();
   const social = api.social!;
@@ -288,6 +335,7 @@ function SocialSettings() {
   return (
     <div className="card">
       <h3>Profil für Freunde</h3>
+      <AvatarEditor name={current} />
       <div className="row pair">
         <label className="grow">
           Anzeigename

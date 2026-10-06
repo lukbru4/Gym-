@@ -26,6 +26,7 @@ import { Quiz } from '../pages/Quiz';
 import { Food } from '../pages/Food';
 import { ProPage } from '../components/Pro';
 import { setPro } from '../lib/pro';
+import { clearAvatars, refreshAvatars } from '../lib/avatars';
 import { History, WorkoutDetail } from '../pages/Workout';
 import { StartFromTemplate, Workouts } from '../pages/Workouts';
 import { AppProvider, useApp } from './context';
@@ -110,6 +111,12 @@ function Shell() {
       () => setCosmetics({ owned: [], equipped: {} }),
     );
   }, [api, dataChanged]);
+
+  // Profilbilder von mir und meinen Freunden (neu laden, wenn sich Daten ändern, z. B. neue Freunde)
+  useEffect(() => {
+    if (api.social) refreshAvatars(api.social);
+    else clearAvatars();
+  }, [api, dataVersion]);
 
   let page: ReactNode = null;
   for (const [re, render] of ROUTES) {

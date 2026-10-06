@@ -4,6 +4,7 @@ import { useGame } from '../app/gameContext';
 import { displayName } from '../app/profile';
 import { useAsync } from '../app/useAsync';
 import { Avatar } from '../components/Avatar';
+import { AvatarDot } from '../components/AvatarDot';
 import { TileIcon, type TileIconId } from '../components/TileIcons';
 import { LoadError, Loading, QuestRows } from '../components/Bits';
 import { Calendar } from '../components/Calendar';
@@ -47,9 +48,12 @@ export function Profile() {
     <>
       <div className="profile-hero">
         <div className="profile-top">
-          <div>
-            <h2>{displayName(api, user)}</h2>
-            {itemById(equipped.title) && <p className="player-title">„{itemById(equipped.title)!.name}“</p>}
+          <div className="profile-id">
+            {api.social && <AvatarDot name={displayName(api, user)} userId={user?.id} size={56} me />}
+            <div>
+              <h2>{displayName(api, user)}</h2>
+              {itemById(equipped.title) && <p className="player-title">„{itemById(equipped.title)!.name}“</p>}
+            </div>
           </div>
           <RankBadge rank={g.overall} size={72} />
         </div>

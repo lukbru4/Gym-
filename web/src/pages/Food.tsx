@@ -8,7 +8,8 @@ import { ask } from '../components/Dialog';
 import { pickNumber } from '../components/NumberPicker';
 import { Paywall } from '../components/Pro';
 import { fmt } from '../lib/format';
-import { isBarcode, lookupBarcode, MEALS, scale, searchFood, totals, type FoodEntry, type FoodItem, type Meal } from '../lib/food';
+import { isBarcode, lookupBarcode, MEALS, scale, searchFood, suggestCalories, totals, type FoodEntry, type FoodItem, type Meal } from '../lib/food';
+import { loadQuiz } from '../lib/plan';
 import { usePro } from '../lib/pro';
 import { addDays, todayISO } from '../lib/stats';
 
@@ -68,6 +69,14 @@ export function Food() {
           <strong>{fmt(sum.kcal, 0)}</strong> <span>/ {fmt(target, 0)} kcal</span>
           <small>{sum.kcal <= target ? `noch ${fmt(target - sum.kcal, 0)} kcal` : `${fmt(sum.kcal - target, 0)} kcal drüber`} · Ziel ändern</small>
         </button>
+        <SuggestGoal target={target} onTake={async (kcal) => {
+          try {
+            await social.setNutritionGoal(kcal);
+            setGoalVersion((n) => n + 1);
+          } catch (err) {
+            showError(err);
+          }
+        }} />
         <div className="food-bar" aria-hidden="true"><i className={sum.kcal > target ? 'over' : ''} style={{ width: `${pct}%` }} /></div>
         <div className="tiles">
           <div className="tile"><span className="tile-value">{sum.protein}</span><span className="tile-label">g Eiweiß</span></div>
@@ -110,6 +119,19 @@ export function Food() {
         />
       )}
     </>
+  );
+}
+
+function SuggestGoal({ target, onTake }: { target: number; onTake: (kcal: number) => void }) {
+  const sug = suggestCalories(loadQuiz()?.answers ?? {});
+  if (!sug)
+    return <p className="muted small" id="food-nosuggest">Beantworte in den Einstellungen die Fragen (Größe, Gewicht, Alter), dann schlagen wir dir ein Tagesziel vor.</p>;
+  if (sug.kcal === target) return <p className="muted small" id="food-suggest-ok">Dein Ziel passt zu deinem geschätzten Bedarf ({sug.note}).</p>;
+  return (
+    <div className="notice small" id="food-suggest">
+      Vorschlag aus deinen Antworten: <strong>{fmt(sug.kcal, 0)} kcal</strong> ({sug.note}). Das ist nur eine Schätzung.
+      <button className="btn small-btn" id="food-suggest-take" onClick={() => onTake(sug.kcal)}>Übernehmen</button>
+    </div>
   );
 }
 

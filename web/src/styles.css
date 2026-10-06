@@ -1541,3 +1541,12 @@ body.picker-open { overflow: hidden; }
 .tpl-choice .check-row.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .tpl-choice .check-row span { display: flex; flex-direction: column; gap: 2px; }
 .tpl-choice input[type=radio] { margin-top: 3px; width: auto; flex: none; accent-color: var(--accent); }
+#food-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+
+/* Profilbild */
+.avatar-dot.photo { object-fit: cover; padding: 0; }
+.profile-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.avatar-editor { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.avatar-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.avatar-editor-actions p { flex-basis: 100%; margin: 0; }
+label.btn.disabled { opacity: 0.6; pointer-events: none; }
