@@ -354,7 +354,7 @@ export function FriendProfile({ userId }: { userId: string }) {
           </div>
           <RankBadge rank={g.overall} size={72} />
         </div>
-        <Avatar level={g.player.level} skin={eq.skin} accessory={eq.accessory} />
+        <Avatar level={g.player.level} skin={eq.skin} />
         <p className="muted small center">
           Level {g.player.level} · {g.overall.label} · Serie {g.streak} {g.streak === 1 ? 'Tag' : 'Tage'} · {plural(g.workouts.length, 'Training', 'Trainings')}
         </p>

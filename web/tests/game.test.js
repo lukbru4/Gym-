@@ -40,10 +40,10 @@ test('Aufgaben: tägliche und wöchentliche Belohnungen', () => {
   ];
   const p = computeProgress(workouts, sets, ex);
   const q = computeQuests(p.perWorkout, '2026-09-25');
-  // täglich: Mo train+sets10 = 25; Mi train+record = 35; Fr train+record = 35
-  // wöchentlich: 3 Tage = 50 (erreicht am Fr); nur 2 Steigerungen → keine 40
-  assert.equal(q.total, 25 + 35 + 35 + 50);
-  assert.equal(q.byDate.get('2026-09-25'), 35 + 50);
+  // täglich: Mo train+sets10 = 40; Mi train+record = 55; Fr train+record = 55
+  // wöchentlich: 3 Tage = 75 (erreicht am Fr); nur 2 Steigerungen → keine 60
+  assert.equal(q.total, 40 + 55 + 55 + 75);
+  assert.equal(q.byDate.get('2026-09-25'), 55 + 75);
   assert.deepEqual(q.today.map((x) => x.done), [true, false, true]);
   assert.deepEqual(q.week.map((x) => [x.id, x.value, x.done]), [['days3', 3, true], ['improve3', 2, false]]);
   // Tag ohne Training

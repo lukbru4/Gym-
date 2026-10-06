@@ -17,7 +17,6 @@ const schemeOf = (itemId: string): SchemeChoice | null =>
 
 function Preview({ item, level }: { item: ShopItem; level: number }) {
   if (item.kind === 'skin') return <div className="shop-preview"><Avatar level={level} skin={item.id} /></div>;
-  if (item.kind === 'accessory') return <div className="shop-preview"><Avatar level={level} accessory={item.id} /></div>;
   if (item.kind === 'title') return <div className="shop-preview title-preview" lang="de">„{item.name}“</div>;
   // Farbschema: Mini-Ansicht der App in Hell und Dunkel
   const pal = item.palette;

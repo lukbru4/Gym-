@@ -4,7 +4,7 @@ import { musclesOf, MUSCLE_NAMES } from './muscles';
 import { addDays, dayStreak, estimate1RM, isWorkingSet, setVolume, weekStart } from './stats';
 import type { ExerciseMap, ISODate, MuscleId, Workout, WorkoutSet } from './types';
 
-export type RecapPeriod = 'week' | 'month';
+export type RecapPeriod = 'week' | 'month' | 'year';
 
 export interface RecapPR { exercise: string; e1rm: number; previous: number }
 
@@ -37,6 +37,10 @@ export function recapRange(period: RecapPeriod, today: ISODate): { from: ISODate
     return { from, prevFrom, prevTo: addDays(prevFrom, length) };
   }
   const [y, m, d] = today.split('-').map(Number);
+  if (period === 'year') {
+    const prevTo = `${y - 1}-${String(m).padStart(2, '0')}-${String(m === 2 && d === 29 ? 28 : d).padStart(2, '0')}`;
+    return { from: `${y}-01-01`, prevFrom: `${y - 1}-01-01`, prevTo };
+  }
   const from = `${y}-${String(m).padStart(2, '0')}-01`;
   const py = m === 1 ? y - 1 : y;
   const pm = m === 1 ? 12 : m - 1;

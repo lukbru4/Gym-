@@ -191,8 +191,8 @@ grant execute on function public.delete_my_account() to authenticated;
 --   Training: +20 pro Training mit mindestens einem Arbeitssatz, +2 pro Arbeitssatz,
 --             +10 wenn eine Kraftübung stärker ist als beim letzten Mal (geschätztes 1RM, Epley),
 --             +25 zusätzlich bei neuem Rekord der Übung. Aufwärmsätze zählen nicht.
---   Tägliche Aufgaben (pro Kalendertag): trainiert +15, ≥ 10 Arbeitssätze +10, ≥ 1 Rekord +20.
---   Wöchentliche Aufgaben (Woche ab Montag): an ≥ 3 Tagen trainiert +50, ≥ 3 Steigerungen +40.
+--   Tägliche Aufgaben (pro Kalendertag): trainiert +25, ≥ 10 Arbeitssätze +15, ≥ 1 Rekord +30.
+--   Wöchentliche Aufgaben (Woche ab Montag): an ≥ 3 Tagen trainiert +75, ≥ 3 Steigerungen +60.
 -- Grundlage für den Shop: Käufe prüfen später gegen diesen Wert, nicht gegen die App.
 -- ---------------------------------------------------------------------------
 create or replace function public.credits_earned(p_user uuid)
@@ -273,14 +273,14 @@ begin
 
   for k in select jsonb_object_keys(days) loop
     d := days -> k;
-    if (d ->> 'sets')::int > 0 then total := total + 15; end if;
-    if (d ->> 'sets')::int >= 10 then total := total + 10; end if;
-    if (d ->> 'records')::int >= 1 then total := total + 20; end if;
+    if (d ->> 'sets')::int > 0 then total := total + 25; end if;
+    if (d ->> 'sets')::int >= 10 then total := total + 15; end if;
+    if (d ->> 'records')::int >= 1 then total := total + 30; end if;
   end loop;
   for k in select jsonb_object_keys(weeks) loop
     d := weeks -> k;
-    if (select count(*) from jsonb_object_keys(d -> 'days')) >= 3 then total := total + 50; end if;
-    if (d ->> 'improvements')::int >= 3 then total := total + 40; end if;
+    if (select count(*) from jsonb_object_keys(d -> 'days')) >= 3 then total := total + 75; end if;
+    if (d ->> 'improvements')::int >= 3 then total := total + 60; end if;
   end loop;
   return total;
 end;
@@ -1000,11 +1000,6 @@ insert into public.shop_items (id, kind, name, price) values
   ('scheme_mono',   'scheme',    'Schwarz-Weiß',     450),
   ('scheme_gold',   'scheme',    'Schwarz-Gold',     500),
   ('scheme_eis',    'scheme',    'Eisblau',          500),
-  ('acc_band',      'accessory', 'Stirnband',        150),
-  ('acc_shades',    'accessory', 'Sonnenbrille',     250),
-  ('acc_cap',       'accessory', 'Cap',              200),
-  ('acc_chain',     'accessory', 'Goldkette',        400),
-  ('acc_crown',     'accessory', 'Krone',            800),
   ('title_early',   'title',     'Frühaufsteher',    150),
   ('title_iron',    'title',     'Eisenfresser',     200),
   ('title_reps',    'title',     'Rep-Maschine',     200),
@@ -1349,6 +1344,6 @@ grant execute on function public.my_week_goal(), public.set_week_goal(integer), 
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 39 $$;
+returns integer language sql immutable set search_path = '' as $$ select 41 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

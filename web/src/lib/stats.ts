@@ -81,6 +81,47 @@ export function weeklySummary(workouts: Workout[], sets: WorkoutSet[], today: IS
   return buckets;
 }
 
+export type StatsPeriod = 'week' | 'month' | 'year';
+export interface StatBucket { label: string; workouts: number; volume: number; cardioMin: number }
+const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
+/** Statistik für diese Woche (pro Tag), diesen Monat (pro Tag) oder dieses Jahr (pro Monat) */
+export function periodSummary(workouts: Workout[], sets: WorkoutSet[], today: ISODate, period: StatsPeriod): { buckets: StatBucket[]; total: StatBucket } {
+  const [y, m] = today.split('-').map(Number);
+  const keys: { key: string; label: string }[] = [];
+  let keyOf: (d: ISODate) => string;
+  if (period === 'week') {
+    const start = weekStart(today);
+    for (let i = 0; i < 7; i++) keys.push({ key: addDays(start, i), label: WEEKDAYS[i] });
+    keyOf = (d) => d;
+  } else if (period === 'month') {
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    for (let d = 1; d <= days; d++) keys.push({ key: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`, label: String(d) });
+    keyOf = (d) => d;
+  } else {
+    for (let i = 0; i < 12; i++) keys.push({ key: `${y}-${String(i + 1).padStart(2, '0')}`, label: MONTHS[i] });
+    keyOf = (d) => d.slice(0, 7);
+  }
+  const byKey = new Map(keys.map((k) => [k.key, { label: k.label, workouts: 0, volume: 0, cardioMin: 0 }]));
+  const bucketOf = new Map<number, StatBucket>();
+  for (const w of workouts) {
+    const b = byKey.get(keyOf(w.date));
+    if (!b) continue;
+    b.workouts++;
+    bucketOf.set(w.id, b);
+  }
+  for (const s of sets) {
+    const b = bucketOf.get(s.workout_id);
+    if (!b) continue;
+    b.volume += setVolume(s);
+    b.cardioMin += num(s.duration_min);
+  }
+  const buckets = [...byKey.values()];
+  const total = buckets.reduce((t, b) => ({ ...t, workouts: t.workouts + b.workouts, volume: t.volume + b.volume, cardioMin: t.cardioMin + b.cardioMin }), { label: '', workouts: 0, volume: 0, cardioMin: 0 });
+  return { buckets, total };
+}
+
 export interface StrengthPoint { date: ISODate; e1rm: number; maxWeight: number; volume: number }
 export interface CardioPoint { date: ISODate; duration: number; distance: number }
 

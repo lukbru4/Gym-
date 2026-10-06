@@ -29,18 +29,13 @@ export function Profile() {
   const { api, user } = useApp();
   const game = useGame();
   const { equipped } = useCosmetics();
-  const { templates, medals } = useMedals(game.status === 'ok' ? game.data : null);
-  if (game.status === 'loading' || templates.status === 'loading') return <Loading />;
+  if (game.status === 'loading') return <Loading />;
   if (game.status === 'error') return <LoadError error={game.error} />;
-  if (templates.status === 'error') return <LoadError error={templates.error} />;
   const g = game.data;
-  const openDaily = g.quests.today.filter((q) => !q.done).length;
-  const doneMedals = medals!.filter((m) => m.done).length;
-  const tile = (href: string, icon: string, label: string, badge = '') => (
+  const tile = (href: string, icon: string, label: string) => (
     <a className="tile-link" href={href}>
       <span className="tile-icon" aria-hidden="true">{icon}</span>
       {label}
-      {badge && <span className="tile-badge">{badge}</span>}
     </a>
   );
   return (
@@ -53,14 +48,14 @@ export function Profile() {
           </div>
           <RankBadge rank={g.overall} size={72} />
         </div>
-        <Avatar level={g.player.level} skin={equipped.skin} accessory={equipped.accessory} />
+        <Avatar level={g.player.level} skin={equipped.skin} />
         <p className="muted small center">
           Level {g.player.level} · {g.overall.label} · {fmt(g.credits, 0)} Credits
         </p>
       </div>
       <div className="tile-grid">
-        {tile('#/aufgaben', '📜', 'Aufgaben', openDaily ? String(openDaily) : '')}
-        {tile('#/medaillen', '🏅', 'Medaillen', doneMedals ? String(doneMedals) : '')}
+        {tile('#/aufgaben', '📜', 'Aufgaben')}
+        {tile('#/medaillen', '🏅', 'Medaillen')}
         {tile('#/workouts', '📋', 'Vorlagen')}
         {tile('#/rekorde', '🏋️', 'Übungen')}
         {tile('#/verlauf', '🗓️', 'Verlauf')}

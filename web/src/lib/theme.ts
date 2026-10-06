@@ -1,4 +1,4 @@
-// Hell/Dunkel: standardmäßig nach Uhrzeit (18:00–6:00 Uhr dunkel, Zeiten einstellbar), wahlweise wie Gerät oder fest.
+// Hell/Dunkel: standardmäßig schwarz, wahlweise weiß, nach Uhrzeit (Zeiten einstellbar) oder wie das Gerät.
 // Dazu optional eine eigene Akzentfarbe, die automatisch für Hell und Dunkel lesbar gemacht wird.
 // Das kleine Skript im <head> von index.html setzt das Design schon vor dem ersten Zeichnen
 // (gleiche Regel), damit die Seite nicht kurz hell aufblitzt.
@@ -14,7 +14,7 @@ export type SchemeChoice = SchemeId | `custom:${string}`;
 export type ThemeMode = 'time' | 'system' | 'light' | 'dark';
 
 export const SCHEMES: [SchemeId, string][] = [
-  ['standard', 'Standard (Blau)'],
+  ['standard', 'Standard (Rot)'],
   ['energie', 'Neon-Grün (Shop)'],
   ['ozean', 'Ozean (Shop)'],
   ['violett', 'Nacht-Violett (Shop)'],
@@ -35,10 +35,10 @@ export const PREMIUM_SCHEMES: Partial<Record<SchemeId, string>> = {
 };
 export const DEFAULT_SCHEME: SchemeId = 'standard';
 export const THEME_OPTIONS: [ThemeMode, string][] = [
+  ['dark', 'Schwarz (Standard)'],
+  ['light', 'Weiß'],
   ['time', 'Nach Uhrzeit'],
   ['system', 'Wie Gerät'],
-  ['light', 'Immer hell'],
-  ['dark', 'Immer dunkel'],
 ];
 export const DARK_FROM_HOUR = 18;
 export const DARK_UNTIL_HOUR = 6;
@@ -240,7 +240,7 @@ export function setPreviewScheme(id: SchemeChoice | null) {
   applyTheme();
   previewListeners.forEach((l) => l());
 }
-export const getThemeMode = () => read(KEY, THEME_OPTIONS, 'time');
+export const getThemeMode = () => read(KEY, THEME_OPTIONS, 'dark');
 
 /** Liefert 'dark', 'light' oder null (= Gerät entscheidet) */
 export function resolveTheme(mode: ThemeMode, now = new Date()): 'dark' | 'light' | null {

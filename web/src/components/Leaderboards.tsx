@@ -1,4 +1,5 @@
 // Ranglisten mit Freunden: Gesamt (Credits), diese Woche, pro Übung (bestes geschätztes 1RM).
+import { ChoiceField } from './ChoiceSheet';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
@@ -81,17 +82,14 @@ function ExerciseBoard({ social }: { social: Social }) {
   if (!names.length) return <p className="muted small">Sobald du oder deine Freunde Kraftübungen trainieren, gibt es hier Bestwerte.</p>;
   return (
     <>
-      <label className="small">
-        Übung
-        <select id="board-exercise" value={current} onChange={(e) => setExercise(e.target.value)}>
-          {list.data.map((e) => (
-            <option key={e.name} value={e.name}>
-              {e.name}
-              {e.people > 1 ? ` (${e.people})` : ''}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ChoiceField
+        id="board-exercise"
+        label="Übung"
+        title="Übung wählen"
+        items={list.data.map((e) => ({ key: e.name, label: e.name, sub: e.people > 1 ? `${e.people} Personen` : undefined }))}
+        value={current}
+        onChange={(k) => setExercise(String(k))}
+      />
       <p className="muted small">Bestes geschätztes Maximalgewicht (1RM nach Epley), Aufwärmsätze zählen nicht.</p>
       {board.status === 'ok' ? (
         <Rows

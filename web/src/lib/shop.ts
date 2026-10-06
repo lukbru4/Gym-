@@ -37,11 +37,6 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'scheme_mono', kind: 'scheme', name: 'Schwarz-Weiß', price: 450, color: '#f5f5f5', description: 'Puristisch, ganz ohne Farbe.', palette: { light: ['#f4f4f4', '#ffffff', '#111111', '#ffffff'], dark: ['#000000', '#111111', '#f5f5f5', '#000000'] } },
   { id: 'scheme_gold', kind: 'scheme', name: 'Schwarz-Gold', price: 500, color: '#e0b43a', description: 'Schwarz mit Gold – für Champions.', palette: { light: ['#f7f4ec', '#ffffff', '#9a6b00', '#ffffff'], dark: ['#0b0a08', '#17150f', '#e6b93e', '#0b0a08'] } },
   { id: 'scheme_eis', kind: 'scheme', name: 'Eisblau', price: 500, color: '#3aa7e0', description: 'Kühles Blau, klar wie Eis.', palette: { light: ['#f0f6fb', '#ffffff', '#1668a8', '#ffffff'], dark: ['#070d14', '#0f1a26', '#5cc8ff', '#06121c'] } },
-  { id: 'acc_band', kind: 'accessory', name: 'Stirnband', price: 150, description: 'Stirnband für deinen Avatar.' },
-  { id: 'acc_shades', kind: 'accessory', name: 'Sonnenbrille', price: 250, description: 'Cool bleiben beim Training.' },
-  { id: 'acc_cap', kind: 'accessory', name: 'Cap', price: 200, description: 'Kappe für deinen Avatar.' },
-  { id: 'acc_chain', kind: 'accessory', name: 'Goldkette', price: 400, description: 'Ein bisschen Bling.' },
-  { id: 'acc_crown', kind: 'accessory', name: 'Krone', price: 800, description: 'Für die Nummer 1 im Gym.' },
   { id: 'title_early', kind: 'title', name: 'Frühaufsteher', price: 150, description: 'Titel unter deinem Namen.' },
   { id: 'title_iron', kind: 'title', name: 'Eisenfresser', price: 200, description: 'Titel unter deinem Namen.' },
   { id: 'title_reps', kind: 'title', name: 'Rep-Maschine', price: 200, description: 'Titel unter deinem Namen.' },
@@ -52,7 +47,6 @@ export const SHOP_ITEMS: ShopItem[] = [
 export const SHOP_SECTIONS: [ShopKind, string][] = [
   ['scheme', 'Farbschemata'],
   ['skin', 'Körpergraph-Looks'],
-  ['accessory', 'Avatar'],
   ['title', 'Titel'],
 ];
 

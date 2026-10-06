@@ -68,7 +68,7 @@ export function WorkoutDetail({ id }: { id: number }) {
   return (
     <>
       <p>
-        <a href="#/verlauf" className="link">← Verlauf</a>
+        <a href="#/verlauf" className="btn small-btn">← Verlauf</a>
       </p>
       <h2>{fmtDate(w.date)}</h2>
       {earned?.credits ? (

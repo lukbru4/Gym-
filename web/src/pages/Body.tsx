@@ -85,6 +85,16 @@ export function Body() {
     <>
       <h2>Körpergraph</h2>
       <div className="card">
+        <div className="muscle-name" id="muscle-name" aria-live="polite">
+          {selected ? (
+            <>
+              <strong>{MUSCLE_NAMES.get(selected)}</strong>
+              <span>{sel?.level ? `Stufe ${sel.level}` : 'noch nicht trainiert'}</span>
+            </>
+          ) : (
+            <span>Tippe auf einen Muskel</span>
+          )}
+        </div>
         <BodyGraph levels={levels} onSelect={setSelected} />
         <ul className="legend skin-scope" data-skin={cosmetics.equipped.skin} aria-label="Legende">
           <li><span className="swatch" style={{ background: 'var(--neon-bg)' }} />nicht trainiert</li>

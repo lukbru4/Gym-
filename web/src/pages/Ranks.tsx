@@ -1,4 +1,5 @@
 // Ränge pro Übung, Gesamt-Rang, Rekorde & Level pro Übung, Analyse einer Übung.
+import { ChoiceField } from '../components/ChoiceSheet';
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
@@ -197,7 +198,8 @@ export function Analysis() {
         <p className="muted">Sobald du Trainings erfasst hast, siehst du hier deinen Fortschritt.</p>
       </>
     );
-  const current = used.some((e) => e.id === selected) ? selected! : used[0].id;
+  const allExercises = [...exercises].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const current = exerciseById(selected ?? -1) ? selected! : used[0].id;
   const ex = exerciseById(current)!;
   const rows = exerciseProgress(dated.filter((s) => s.exercise_id === current), ex.type);
   const labels = rows.map((r) => fmtShortDate(r.date));
@@ -210,7 +212,9 @@ export function Analysis() {
     }
   };
   let body;
-  if (ex.type === 'cardio') {
+  if (!rows.length) {
+    body = <p className="muted">Für diese Übung gibt es noch keine Einträge.</p>;
+  } else if (ex.type === 'cardio') {
     const r = rows as CardioPoint[];
     body = (
       <>
@@ -264,14 +268,14 @@ export function Analysis() {
     <>
       <h2>Analyse</h2>
       <div className="card">
-        <label>
-          Übung
-          <select id="p-exercise" value={current} onChange={(e) => choose(Number(e.target.value))}>
-            {used.map((e) => (
-              <option key={e.id} value={e.id}>{e.name}</option>
-            ))}
-          </select>
-        </label>
+        <ChoiceField
+          id="p-exercise"
+          label="Übung"
+          title="Übung wählen"
+          items={allExercises.map((e) => ({ key: e.id, label: e.name, sub: used.some((u) => u.id === e.id) ? undefined : 'noch nicht trainiert' }))}
+          value={current}
+          onChange={(k) => choose(Number(k))}
+        />
         <div id="p-body">{body}</div>
       </div>
     </>

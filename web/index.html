@@ -21,7 +21,7 @@
       var sc = localStorage.getItem('gym-tracker-scheme') || 'standard';
       var cs = sc.indexOf('custom:') === 0 ? JSON.parse(localStorage.getItem('gym-tracker-custom-scheme') || 'null') : null;
       r.dataset.scheme = cs && cs.id === sc.slice(7) ? 'custom' : sc;
-      var m = localStorage.getItem('gym-tracker-theme') || 'time', h = new Date().getHours();
+      var m = localStorage.getItem('gym-tracker-theme') || 'dark', h = new Date().getHours();
       var hrs = JSON.parse(localStorage.getItem('gym-tracker-dark-hours') || 'null') || { from: 18, until: 6 };
       var night = hrs.from > hrs.until ? h >= hrs.from || h < hrs.until : h >= hrs.from && h < hrs.until;
       if (m === 'time') r.dataset.theme = night ? 'dark' : 'light';
@@ -40,8 +40,7 @@
       }
     } catch (e) {
       document.documentElement.dataset.scheme = 'standard';
-      var hh = new Date().getHours();
-      document.documentElement.dataset.theme = hh >= 18 || hh < 6 ? 'dark' : 'light';
+      document.documentElement.dataset.theme = 'dark';
     }
   </script>
 </head>

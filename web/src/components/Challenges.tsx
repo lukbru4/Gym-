@@ -1,4 +1,5 @@
 // Challenges mit Freunden: herausfordern, annehmen/ablehnen, Punktestand, Ergebnis mit Bonus-Credits.
+import { ChoiceField } from './ChoiceSheet';
 import { useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
@@ -103,21 +104,23 @@ export function Challenges({ social, friends }: { social: Social; friends: Frien
     <div className="card" id="challenges">
       <div className="block-head">
         <h3>Challenges</h3>
-        {accepted.length > 0 && !open && (
-          <button className="btn small-btn primary" id="new-challenge" onClick={() => setOpen(true)}>Herausfordern</button>
-        )}
       </div>
       <p className="muted small">7 Tage ab Annahme. Gewinner bekommt +50 Credits, bei Gleichstand beide +25.</p>
+      {accepted.length > 0 && !open && (
+        <button className="btn primary block battle-btn" id="new-challenge" onClick={() => setOpen(true)}>
+          <span aria-hidden="true">⚔️</span> Freund herausfordern
+        </button>
+      )}
       {open && (
         <form className="challenge-form" onSubmit={create}>
-          <label>
-            Wen?
-            <select id="challenge-opponent" value={opponent || accepted[0]?.user_id} onChange={(e) => setOpponent(e.target.value)}>
-              {accepted.map((f) => (
-                <option key={f.user_id} value={f.user_id}>{f.display_name}</option>
-              ))}
-            </select>
-          </label>
+          <ChoiceField
+            id="challenge-opponent"
+            label="Wen?"
+            title="Freund wählen"
+            items={accepted.map((f) => ({ key: f.user_id, label: f.display_name }))}
+            value={opponent || accepted[0]?.user_id}
+            onChange={(k) => setOpponent(String(k))}
+          />
           <fieldset className="metric-choice">
             <legend className="small">Worum geht es?</legend>
             {METRICS.map(([id, label, hint]) => (

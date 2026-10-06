@@ -11,7 +11,7 @@ import { migrateToCloud, migrationDone, readLocalData } from '../data/migrate';
 import { datedSets } from '../lib/editor';
 import { fmt, fmtShortDate, plural } from '../lib/format';
 import { strengthLevels } from '../lib/muscles';
-import { todayISO, weeklySummary } from '../lib/stats';
+import { periodSummary, todayISO, type StatsPeriod } from '../lib/stats';
 import { APP_VERSION } from '../version';
 import { notify } from '../components/Dialog';
 
@@ -64,7 +64,23 @@ function MigrateCard() {
   );
 }
 
+const STATS_KEY = 'gym-tracker-stats-period';
+const STATS_TEXT: Record<StatsPeriod, { title: string; unit: string }> = {
+  week: { title: 'Diese Woche', unit: 'Tag' },
+  month: { title: 'Dieser Monat', unit: 'Tag' },
+  year: { title: 'Dieses Jahr', unit: 'Monat' },
+};
+function readStatsPeriod(): StatsPeriod {
+  try {
+    const v = localStorage.getItem(STATS_KEY);
+    return v === 'week' || v === 'month' ? v : 'year';
+  } catch {
+    return 'year';
+  }
+}
+
 export function Home() {
+  const [statsPeriod, setStatsPeriod] = useState(readStatsPeriod);
   const { api, exerciseMap, dataVersion } = useApp();
   const game = useGame();
   const weights = useAsync(() => api.listBodyWeights(), [api, dataVersion]);
@@ -73,11 +89,19 @@ export function Home() {
   if (weights.status === 'error') return <LoadError error={weights.error} />;
   const g = game.data;
   const today = todayISO();
-  const weeks = weeklySummary(g.workouts, g.sets, today, 8);
+  const stats = periodSummary(g.workouts, g.sets, today, statsPeriod);
+  const text = STATS_TEXT[statsPeriod];
+  const pickPeriod = (p: StatsPeriod) => {
+    setStatsPeriod(p);
+    try {
+      localStorage.setItem(STATS_KEY, p);
+    } catch {
+      /* nur Komfort */
+    }
+  };
   const levels = strengthLevels(datedSets(g.workouts, g.sets), exerciseMap(), today);
-  const thisWeek = weeks[weeks.length - 1];
   const lastWeight = weights.data[weights.data.length - 1];
-  const labels = weeks.map((w) => fmtShortDate(w.start));
+  const labels = stats.buckets.map((b) => b.label);
 
   return (
     <>
@@ -102,28 +126,38 @@ export function Home() {
         <BodyGraph levels={levels} />
       </a>
       <a className="btn primary block big" href="#/workouts">Workout starten</a>
-      <CreditsRules />
-      <h2>Diese Woche</h2>
+      <div className="stats-head">
+        <h2>{text.title}</h2>
+        <div className="mini-seg" role="tablist" aria-label="Zeitraum der Statistik">
+          {(['week', 'month', 'year'] as const).map((p) => (
+            <button key={p} role="tab" aria-selected={statsPeriod === p} className={statsPeriod === p ? 'active' : ''} onClick={() => pickPeriod(p)} data-stats={p}>
+              {p === 'week' ? 'Woche' : p === 'month' ? 'Monat' : 'Jahr'}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="tiles">
-        <div className="tile"><span className="tile-value">{thisWeek.workouts}</span><span className="tile-label">Trainings</span></div>
-        <div className="tile"><span className="tile-value">{fmt(thisWeek.volume, 0)}</span><span className="tile-label">kg Volumen</span></div>
-        <div className="tile"><span className="tile-value">{fmt(thisWeek.cardioMin, 0)}</span><span className="tile-label">Min. Cardio</span></div>
+        <div className="tile"><span className="tile-value">{stats.total.workouts}</span><span className="tile-label">Trainings</span></div>
+        <div className="tile"><span className="tile-value">{fmt(stats.total.volume, 0)}</span><span className="tile-label">kg Volumen</span></div>
+        <div className="tile"><span className="tile-value">{fmt(stats.total.cardioMin, 0)}</span><span className="tile-label">Min. Cardio</span></div>
         <div className="tile">
           <span className="tile-value">{lastWeight ? fmt(lastWeight.weight_kg) : '–'}</span>
           <span className="tile-label">kg Körpergewicht{lastWeight ? ` (${fmtShortDate(lastWeight.date)})` : ''}</span>
         </div>
       </div>
       <div className="card">
-        <h3>Trainings pro Woche</h3>
-        <ChartView type="bar" labels={labels} series={[{ label: 'Trainings', data: weeks.map((w) => w.workouts), color: '--series-1' }]} unit="Trainings" integer ariaLabel="Trainings pro Woche" id="c-count" />
+        <h3>Trainings pro {text.unit}</h3>
+        <ChartView type="bar" labels={labels} series={[{ label: 'Trainings', data: stats.buckets.map((b) => b.workouts), color: '--series-1' }]} unit="Trainings" integer ariaLabel={`Trainings pro ${text.unit}`} id="c-count" />
       </div>
       <div className="card">
-        <h3>Volumen pro Woche</h3>
+        <h3>Volumen pro {text.unit}</h3>
         <p className="muted small">Summe aus Wiederholungen × Gewicht aller Kraftsätze</p>
-        <ChartView type="bar" labels={labels} series={[{ label: 'Volumen', data: weeks.map((w) => Math.round(w.volume)), color: '--series-1' }]} unit="kg" ariaLabel="Volumen pro Woche" id="c-volume" />
+        <ChartView type="bar" labels={labels} series={[{ label: 'Volumen', data: stats.buckets.map((b) => Math.round(b.volume)), color: '--series-1' }]} unit="kg" ariaLabel={`Volumen pro ${text.unit}`} id="c-volume" />
       </div>
-      <h2>Letzte Trainings</h2>
-      <WorkoutList workouts={g.workouts.slice(0, 3)} sets={g.sets} empty={<p className="muted">Noch keine Trainings erfasst.</p>} />
+      <h2>Letztes Training</h2>
+      <WorkoutList workouts={g.workouts.slice(0, 1)} sets={g.sets} empty={<p className="muted">Noch keine Trainings erfasst.</p>} />
+      <a className="btn block" href="#/verlauf">Alle Trainings ansehen</a>
+      <CreditsRules />
       <p className="muted small center">App-Version {APP_VERSION}</p>
     </>
   );

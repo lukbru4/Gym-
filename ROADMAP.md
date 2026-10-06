@@ -81,6 +81,11 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Eigene Bestätigungs-Kästen statt weißer System-Popups
 - [x] Wisch-Leiste für Gewicht, Wiederholungen, Minuten und km
 - [x] Einseitige Übungen: Schalter „L/R“ pro Übung → Sätze 1L/1R, „Vorherig“ je Seite (SQL-Version 39)
+- [x] Standard-Design schwarz mit roten Akzenten, wahlweise weiß mit roten Akzenten
+- [x] Home: Statistik umschaltbar Woche/Monat/Jahr (Start: Jahr), „Letztes Training“ antippbar, Credits-Regeln ganz unten
+- [x] Aufgaben-Credits erhöht (täglich 25/15/30, wöchentlich 75/60), Muskelname über dem Körpergraphen
+- [x] Eigene Auswahl-Liste statt Apple-Auswahl (Analyse, Rangliste, Challenge), Battle-Button, Shop ohne Avatar-Artikel
+- [ ] Offen aus dem Feedback: Avatar/Körper realistischer, Profilfoto, Freunde-Design, Wochenplan, Ränge/Rekorde angleichen, Einstellungen für Trainingsende
 - [ ] Onboarding: ~20 Fragen → persönlicher Trainingsplan, danach Pro-Abo oder gratis weiter (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
 - [ ] Eigene Domain + E-Mail-Versand (SMTP) in Supabase, deutsche E-Mail-Vorlagen (**Lukas**: Domain kaufen)

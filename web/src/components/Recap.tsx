@@ -11,7 +11,8 @@ import { useWeekGoal } from '../lib/weekGoal';
 const KEY = 'gym-tracker-recap-period';
 function readPeriod(): RecapPeriod {
   try {
-    return localStorage.getItem(KEY) === 'month' ? 'month' : 'week';
+    const v = localStorage.getItem(KEY);
+    return v === 'month' || v === 'year' ? v : 'week';
   } catch {
     return 'week';
   }
@@ -33,7 +34,7 @@ function facts(r: Recap, goal: number, done: number): { icon: string; text: Reac
         <>Wochenziel: <strong>{done} von {goal}</strong> Trainings – noch {goal - done} bis Sonntag</>
       ),
     });
-  const prevLabel = r.period === 'week' ? 'Vorwoche' : 'Vormonat';
+  const prevLabel = r.period === 'week' ? 'Vorwoche' : r.period === 'month' ? 'Vormonat' : 'Vorjahr';
   out.push({
     icon: '💪',
     text: (
@@ -74,8 +75,8 @@ function facts(r: Recap, goal: number, done: number): { icon: string; text: Reac
 }
 
 function headline(r: Recap): string {
-  const span = r.period === 'week' ? 'Diese Woche' : 'Diesen Monat';
-  if (!r.workouts) return r.period === 'week' ? 'Diese Woche noch kein Training – heute ist ein guter Tag dafür.' : 'Diesen Monat noch kein Training – leg los!';
+  const span = r.period === 'week' ? 'Diese Woche' : r.period === 'month' ? 'Diesen Monat' : 'Dieses Jahr';
+  if (!r.workouts) return r.period === 'week' ? 'Diese Woche noch kein Training – heute ist ein guter Tag dafür.' : `${span} noch kein Training – leg los!`;
   const pct = change(r.workouts, r.previous.workouts);
   if (pct !== null && pct > 0) return `${span} trainierst du mehr als im gleichen Zeitraum davor. Stark!`;
   if (r.prs.length) return `${span} hast du ${r.prs.length === 1 ? 'einen neuen Bestwert' : `${r.prs.length} neue Bestwerte`} geknackt.`;
@@ -106,9 +107,9 @@ export function RecapCard({ workouts, sets, today }: { workouts: Workout[]; sets
           <span className="nowrap">{name && name !== 'Du' ? name : ''} 👋</span>
         </h2>
         <div className="mini-seg" role="tablist" aria-label="Zeitraum">
-          {(['week', 'month'] as const).map((p) => (
+          {(['week', 'month', 'year'] as const).map((p) => (
             <button key={p} role="tab" aria-selected={period === p} className={period === p ? 'active' : ''} onClick={() => choose(p)} data-period={p}>
-              {p === 'week' ? 'Woche' : 'Monat'}
+              {p === 'week' ? 'Woche' : p === 'month' ? 'Monat' : 'Jahr'}
             </button>
           ))}
         </div>

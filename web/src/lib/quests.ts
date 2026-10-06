@@ -9,13 +9,13 @@ interface WeekData { days: Set<ISODate>; improvements: number }
 interface QuestDef<T> { id: string; label: string; goal: number; reward: number; metric: (d: T) => number }
 
 export const DAILY: QuestDef<DayData>[] = [
-  { id: 'train', label: 'Trainiere heute', goal: 1, reward: 15, metric: (d) => (d.sets > 0 ? 1 : 0) },
-  { id: 'sets10', label: 'Schaffe heute 10 Arbeitssätze', goal: 10, reward: 10, metric: (d) => d.sets },
-  { id: 'record', label: 'Stell heute einen Rekord auf', goal: 1, reward: 20, metric: (d) => d.records },
+  { id: 'train', label: 'Trainiere heute', goal: 1, reward: 25, metric: (d) => (d.sets > 0 ? 1 : 0) },
+  { id: 'sets10', label: 'Schaffe heute 10 Arbeitssätze', goal: 10, reward: 15, metric: (d) => d.sets },
+  { id: 'record', label: 'Stell heute einen Rekord auf', goal: 1, reward: 30, metric: (d) => d.records },
 ];
 export const WEEKLY: QuestDef<WeekData>[] = [
-  { id: 'days3', label: 'Trainiere an 3 Tagen diese Woche', goal: 3, reward: 50, metric: (w) => w.days.size },
-  { id: 'improve3', label: 'Steigere dich 3-mal diese Woche', goal: 3, reward: 40, metric: (w) => w.improvements },
+  { id: 'days3', label: 'Trainiere an 3 Tagen diese Woche', goal: 3, reward: 75, metric: (w) => w.days.size },
+  { id: 'improve3', label: 'Steigere dich 3-mal diese Woche', goal: 3, reward: 60, metric: (w) => w.improvements },
 ];
 
 const emptyDay = (): DayData => ({ sets: 0, records: 0, improvements: 0 });
