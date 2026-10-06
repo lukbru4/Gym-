@@ -15,6 +15,20 @@ import { toMaxJpeg } from '../lib/image';
 import { usePro } from '../lib/pro';
 import { addDays, todayISO } from '../lib/stats';
 
+const MINI_LEN = 2 * Math.PI * 26;
+function MiniRing({ id, label, value, goal }: { id: string; label: string; value: number; goal: number }) {
+  const p = Math.min(1, value / goal);
+  return (
+    <div className="mini-ring" data-macro={id} title={`Richtwert ${fmt(goal, 0)} g`}>
+      <svg viewBox="0 0 60 60" aria-hidden="true">
+        <circle cx="30" cy="30" r="26" className="ring-track mini" />
+        <circle cx="30" cy="30" r="26" className={`ring-fill mini ${id}`} strokeDasharray={`${p * MINI_LEN} ${MINI_LEN}`} transform="rotate(-90 30 30)" />
+      </svg>
+      <strong>{value}</strong>
+      <small>{label}</small>
+    </div>
+  );
+}
 const RING_LEN = 2 * Math.PI * 52;
 const fmtDay = (iso: string, today: string) => (iso === today ? 'Heute' : iso === addDays(today, -1) ? 'Gestern' : new Date(iso + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }));
 
@@ -40,6 +54,12 @@ export function Food() {
   const target = goal.data;
   const pct = Math.min(100, Math.round((sum.kcal / target) * 100));
   const score = nutritionScore(sum, target);
+  // Richtwerte: 50 % Kohlenhydrate, 25 % Eiweiß, 25 % Fett der Tageskalorien
+  const macros = [
+    { id: 'carbs', label: 'Kohlenhydrate', value: sum.carbs, goal: (target * 0.5) / 4 },
+    { id: 'protein', label: 'Eiweiß', value: sum.protein, goal: (target * 0.25) / 4 },
+    { id: 'fat', label: 'Fett', value: sum.fat, goal: (target * 0.25) / 9 },
+  ];
   const editGoal = async () => {
     const v = await pickNumber({ title: 'Tagesziel', unit: 'kcal', value: String(target), min: 800, max: 6000, step: 50, bigStep: 100, itemW: 12, labelEvery: 10, integer: true });
     if (v === null) return;
@@ -82,6 +102,10 @@ export function Food() {
           </span>
           <span className="ring-side"><strong>{fmt(target, 0)}</strong><small>Ziel</small></span>
         </button>
+        <div className="macro-row" id="food-macros">
+          {macros.map((m) => <MiniRing key={m.id} {...m} />)}
+          <button type="button" className="macro-plus" id="food-plus" aria-label="Essen hinzufügen" disabled={!pro.pro} onClick={() => setAdding(mealForHour(new Date().getHours()))}>+</button>
+        </div>
       </div>
       <div className="card" id="food-score">
         <div className="block-head"><h3>Nährwert-Score</h3><strong id="food-score-label">{score ? score.label : '–'}</strong></div>

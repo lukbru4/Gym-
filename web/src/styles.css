@@ -1644,3 +1644,14 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .pro-teaser { display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: var(--text); border-color: var(--accent); }
 .pro-teaser strong { font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; text-transform: uppercase; font-size: 1.2rem; color: var(--accent); }
 .linklike { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+
+/* Essen: Nährwert-Ringe */
+.macro-row { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 8px; align-items: start; margin-top: 14px; }
+.mini-ring { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.mini-ring svg { width: 64px; height: 64px; }
+.mini-ring strong { position: absolute; top: 0; height: 64px; display: flex; align-items: center; font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; font-size: 1.3rem; }
+.mini-ring small { color: var(--text-secondary); font-size: 0.72rem; margin-top: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ring-track.mini, .ring-fill.mini { stroke-width: 6; }
+.ring-fill.mini.carbs { stroke: #e8a62e; } .ring-fill.mini.protein { stroke: #7f8ff0; } .ring-fill.mini.fat { stroke: #4fae7b; }
+.macro-plus { width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; font-size: 2rem; line-height: 1; cursor: pointer; }
+.macro-plus:disabled { opacity: .5; }
