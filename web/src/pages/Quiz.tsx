@@ -4,6 +4,8 @@ import { useApp } from '../app/context';
 import { navigate } from '../app/router';
 import { ask } from '../components/Dialog';
 import { pickNumber } from '../components/NumberPicker';
+import { Paywall } from '../components/Pro';
+import { usePro } from '../lib/pro';
 import { activeQuestions, answerLabel, generatePlan, isAnswered, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
 import { setLocalWeekGoal } from '../lib/weekGoal';
 import type { TemplateExercise } from '../lib/types';
@@ -16,6 +18,7 @@ export function Quiz() {
   const [step, setStep] = useState(0);
   const [phase, setPhase] = useState<'quiz' | 'plan'>('quiz');
   const [busy, setBusy] = useState(false);
+  const pro = usePro();
   const list = activeQuestions(answers);
   const q: Question | undefined = list[Math.min(step, list.length - 1)];
 
@@ -28,6 +31,23 @@ export function Quiz() {
     else setStep(step + 1);
   };
 
+  if (phase === 'plan' && !pro.pro) {
+    const preview = generatePlan(answers);
+    return (
+      <>
+        <h2>Dein Plan ist fertig</h2>
+        <div className="card" id="plan-locked">
+          <p>
+            Wir haben aus deinen Antworten <strong>{preview.templates.length} {preview.templates.length === 1 ? 'Vorlage' : 'Vorlagen'}</strong> und einen
+            Wochenplan mit <strong>{preview.weekGoal}× Training pro Woche</strong> zusammengestellt.
+          </p>
+          <p className="muted small">Deine Antworten sind gespeichert – nach dem Freischalten ist dein Plan sofort da.</p>
+        </div>
+        <Paywall reason="Um den Plan freizuschalten, brauchst du Pro." />
+        <button className="btn block" id="plan-back" onClick={() => setPhase('quiz')}>‹ Antworten ändern</button>
+      </>
+    );
+  }
   if (phase === 'plan') {
     const plan = generatePlan(answers);
     const apply = async () => {

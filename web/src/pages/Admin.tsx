@@ -8,6 +8,7 @@ import { LoadError, Loading } from '../components/Bits';
 import type { AdminReport } from '../data/social';
 import { useCosmetics } from '../lib/cosmetics';
 import { fmt } from '../lib/format';
+import { paywallPreview, setPaywallPreview } from '../lib/pro';
 import { setServerCatalog, useShopItems } from '../lib/shop';
 import {
   ACCENT_PRESETS,
@@ -281,6 +282,20 @@ function Reports() {
   );
 }
 
+function PaywallTest() {
+  const [on, setOn] = useState(paywallPreview());
+  return (
+    <div className="card" id="admin-paywall">
+      <h3>Bezahlseite testen</h3>
+      <label className="check-row">
+        <input type="checkbox" id="paywall-preview" checked={on} onChange={(e) => { setOn(e.target.checked); setPaywallPreview(e.target.checked); }} />
+        <span>Auf diesem Gerät so tun, als hätte ich kein Pro (Plan und Kalorien gesperrt)</span>
+      </label>
+      <p className="muted small">Ändert nichts an deinem Konto. Anderen Konten gibst du Pro zum Testen im SQL Editor mit <code>admin_grant_pro</code>.</p>
+    </div>
+  );
+}
+
 export function Admin() {
   const { api } = useApp();
   const { admin } = useCosmetics();
@@ -295,6 +310,7 @@ export function Admin() {
     <>
       <h2>🛠 Admin-Menü</h2>
       <MyColors />
+      <PaywallTest />
       <Designer />
       <Reports />
     </>

@@ -88,6 +88,9 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Neue Schriften (Inter, Barlow Condensed kursiv), Rekorde-Seite entfernt, Körpergewicht per Wisch-Leiste, Übungsauswahl als senkrechte Wisch-Liste mit Pfeil
 - [ ] Offen aus dem Feedback: Körper noch realistischer, Fragebogen/Trainingsplan in den Einstellungen, Profilfoto, Freunde-Design, Wochenplan, Einstellungen für Trainingsende
 - [x] Einstellungen → Fragen: bis zu 20 Fragen → persönlicher Trainingsplan (Vorlagen „Plan · …“, Wochenplan, Wochenziel)
+- [x] Pro-Grundlage: Status nur vom Server (SQL-Version 42), Bezahlseite (9,99 €/Monat, 64,99 €/Jahr), Plan nur mit Pro, Admin hat immer Pro
+- [ ] Echte Käufe: Apple-/Google-Konto (**Lukas**), RevenueCat, Server-Eintrag in `subscriptions`
+- [ ] Kalorien tracken (nur Pro): zuerst manuell + Open Food Facts, dann Barcode-Kamera, dann Foto-KI über Server-Funktion
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
 - [ ] Eigene Domain + E-Mail-Versand (SMTP) in Supabase, deutsche E-Mail-Vorlagen (**Lukas**: Domain kaufen)

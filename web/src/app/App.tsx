@@ -23,6 +23,8 @@ import { enforceSchemeRules } from '../lib/theme';
 import { getWeekGoal, setLocalWeekGoal } from '../lib/weekGoal';
 import { Analysis, Ranks } from '../pages/Ranks';
 import { Quiz } from '../pages/Quiz';
+import { ProPage } from '../components/Pro';
+import { setPro } from '../lib/pro';
 import { History, WorkoutDetail } from '../pages/Workout';
 import { StartFromTemplate, Workouts } from '../pages/Workouts';
 import { AppProvider, useApp } from './context';
@@ -50,6 +52,7 @@ const ROUTES: Route[] = [
   [/^#\/backup$/, () => <Backup />],
   [/^#\/konto$/, () => <Account />],
   [/^#\/fragen$/, () => <Quiz />],
+  [/^#\/pro$/, () => <ProPage />],
   [/^#\/raenge$/, () => <Ranks />],
   [/^#\/freunde$/, () => <Friends />],
   [/^#\/freunde\/add\/([A-Za-z0-9]{8})$/, (m) => <AcceptInvite code={m[1].toUpperCase()} />],
@@ -83,8 +86,12 @@ function Shell() {
   // Danach gilt: Farbschemata nur, wenn gekauft (Admin: alle)
   useEffect(() => {
     const social = api.social;
-    if (!social) return enforceSchemeRules([], false); // lokaler Modus: kein Shop → Standardfarben
+    if (!social) {
+      setPro({ pro: false }); // lokaler Modus: kein Pro
+      return enforceSchemeRules([], false); // kein Shop → Standardfarben
+    }
     social.catalog().then(setServerCatalog, () => {});
+    social.myPro().then(setPro, () => setPro({ pro: false }));
     // Wochenziel aus dem Konto; ändert es sich, Spielstand (Serie) neu berechnen
     social.myWeekGoal().then((g) => {
       if (g !== getWeekGoal()) {

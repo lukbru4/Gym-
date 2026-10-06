@@ -74,6 +74,8 @@ export interface Social {
   workoutSocial(workoutId: number): Promise<{ likes: number; comments: number } | null>;
   wallet(): Promise<{ earned: number; spent: number; balance: number }>;
   myShop(): Promise<{ owned: string[]; equipped: Equipped; admin?: boolean }>;
+  /** Pro-Abo (Status kommt nur vom Server) */
+  myPro(): Promise<{ pro: boolean; until: string | null; admin: boolean }>;
   buy(itemId: string): Promise<number>;
   equip(kind: 'skin' | 'accessory' | 'title', itemId: string | null): Promise<void>;
   catalog(): Promise<CatalogRow[]>;
@@ -133,6 +135,7 @@ export function createSocial(supabase: SupabaseClient): Social {
     reportComment: (p_id, p_reason) => rpc('report_comment', { p_id, p_reason }),
     wallet: async () => (await rpc<{ earned: number; spent: number; balance: number }[]>('my_wallet'))[0] ?? { earned: 0, spent: 0, balance: 0 },
     myShop: () => rpc('my_shop'),
+    myPro: () => rpc('my_pro'),
     buy: (p_item) => rpc('buy_item', { p_item }),
     equip: (p_kind, p_item) => rpc('equip_item', { p_kind, p_item }),
     catalog: () => rpc('shop_catalog'),

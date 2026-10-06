@@ -13,6 +13,7 @@ import { todayISO } from '../lib/stats';
 import { useCosmetics } from '../lib/cosmetics';
 import { useShopItems } from '../lib/shop';
 import { activeQuestions, isAnswered, loadQuiz } from '../lib/plan';
+import { usePro } from '../lib/pro';
 import { setLocalWeekGoal, useWeekGoal } from '../lib/weekGoal';
 import {
   SCHEMES,
@@ -33,6 +34,19 @@ import { APP_VERSION } from '../version';
 
 const confirmDelete = (what: string) =>
   askText(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen.`, { title: 'Wirklich löschen?', ok: 'Endgültig löschen', danger: true, requireText: 'LÖSCHEN' }).then((t) => t?.trim().toUpperCase() === 'LÖSCHEN');
+
+function ProCard() {
+  const pro = usePro();
+  return (
+    <div className="card" id="pro-card">
+      <h3>Pro</h3>
+      <p className="muted small">
+        {pro.pro ? (pro.admin ? 'Aktiv – als Admin hast du Pro immer.' : 'Aktiv.') : 'Trainingsplan und Kalorien-Tracking gibt es mit Pro.'}
+      </p>
+      <a className="btn block" id="open-pro" href="#/pro">{pro.pro ? 'Pro ansehen' : 'Pro ansehen & freischalten'}</a>
+    </div>
+  );
+}
 
 function QuestionsCard() {
   const saved = loadQuiz();
@@ -169,6 +183,7 @@ export function Account() {
       )}
       <WeekGoalCard />
       <QuestionsCard />
+      <ProCard />
       <div className="card">
         <h3>Stil</h3>
         <label>

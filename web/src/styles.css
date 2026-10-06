@@ -1471,3 +1471,12 @@ body.picker-open { overflow: hidden; }
 .plan-week li:last-child, .plan-list li:last-child { border-bottom: 0; }
 .plan-notes { margin: 12px 0; display: grid; gap: 6px; }
 #plan-back, #plan-apply { margin-top: 8px; }
+
+/* Pro / Bezahlseite */
+.paywall-benefits { margin: 4px 0 14px; padding-left: 20px; display: grid; gap: 6px; }
+.paywall-tiers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.paywall-tier { display: flex; flex-direction: column; gap: 2px; padding: 12px; text-align: left; font: inherit; color: var(--text); background: var(--input-bg, var(--bg)); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; }
+.paywall-tier.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.paywall-tier strong { font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; font-size: 1.3rem; text-transform: uppercase; }
+.paywall-tier small { color: var(--text-secondary); }
+.paywall-print { margin: 12px 0 0; font-size: 0.75rem; }
