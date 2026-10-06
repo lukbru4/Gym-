@@ -1429,8 +1429,6 @@ body.picker-open { overflow: hidden; }
 .stats-head h2 { margin: 0; }
 .muscle-name { display: flex; align-items: baseline; justify-content: center; gap: 10px; min-height: 2rem; margin-bottom: 6px; text-align: center; color: var(--text-secondary); }
 .muscle-name strong { color: var(--text); font-size: 1.25rem; }
-.list a { position: relative; padding-right: 38px; }
-.list a::after { content: '›'; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 1.5rem; line-height: 1; color: var(--text-secondary); }
 .choice-field { display: flex; flex-direction: column; gap: 6px; }
 .choice-label { font-weight: 600; }
 .choice-btn { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 0 14px; font: inherit; font-weight: 600; text-align: left; color: var(--text); background: var(--input-bg, var(--bg)); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; }
@@ -1604,3 +1602,22 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .chat-input { display: flex; gap: 8px; padding: 6px 0 calc(env(safe-area-inset-bottom) + 8px); }
 .chat-input input { flex: 1; border-radius: 999px; padding: 0 18px; }
 .chat-input .btn { min-width: 52px; border-radius: 999px; padding: 0; }
+
+/* Verlauf / Trainingskarten */
+.wk-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; }
+.wk-card { display: flex; align-items: center; gap: 14px; padding: 12px 14px 12px 12px; color: var(--text); text-decoration: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.wk-date { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none; width: 58px; height: 58px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.wk-date strong { font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; font-size: 1.7rem; line-height: 1; }
+.wk-date small { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+.wk-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.wk-names { font-weight: 700; overflow-wrap: anywhere; }
+.wk-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.wk-chips i { font-style: normal; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border); }
+.wk-chev { font-size: 1.6rem; line-height: 1; color: var(--text-secondary); }
+.wk-month { margin-top: 18px; }
+.wk-month-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.wk-month-head h3 { margin: 0; font-size: 1.4rem; }
+#history-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+#history-summary .tile { padding: 10px; }
+#history-summary .tile-label { font-size: 0.72rem; }
+.wk-names { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 600; }

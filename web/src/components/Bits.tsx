@@ -93,34 +93,93 @@ export function MuscleChips({ selected, onChange }: { selected: MuscleId[]; onCh
   );
 }
 
-export function WorkoutList({ workouts, sets, empty }: { workouts: Workout[]; sets: WorkoutSet[]; empty?: ReactNode }) {
-  const { exerciseById } = useApp();
-  if (!workouts.length) return <>{empty ?? null}</>;
+const MONTHS_LONG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+const WEEKDAYS_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+
+interface WorkoutRow { w: Workout; sets: number; volume: number; names: string[]; cardioMin: number }
+
+function rowsFor(workouts: Workout[], sets: WorkoutSet[], nameOf: (id: number) => string | undefined): WorkoutRow[] {
   const byWorkout = new Map<number, WorkoutSet[]>();
   for (const s of sets) {
     if (!byWorkout.has(s.workout_id)) byWorkout.set(s.workout_id, []);
     byWorkout.get(s.workout_id)!.push(s);
   }
+  return workouts.map((w) => {
+    const ws = byWorkout.get(w.id) || [];
+    return {
+      w,
+      sets: ws.length,
+      volume: ws.reduce((sum, s) => sum + setVolume(s), 0),
+      names: [...new Set(ws.map((s) => nameOf(s.exercise_id)).filter((n): n is string => Boolean(n)))],
+      cardioMin: ws.reduce((sum, s) => sum + (Number(s.duration_min) || 0), 0),
+    };
+  });
+}
+
+function WorkoutCard({ row }: { row: WorkoutRow }) {
+  const d = new Date(`${row.w.date}T12:00:00`);
+  const shown = row.names.slice(0, 3);
   return (
-    <ul className="list">
-      {workouts.map((w) => {
-        const ws = byWorkout.get(w.id) || [];
-        const names = [...new Set(ws.map((s) => exerciseById(s.exercise_id)?.name).filter(Boolean))];
-        const volume = ws.reduce((sum, s) => sum + setVolume(s), 0);
-        return (
-          <li key={w.id}>
-            <a href={`#/training/${w.id}`}>
-              <strong>{fmtDate(w.date)}</strong>
-              <span className="muted small">
-                {plural(ws.length, 'Satz', 'Sätze')}
-                {volume ? ` · ${fmt(volume, 0)} kg Volumen` : ''}
-              </span>
-              <span className="small">{names.join(', ') || <span className="muted">Keine Übungen</span>}</span>
-            </a>
-          </li>
-        );
-      })}
-    </ul>
+    <a className="wk-card" href={`#/training/${row.w.id}`}>
+      <span className="wk-date" aria-hidden="true">
+        <strong>{String(d.getDate()).padStart(2, '0')}</strong>
+        <small>{WEEKDAYS_SHORT[d.getDay()]} · {MONTHS_SHORT[d.getMonth()]}</small>
+      </span>
+      <span className="wk-main">
+        <span className="wk-names" aria-label={fmtDate(row.w.date)}>
+          {shown.length ? shown.join(' · ') : <span className="muted">Keine Übungen</span>}
+          {row.names.length > shown.length && <span className="muted"> · +{row.names.length - shown.length}</span>}
+        </span>
+        <span className="wk-chips">
+          <i>{plural(row.sets, 'Satz', 'Sätze')}</i>
+          {row.volume > 0 && <i>{fmt(row.volume, 0)} kg</i>}
+          {row.cardioMin > 0 && <i>{fmt(row.cardioMin, 0)} Min.</i>}
+        </span>
+      </span>
+      <span className="wk-chev" aria-hidden="true">›</span>
+    </a>
+  );
+}
+
+/** Trainingskarten; mit `grouped` nach Monaten sortiert, jeweils mit Monatssumme (Verlauf) */
+export function WorkoutList({ workouts, sets, empty, grouped = false }: { workouts: Workout[]; sets: WorkoutSet[]; empty?: ReactNode; grouped?: boolean }) {
+  const { exerciseById } = useApp();
+  if (!workouts.length) return <>{empty ?? null}</>;
+  const rows = rowsFor(workouts, sets, (id) => exerciseById(id)?.name);
+  if (!grouped)
+    return (
+      <ul className="wk-list">
+        {rows.map((r) => <li key={r.w.id}><WorkoutCard row={r} /></li>)}
+      </ul>
+    );
+  const months: { key: string; label: string; rows: WorkoutRow[] }[] = [];
+  for (const r of rows) {
+    const key = r.w.date.slice(0, 7);
+    let m = months[months.length - 1];
+    if (!m || m.key !== key) {
+      m = { key, label: `${MONTHS_LONG[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`, rows: [] };
+      months.push(m);
+    }
+    m.rows.push(r);
+  }
+  return (
+    <>
+      {months.map((m) => (
+        <section key={m.key} className="wk-month" data-month={m.key}>
+          <div className="wk-month-head">
+            <h3>{m.label}</h3>
+            <span className="muted small">
+              {plural(m.rows.length, 'Training', 'Trainings')}
+              {m.rows.some((r) => r.volume > 0) ? ` · ${fmt(m.rows.reduce((n, r) => n + r.volume, 0), 0)} kg` : ''}
+            </span>
+          </div>
+          <ul className="wk-list">
+            {m.rows.map((r) => <li key={r.w.id}><WorkoutCard row={r} /></li>)}
+          </ul>
+        </section>
+      ))}
+    </>
   );
 }
 

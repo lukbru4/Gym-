@@ -8,6 +8,7 @@ import { Comments } from '../components/Comments';
 import type { Social } from '../data/social';
 import { groupSets, numberSets } from '../lib/editor';
 import { fmt, fmtDate } from '../lib/format';
+import { setVolume } from '../lib/stats';
 import { playerLevel } from '../lib/xp';
 import { ask } from '../components/Dialog';
 
@@ -15,10 +16,20 @@ export function History() {
   const game = useGame();
   if (game.status === 'loading') return <Loading />;
   if (game.status === 'error') return <LoadError error={game.error} />;
+  const { workouts, sets } = game.data;
+  const volume = sets.reduce((n, s) => (s.is_warmup ? n : n + setVolume(s)), 0);
+  const firstDate = workouts.length ? workouts[workouts.length - 1].date : null;
   return (
     <>
       <h2>Verlauf</h2>
-      <WorkoutList workouts={game.data.workouts} sets={game.data.sets} empty={<p className="muted">Noch keine Trainings erfasst.</p>} />
+      {workouts.length > 0 && (
+        <div className="tiles" id="history-summary">
+          <div className="tile"><span className="tile-value">{workouts.length}</span><span className="tile-label">Trainings{firstDate ? ` seit ${fmtDate(firstDate, false)}` : ''}</span></div>
+          <div className="tile"><span className="tile-value">{fmt(sets.filter((s) => !s.is_warmup).length, 0)}</span><span className="tile-label">Arbeitssätze</span></div>
+          <div className="tile"><span className="tile-value">{fmt(volume / 1000, 1)}</span><span className="tile-label">Tonnen bewegt</span></div>
+        </div>
+      )}
+      <WorkoutList grouped workouts={workouts} sets={sets} empty={<p className="muted">Noch keine Trainings erfasst.</p>} />
     </>
   );
 }

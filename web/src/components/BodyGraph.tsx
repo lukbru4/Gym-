@@ -1,5 +1,6 @@
 // Körpergraph: Neon-Drahtgitter von vorne und hinten; trainierte Muskeln leuchten je nach Stufe.
 import { BACK, BACK_LINES, BACK_NEUTRAL, EAR, FACE_FRONT, FRONT, FRONT_LINES, FRONT_NEUTRAL, HEAD_BACK, HEAD_PATH, OUTLINE } from '../lib/bodyShapes';
+import { FIGURE_BOTTOM, stretchPath } from '../lib/bodyScale';
 import { useCosmetics } from '../lib/cosmetics';
 import { MUSCLE_NAMES, type MuscleLevel } from '../lib/muscles';
 import type { MuscleId } from '../lib/types';
@@ -7,12 +8,17 @@ import type { MuscleId } from '../lib/types';
 const MIRROR = 'matrix(-1 0 0 1 200 0)';
 
 /** Pfad links + gespiegelt rechts */
-const Both = ({ d }: { d: string }) => (
-  <>
-    <path d={d} />
-    <path d={d} transform={MIRROR} />
-  </>
-);
+const Both = ({ d }: { d: string }) => {
+  const e = stretchPath(d); // Beine verlängert
+  return (
+    <>
+      <path d={e} />
+      <path d={e} transform={MIRROR} />
+    </>
+  );
+};
+/** Größerer Kopf: vom Hals (y ≈ 64) aus vergrößern */
+const HEAD_T = 'translate(100 64) scale(1.24) translate(-100 -64)';
 const Paths = ({ list }: { list: string[] }) => (
   <>
     {list.map((d, i) => (
@@ -62,9 +68,9 @@ function Figure({ parts, neutral, lines, levels, offsetX, face, onSelect }: Figu
     <g transform={`translate(${offsetX} 0)`}>
       <g className="body-base">
         <Both d={OUTLINE} />
-        <path d={HEAD_PATH} />
-        <path d={EAR} />
-        <path d={EAR} transform={MIRROR} />
+        <path d={HEAD_PATH} transform={HEAD_T} />
+        <path d={EAR} transform={HEAD_T} />
+        <path d={EAR} transform={`${HEAD_T} ${MIRROR}`} />
       </g>
       <g className="body-neutral">
         <Paths list={neutral} />
@@ -98,7 +104,7 @@ function Figure({ parts, neutral, lines, levels, offsetX, face, onSelect }: Figu
       })}
       <g className="body-lines">
         <Paths list={lines} />
-        <path d={face} className="face-lines" />
+        <path d={face} className="face-lines" transform={HEAD_T} />
       </g>
     </g>
   );
@@ -111,7 +117,7 @@ export function BodyGraph({ levels, onSelect, skin }: { levels: Map<MuscleId, Mu
     <div className="bodygraph-panel" data-skin={skin === undefined ? own : skin ?? undefined}>
       <svg
         className="bodygraph"
-        viewBox="0 6 470 454"
+        viewBox={`0 -6 470 ${Math.ceil(FIGURE_BOTTOM) + 10}`}
         role="group"
         aria-label="Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten"
       >

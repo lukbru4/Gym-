@@ -103,6 +103,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Profilbild vor dem Speichern verschieben und vergrößern (Finger, Zwei-Finger-Zoom, Regler)
 - [x] Körpergraph plastischer: weiches Licht (Wölbung), Gesichtszüge, Schlüsselbein, Brustwarzen, Nabel, Hinterkopf, Kniekehlen; weitere Schritte: Hände/Füße, Beine
 - [x] Essens-Assistent (Chat, SQL-Version 47): die KI fragt nach, was gegessen wurde, und schlägt Einträge vor; Edge Function `food-chat`, Pro + Tageslimit auf dem Server; ausgeschaltet bis `FOOD_CHAT_ENABLED` (web/src/data/config.ts)
+- [x] Körper: Beine 16 % länger, Kopf 24 % größer; Verlauf neu: Monatsgruppen mit Summe, Karten mit Datum, Übungen und Kennzahlen, Gesamtzahlen oben
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

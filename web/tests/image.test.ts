@@ -37,3 +37,20 @@ describe('Profilbild-Ausschnitt', () => {
     expect(c.oy).toBeLessThan(0);
   });
 });
+
+import { FIGURE_BOTTOM, HIP_Y, LEG_STRETCH, stretchPath, stretchY } from '../src/lib/bodyScale';
+import * as shapes from '../src/lib/bodyShapes';
+describe('Körper-Proportionen', () => {
+  test('Strecken: oben bleibt, unten wird länger', () => {
+    expect(stretchY(100)).toBe(100);
+    expect(stretchY(HIP_Y)).toBe(HIP_Y);
+    expect(stretchY(458)).toBeCloseTo(FIGURE_BOTTOM, 5);
+    expect(FIGURE_BOTTOM).toBeGreaterThan(458);
+    expect(stretchPath('M10 100 L20 300 C30 310 40 320 50 330 Z')).toBe(`M 10 100 L 20 ${Math.round(stretchY(300) * 100) / 100} C 30 ${Math.round(stretchY(310) * 100) / 100} 40 ${Math.round(stretchY(320) * 100) / 100} 50 ${Math.round(stretchY(330) * 100) / 100} Z`);
+    expect(LEG_STRETCH).toBeGreaterThan(1.1);
+  });
+  test('alle Körperformen nutzen nur absolute Befehle (sonst lässt sich nicht strecken)', () => {
+    const all = [shapes.OUTLINE, ...shapes.FRONT_NEUTRAL, ...shapes.BACK_NEUTRAL, ...shapes.FRONT_LINES, ...shapes.BACK_LINES, ...Object.values(shapes.FRONT).flat(), ...Object.values(shapes.BACK).flat()] as string[];
+    for (const d of all) expect(() => stretchPath(d)).not.toThrow();
+  });
+});
