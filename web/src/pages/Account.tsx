@@ -19,6 +19,7 @@ import { AvatarCropper } from '../components/AvatarCropper';
 import { AvatarDot } from '../components/AvatarDot';
 import { setLocalWeekGoal, useWeekGoal } from '../lib/weekGoal';
 import { setGoalWeight, useGoalWeight } from '../lib/goalWeight';
+import { addCustomGoal, removeCustomGoal, toggleCustomGoal, useCustomGoals } from '../lib/customGoals';
 import { pickNumber } from '../components/NumberPicker';
 import { fmt } from '../lib/format';
 import {
@@ -93,26 +94,62 @@ function WeekGoalCard() {
       showError(err);
     }
   };
+  const social = api.social;
+  const [kcalVer, setKcalVer] = useState(0);
+  const kcal = useAsync(() => (social ? social.nutritionGoal() : Promise.resolve(null)), [social, kcalVer]);
+  const editKcal = async () => {
+    if (!social) return;
+    const v = await pickNumber({ title: 'Kalorien pro Tag', unit: 'kcal', value: String(kcal.status === 'ok' && kcal.data ? kcal.data : 2500), min: 800, max: 6000, step: 50, bigStep: 100, itemW: 12, labelEvery: 10, integer: true });
+    if (v === null) return;
+    try {
+      await social.setNutritionGoal(Number(v));
+      setKcalVer((n) => n + 1);
+    } catch (err) {
+      showError(err);
+    }
+  };
+  const customs = useCustomGoals();
+  const addCustom = async () => {
+    const t = await askText('Was möchtest du erreichen?', { title: 'Eigenes Ziel', ok: 'Hinzufügen', placeholder: 'z. B. 10 Klimmzüge' });
+    if (t) addCustomGoal(t);
+  };
   return (
     <div className="card" id="week-goal-card">
       <h3>Ziele</h3>
-      <label>
-        Wie oft pro Woche willst du trainieren?
+      <div className="goal-row">
+        <label htmlFor="week-goal">Training pro Woche</label>
         <select id="week-goal" value={goal} onChange={(e) => change(Number(e.target.value))}>
           {[1, 2, 3, 4, 5, 6, 7].map((n) => (
             <option key={n} value={n}>{n}× pro Woche</option>
           ))}
         </select>
-      </label>
-      <button type="button" className="btn block" id="goal-weight" onClick={editKg}>
-        Zielgewicht: {goalKg ? `${fmt(goalKg, 1)} kg` : 'festlegen'}
-      </button>
+      </div>
+      <div className="goal-row">
+        <span>Zielgewicht</span>
+        <button type="button" className="btn small-btn" id="goal-weight" onClick={editKg}>{goalKg ? `${fmt(goalKg, 1)} kg` : 'festlegen'}</button>
+      </div>
       {goalKg && lastKg != null && (
         <p className="small" id="goal-weight-info">
           Aktuell {fmt(lastKg, 1)} kg · {Math.abs(lastKg - goalKg) < 0.05 ? 'Ziel erreicht 🎉' : `noch ${fmt(Math.abs(lastKg - goalKg), 1)} kg ${lastKg > goalKg ? 'abnehmen' : 'zunehmen'}`}
           {' · '}<button type="button" className="linklike" id="goal-weight-clear" onClick={() => setGoalWeight(null)}>entfernen</button>
         </p>
       )}
+      {social && (
+        <div className="goal-row">
+          <span>Kalorien pro Tag</span>
+          <button type="button" className="btn small-btn" id="goal-kcal" onClick={editKcal}>{kcal.status === 'ok' && kcal.data ? `${fmt(kcal.data, 0)} kcal` : '…'}</button>
+        </div>
+      )}
+      <h4>Eigene Ziele</h4>
+      <ul className="goal-list" id="custom-goals">
+        {customs.map((g) => (
+          <li key={g.id} className={g.done ? 'done' : ''}>
+            <label><input type="checkbox" checked={g.done} onChange={() => toggleCustomGoal(g.id)} /> <span>{g.text}</span></label>
+            <button type="button" className="icon-btn" aria-label={`${g.text} löschen`} onClick={() => removeCustomGoal(g.id)}>✕</button>
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="btn block" id="goal-add" onClick={addCustom}>+ Ziel hinzufügen</button>
       <p className="muted small">
         Deine 🔥 Serie zählt Tage: Jedes Training zählt die Tage der Woche bis dahin (Training am Mittwoch = 3 Tage). Schaffst du dein
         Wochenziel, zählt die ganze Woche. Verpasst du es, beginnt die Serie in der nächsten Woche neu.

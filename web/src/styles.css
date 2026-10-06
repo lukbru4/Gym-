@@ -1655,3 +1655,10 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .ring-fill.mini.carbs { stroke: #e8a62e; } .ring-fill.mini.protein { stroke: #7f8ff0; } .ring-fill.mini.fat { stroke: #4fae7b; }
 .macro-plus { width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; font-size: 2rem; line-height: 1; cursor: pointer; }
 .macro-plus:disabled { opacity: .5; }
+
+/* Einstellungen: Ziele */
+.goal-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--grid); }
+.goal-row select { max-width: 55%; }
+.goal-list { list-style: none; margin: 0 0 10px; padding: 0; }
+.goal-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; }
+.goal-list li.done span { text-decoration: line-through; color: var(--text-secondary); }
