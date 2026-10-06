@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { SHOP_ITEMS } from '../src/lib/shop';
 
 test('Shop-Katalog in der App passt zu den Preisen auf dem Server (schema.sql)', () => {
@@ -72,5 +72,24 @@ describe('Pro', async () => {
     expect(getPro().pro).toBe(false);
     setPro(null);
     expect(getPro()).toMatchObject({ pro: false, admin: false, loaded: true });
+  });
+});
+
+describe('Essen+ (Zusatz zu Pro)', async () => {
+  const { FOOD_PLUS_PRICE, setPro, getPro, setPaywallPreview } = await import('../src/lib/pro');
+  test('Preis und Status', () => {
+    expect(FOOD_PLUS_PRICE).toBe(2.99);
+    setPro({ pro: true, food: true });
+    expect(getPro()).toMatchObject({ pro: true, food: true });
+    setPro({ pro: true });
+    expect(getPro().food).toBe(false);
+    setPro({ pro: true, admin: true, food: true });
+    const store = new Map<string, string>();
+    vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) });
+    setPaywallPreview(true); // Admin sieht die Bezahlseiten
+    expect(getPro()).toMatchObject({ pro: false, food: false });
+    setPaywallPreview(false);
+    expect(getPro()).toMatchObject({ pro: true, food: true });
+    vi.unstubAllGlobals();
   });
 });

@@ -103,6 +103,7 @@ export function Food() {
           </div>
         );
       })}
+      <a className="btn block" id="open-recipes" href="#/rezepte">🍳 Rezepte – was kann ich jetzt kochen?</a>
       <p className="muted small">Kalorien und Nährwerte sind Richtwerte. Produktdaten stammen von Open Food Facts (Mitmach-Datenbank, nicht immer vollständig).</p>
       {adding && (
         <AddFood

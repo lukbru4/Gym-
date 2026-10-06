@@ -45,6 +45,7 @@ function ProCard() {
       <h3>Pro</h3>
       <p className="muted small">
         {pro.pro ? (pro.admin ? 'Aktiv – als Admin hast du Pro immer.' : 'Aktiv.') : 'Trainingsplan und Kalorien-Tracking gibt es mit Pro.'}
+        {pro.pro && (pro.food ? ' Essen+ (Rezepte) ist dabei.' : ' Rezepte mit Anleitung gibt es als Zusatz „Essen+“.')}
       </p>
       <a className="btn block" id="open-pro" href="#/pro">{pro.pro ? 'Pro ansehen' : 'Pro ansehen & freischalten'}</a>
     </div>

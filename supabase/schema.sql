@@ -1345,6 +1345,7 @@ grant execute on function public.my_week_goal(), public.set_week_goal(integer), 
 -- Admins haben immer Pro. Zum Testen für andere Konten (im SQL Editor):
 --   select public.admin_grant_pro('USER-ID', now() + interval '1 year');   -- einschalten
 --   select public.admin_grant_pro('USER-ID', null);                         -- wieder aus
+--   select public.admin_grant_food('USER-ID', now() + interval '1 year');   -- Zusatz „Essen+“ (braucht Pro)
 -- ===========================================================================
 create table if not exists public.subscriptions (
   user_id    uuid primary key references auth.users (id) on delete cascade,
@@ -1355,12 +1356,17 @@ create table if not exists public.subscriptions (
 alter table public.subscriptions enable row level security;
 revoke all on public.subscriptions from anon, authenticated;
 
+-- Zusatz-Abo „Essen+“ (Rezepte mit Anleitung): gibt es zusätzlich zu Pro
+alter table public.subscriptions add column if not exists food_until timestamptz;
+
 create or replace function public.my_pro()
 returns jsonb language sql stable security definer set search_path = '' as $$
   select jsonb_build_object(
     'pro', public.is_admin() or coalesce((select s.pro_until > now() from public.subscriptions s where s.user_id = auth.uid()), false),
     'until', (select s.pro_until from public.subscriptions s where s.user_id = auth.uid()),
-    'admin', public.is_admin())
+    'admin', public.is_admin(),
+    'food', public.is_admin() or coalesce((select s.pro_until > now() and s.food_until > now() from public.subscriptions s where s.user_id = auth.uid()), false),
+    'food_until', (select s.food_until from public.subscriptions s where s.user_id = auth.uid()))
 $$;
 
 create or replace function public.admin_grant_pro(p_user uuid, p_until timestamptz)
@@ -1372,6 +1378,16 @@ begin
   on conflict (user_id) do update set pro_until = excluded.pro_until, source = 'manual', updated_at = now();
 end;
 $$;
+create or replace function public.admin_grant_food(p_user uuid, p_until timestamptz)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  insert into public.subscriptions (user_id, food_until, source, updated_at) values (p_user, p_until, 'manual', now())
+  on conflict (user_id) do update set food_until = excluded.food_until, source = 'manual', updated_at = now();
+end;
+$$;
+revoke all on function public.admin_grant_food(uuid, timestamptz) from public, anon;
+grant execute on function public.admin_grant_food(uuid, timestamptz) to authenticated;
 revoke all on function public.my_pro(), public.admin_grant_pro(uuid, timestamptz) from public, anon;
 grant execute on function public.my_pro() to authenticated;
 grant execute on function public.admin_grant_pro(uuid, timestamptz) to authenticated;
@@ -1567,6 +1583,6 @@ end $$;
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 45 $$;
+returns integer language sql immutable set search_path = '' as $$ select 46 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

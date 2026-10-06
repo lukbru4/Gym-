@@ -97,6 +97,8 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Kalorienziel-Vorschlag aus den Fragen (Größe, Gewicht, Alter, Ziel)
 - [x] Profilbild (SQL-Version 44): privater Speicher, nur Freunde sehen es, Foto wird auf 256 px verkleinert
 - [x] Foto-KI für Essen (SQL-Version 45): Edge Function `food-photo` (supabase/functions/food-photo), Pro + Tageslimit auf dem Server, Mengen korrigieren
+- [x] Rezepte mit Anleitung + Zusatz-Abo „Essen+“ 2,99 €/Monat (zusätzlich zu Pro, SQL-Version 46): 12 Rezepte, Vorschläge passend zu den Kalorien für heute, ins Tagebuch eintragen
+- [ ] Rezepte nur auf dem Server ausliefern (jetzt stecken sie in der App; nur die Anzeige ist gesperrt) und mehr Rezepte; Idee: nach Zutaten zuhause filtern
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

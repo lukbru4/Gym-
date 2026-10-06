@@ -24,6 +24,7 @@ import { getWeekGoal, setLocalWeekGoal } from '../lib/weekGoal';
 import { Analysis, Ranks } from '../pages/Ranks';
 import { Quiz } from '../pages/Quiz';
 import { Food } from '../pages/Food';
+import { Recipes } from '../pages/Recipes';
 import { ProPage } from '../components/Pro';
 import { setPro } from '../lib/pro';
 import { clearAvatars, refreshAvatars } from '../lib/avatars';
@@ -56,6 +57,7 @@ const ROUTES: Route[] = [
   [/^#\/fragen$/, () => <Quiz />],
   [/^#\/pro$/, () => <ProPage />],
   [/^#\/essen$/, () => <Food />],
+  [/^#\/rezepte$/, () => <Recipes />],
   [/^#\/raenge$/, () => <Ranks />],
   [/^#\/freunde$/, () => <Friends />],
   [/^#\/freunde\/add\/([A-Za-z0-9]{8})$/, (m) => <AcceptInvite code={m[1].toUpperCase()} />],
