@@ -1639,3 +1639,7 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .score-bar i { height: 8px; border-radius: 4px; background: var(--grid); }
 .score-bar i.on { background: var(--accent); }
 .score-bar i.on.l1 { background: var(--danger); }
+
+/* Profil: Pro-Hinweis */
+.pro-teaser { display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: var(--text); border-color: var(--accent); }
+.pro-teaser strong { font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; text-transform: uppercase; font-size: 1.2rem; color: var(--accent); }

@@ -15,6 +15,8 @@ import { todayISO } from '../lib/stats';
 import type { Exercise, MuscleId } from '../lib/types';
 import { ask } from '../components/Dialog';
 import { pickNumber } from '../components/NumberPicker';
+import { Paywall } from '../components/Pro';
+import { usePro } from '../lib/pro';
 
 const pct = (g: number | null) => (g == null ? '' : `${g >= 0 ? '+' : ''}${fmt(g * 100, 0)} %`);
 
@@ -44,6 +46,8 @@ export function Body() {
   const { api, exercises, exerciseMap, showError, dataVersion, dataChanged } = useApp();
   const game = useGame();
   const cosmetics = useCosmetics();
+  const pro = usePro();
+  const locked = api.mode === 'cloud' && pro.loaded && !pro.pro;
   const weights = useAsync(() => api.listBodyWeights(), [api, dataVersion]);
   const [selected, setSelected] = useState<MuscleId | null>(null);
   const [date, setDate] = useState(todayISO());
@@ -85,6 +89,8 @@ export function Body() {
   return (
     <>
       <h2>Körpergraph</h2>
+      {locked && <Paywall reason="Die Auswertung deiner Muskelgruppen (Körpergraph und Radar) gibt es mit Pro. Dein Körpergewicht kannst du weiter kostenlos eintragen." />}
+      {!locked && <>
       <div className="card">
         <div className="muscle-name" id="muscle-name" aria-live="polite">
           {selected ? (
@@ -156,7 +162,8 @@ export function Body() {
           welche Bereiche du vernachlässigst.
         </p>
       </div>
-      {unassigned.length > 0 && (
+      </>}
+      {!locked && unassigned.length > 0 && (
         <div className="card">
           <h3>Übungen ohne Muskelzuordnung</h3>
           <p className="muted small">Diese eigenen Übungen erscheinen erst im Körpergraphen, wenn du ihnen Muskeln zuordnest.</p>

@@ -6,6 +6,7 @@ import { notify } from './Dialog';
 
 const BENEFITS = [
   'Persönlicher Trainingsplan aus deinen Antworten (Vorlagen + Wochenplan)',
+  'Muskel-Auswertung: Körpergraph und Radar zeigen, wie stark du jede Muskelgruppe trainierst',
   'Kalorien tracken – per Foto (KI-Schätzung) oder manuell mit Suche und Barcode',
   'Alle künftigen Pro-Funktionen',
 ];

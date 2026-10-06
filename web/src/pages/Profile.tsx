@@ -11,6 +11,7 @@ import { Calendar } from '../components/Calendar';
 import { RankBadge } from '../components/RankBadge';
 import { useCosmetics } from '../lib/cosmetics';
 import { fmt, fmtDate } from '../lib/format';
+import { fmtEuro, PRO_PRICES, usePro } from '../lib/pro';
 import { itemById } from '../lib/shop';
 import { computeMedals, longestStreak } from '../lib/quests';
 import type { Game } from '../app/game';
@@ -31,6 +32,8 @@ export function Profile() {
   const { api, user } = useApp();
   const game = useGame();
   const { equipped } = useCosmetics();
+  const pro = usePro();
+  const showPro = api.mode === 'cloud' && pro.loaded && !pro.pro;
   if (game.status === 'loading') return <Loading />;
   if (game.status === 'error') return <LoadError error={game.error} />;
   const g = game.data;
@@ -72,6 +75,12 @@ export function Profile() {
         {api.social && tile('#/essen', 'essen', 'Essen', 'Kalorien & Nährwerte tracken')}
         {api.social ? tile('#/shop', 'shop', 'Shop', 'Farben & Titel mit Credits') : tile('#/backup', 'backup', 'Backup', 'Daten sichern und wiederherstellen')}
       </div>
+      {showPro && (
+        <a className="card pro-teaser" id="pro-teaser" href="#/pro">
+          <strong>Level Up Pro</strong>
+          <span className="small">Trainingsplan, Muskel-Auswertung, Kalorien tracken und mehr – ab {fmtEuro(PRO_PRICES.year / 12)} im Monat. Antippen zum Ansehen.</span>
+        </a>
+      )}
       <Calendar workouts={g.workouts} />
     </>
   );
