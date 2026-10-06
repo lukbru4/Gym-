@@ -1503,3 +1503,33 @@ body.picker-open { overflow: hidden; }
 .scanner { position: relative; }
 .scanner-frame { position: absolute; left: 12%; right: 12%; top: 22%; height: 26%; border: 2px solid var(--accent); border-radius: 10px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35); }
 .food-summary .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .food-summary .tile { padding: 10px; } .food-summary .tile-label { font-size: 0.72rem; }
+
+/* Profil: Zeilen mit Symbol */
+.tile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tile-link { flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; padding: 14px; font-size: 1rem; text-align: left; }
+.tile-link .tile-text { display: flex; flex-direction: column; min-width: 0; }
+.tile-link .tile-text strong { font-weight: 700; }
+.tile-link .tile-text small { color: var(--text-secondary); font-size: 0.8rem; font-weight: 500; }
+.tile-link.wide { grid-column: 1 / -1; }
+.tile-link .tile-chev { margin-left: auto; font-size: 1.6rem; line-height: 1; color: var(--text-secondary); }
+.tile-icon { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 12px; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.tile-svg { width: 24px; height: 24px; }
+.tile-svg .tile-detail { fill: none; stroke-width: 1.9; }
+
+/* Freunde */
+.avatar-dot { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); background: var(--surface); font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; font-size: 1.3rem; line-height: 1; }
+.avatar-dot.me { background: var(--accent); color: var(--accent-text); }
+.friend-rows { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
+.friend-rows a, .friend-rows .friend-request { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--input-bg, var(--bg)); color: var(--text); text-decoration: none; }
+.friend-meta { display: flex; flex-direction: column; min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.friend-meta small { font-size: 0.78rem; }
+.friend-rows .friend-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.friend-rows .tile-chev { font-size: 1.6rem; line-height: 1; color: var(--text-secondary); }
+.count-pill { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 4px; border-radius: 11px; background: var(--accent); color: var(--accent-text); font-family: "Inter Variable", system-ui, sans-serif; font-style: normal; font-size: 0.78rem; vertical-align: middle; }
+.leaderboard li { grid-template-columns: 28px 40px 1fr auto auto; }
+.leaderboard .avatar-dot { width: 32px; height: 32px; font-size: 1.05rem; }
+.leaderboard li.me { color: var(--text); }
+.leaderboard li.me .lb-name { color: var(--accent); }
+.tile-link:not(.wide) { flex-direction: column; justify-content: center; text-align: center; gap: 8px; padding: 14px 8px; }
+.tile-link .tile-text { overflow-wrap: normal; }
+.tile-link:not(.wide) .tile-text strong { font-size: 0.95rem; }

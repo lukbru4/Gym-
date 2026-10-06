@@ -1,4 +1,5 @@
 // Ranglisten mit Freunden: Gesamt (Credits), diese Woche, pro Übung (bestes geschätztes 1RM).
+import { AvatarDot } from './AvatarDot';
 import { ChoiceField } from './ChoiceSheet';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
@@ -23,6 +24,7 @@ function Rows({ rows, empty }: { rows: Row[]; empty: string }) {
       {rows.map((r, i) => (
         <li key={r.user_id} className={r.is_me ? 'me' : ''}>
           <span className="lb-rank">{i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span>
+          <AvatarDot name={r.display_name} me={r.is_me} />
           {r.is_me ? (
             <span className="lb-name">{r.display_name} (du)</span>
           ) : (

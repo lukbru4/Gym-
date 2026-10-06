@@ -1,5 +1,6 @@
 // Freunde: eigener Code/Einladungslink, Freund hinzufügen, Anfragen, Freundesliste, Rangliste,
 // Profil eines Freundes, Feed der Freunde (auf Home) und Einladungslinks (#/freunde/add/CODE).
+import { AvatarDot } from '../components/AvatarDot';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
 import { computeGame } from '../app/game';
@@ -112,40 +113,46 @@ export function Friends() {
     }
   };
 
+  const invite = (
+    <div className="card invite-card" key="invite">
+      <h3>Freunde einladen</h3>
+      <p className="muted small">Dein Code</p>
+      <p className="friend-code" aria-label="Freundescode">{profile.friend_code}</p>
+      <button className="btn primary block" id="share-invite" onClick={() => share(profile.friend_code, showError, setNote)}>
+        Einladungslink teilen
+      </button>
+      <form className="add-friend" onSubmit={add}>
+        <label htmlFor="friend-code-input">Code eines Freundes</label>
+        <div className="row pair">
+          <input
+            id="friend-code-input"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="z. B. K7M2Q9XA"
+            maxLength={8}
+            autoCapitalize="characters"
+            autoComplete="off"
+          />
+          <button className="btn" type="submit" disabled={busy}>Hinzufügen</button>
+        </div>
+      </form>
+      {note && <p className="notice small" id="friend-note">{note}</p>}
+    </div>
+  );
+
   return (
     <>
       <h2>Freunde</h2>
-      <div className="card invite-card">
-        <h3>Dein Freundescode</h3>
-        <p className="friend-code" aria-label="Freundescode">{profile.friend_code}</p>
-        <button className="btn primary block" id="share-invite" onClick={() => share(profile.friend_code, showError, setNote)}>
-          Einladungslink teilen
-        </button>
-        <form className="add-friend" onSubmit={add}>
-          <label htmlFor="friend-code-input">Code eines Freundes</label>
-          <div className="row pair">
-            <input
-              id="friend-code-input"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="z. B. K7M2Q9XA"
-              maxLength={8}
-              autoCapitalize="characters"
-              autoComplete="off"
-            />
-            <button className="btn" type="submit" disabled={busy}>Hinzufügen</button>
-          </div>
-        </form>
-        {note && <p className="notice small" id="friend-note">{note}</p>}
-      </div>
+      {accepted.length === 0 && invite}
 
       {incoming.length > 0 && (
         <div className="card">
-          <h3>Anfragen</h3>
-          <ul className="friend-list">
+          <h3>Anfragen <span className="count-pill">{incoming.length}</span></h3>
+          <ul className="friend-rows">
             {incoming.map((f) => (
-              <li key={f.user_id}>
-                <strong>{f.display_name}</strong>
+              <li key={f.user_id} className="friend-request">
+                <AvatarDot name={f.display_name} />
+                <strong className="friend-meta">{f.display_name}</strong>
                 <span className="friend-actions">
                   <button className="btn small-btn primary" onClick={() => act(() => social.respond(f.user_id, true))}>Annehmen</button>
                   <button className="btn small-btn" onClick={() => act(() => social.respond(f.user_id, false))}>Ablehnen</button>
@@ -156,18 +163,20 @@ export function Friends() {
         </div>
       )}
 
-      <Challenges social={social} friends={friends} />
-
-      <Leaderboards social={social} total={board} />
-
-      <div className="card">
-        <h3>Deine Freunde</h3>
+      <div className="card" id="friends-card">
+        <div className="block-head"><h3>Deine Freunde</h3><span className="muted small">{accepted.length}</span></div>
         {accepted.length ? (
-          <ul className="friend-list">
+          <ul className="friend-rows">
             {accepted.map((f) => (
               <li key={f.user_id}>
-                <a href={`#/freunde/profil/${f.user_id}`}><strong>{f.display_name}</strong></a>
-                <span className="muted small">seit {fmtDate(f.since.slice(0, 10), false)}</span>
+                <a href={`#/freunde/profil/${f.user_id}`}>
+                  <AvatarDot name={f.display_name} />
+                  <span className="friend-meta">
+                    <strong>{f.display_name}</strong>
+                    <small className="muted">Freunde seit {fmtDate(f.since.slice(0, 10), false)}</small>
+                  </span>
+                  <span className="tile-chev" aria-hidden="true">›</span>
+                </a>
               </li>
             ))}
           </ul>
@@ -177,10 +186,11 @@ export function Friends() {
         {outgoing.length > 0 && (
           <>
             <h4 className="muted small">Gesendete Anfragen</h4>
-            <ul className="friend-list">
+            <ul className="friend-rows">
               {outgoing.map((f) => (
-                <li key={f.user_id}>
-                  <span>{f.display_name}</span>
+                <li key={f.user_id} className="friend-request">
+                  <AvatarDot name={f.display_name} />
+                  <span className="friend-meta">{f.display_name}</span>
                   <button className="link small" onClick={() => act(() => social.removeFriend(f.user_id))}>Zurückziehen</button>
                 </li>
               ))}
@@ -188,6 +198,12 @@ export function Friends() {
           </>
         )}
       </div>
+
+      {accepted.length > 0 && invite}
+
+      <Challenges social={social} friends={friends} />
+
+      <Leaderboards social={social} total={board} />
     </>
   );
 }

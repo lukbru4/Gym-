@@ -86,6 +86,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Aufgaben-Credits erhöht (täglich 25/15/30, wöchentlich 75/60), Muskelname über dem Körpergraphen
 - [x] Eigene Auswahl-Liste statt Apple-Auswahl (Analyse, Rangliste, Challenge), Battle-Button, Shop ohne Avatar-Artikel
 - [x] Neue Schriften (Inter, Barlow Condensed kursiv), Rekorde-Seite entfernt, Körpergewicht per Wisch-Leiste, Übungsauswahl als senkrechte Wisch-Liste mit Pfeil
+- [x] Freunde-Design (Liste mit Avatar-Kreisen zuerst, Einladung kompakt), Profil mit eigenen Symbolen, Essen/Shop als eigene Zeile
 - [ ] Offen aus dem Feedback: Körper noch realistischer, Fragebogen/Trainingsplan in den Einstellungen, Profilfoto, Freunde-Design, Wochenplan, Einstellungen für Trainingsende
 - [x] Einstellungen → Fragen: bis zu 20 Fragen → persönlicher Trainingsplan (Vorlagen „Plan · …“, Wochenplan, Wochenziel)
 - [x] Pro-Grundlage: Status nur vom Server (SQL-Version 42), Bezahlseite (9,99 €/Monat, 64,99 €/Jahr), Plan nur mit Pro, Admin hat immer Pro

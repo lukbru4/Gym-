@@ -4,6 +4,7 @@ import { useGame } from '../app/gameContext';
 import { displayName } from '../app/profile';
 import { useAsync } from '../app/useAsync';
 import { Avatar } from '../components/Avatar';
+import { TileIcon, type TileIconId } from '../components/TileIcons';
 import { LoadError, Loading, QuestRows } from '../components/Bits';
 import { Calendar } from '../components/Calendar';
 import { RankBadge } from '../components/RankBadge';
@@ -32,10 +33,14 @@ export function Profile() {
   if (game.status === 'loading') return <Loading />;
   if (game.status === 'error') return <LoadError error={game.error} />;
   const g = game.data;
-  const tile = (href: string, icon: string, label: string) => (
-    <a className="tile-link" href={href}>
-      <span className="tile-icon" aria-hidden="true">{icon}</span>
-      {label}
+  const tile = (href: string, icon: TileIconId, label: string, sub?: string) => (
+    <a className={`tile-link${sub ? ' wide' : ''}`} href={href}>
+      <span className="tile-icon" aria-hidden="true"><TileIcon id={icon} /></span>
+      <span className="tile-text">
+        <strong>{label}</strong>
+        {sub && <small>{sub}</small>}
+      </span>
+      {sub && <span className="tile-chev" aria-hidden="true">›</span>}
     </a>
   );
   return (
@@ -54,14 +59,14 @@ export function Profile() {
         </p>
       </div>
       <div className="tile-grid">
-        {tile('#/aufgaben', '📜', 'Aufgaben')}
-        {tile('#/medaillen', '🏅', 'Medaillen')}
-        {tile('#/workouts', '📋', 'Vorlagen')}
-        {tile('#/verlauf', '🗓️', 'Verlauf')}
-        {tile('#/koerper', '⚖️', 'Gewicht')}
-        {api.social && tile('#/essen', '🍽️', 'Essen')}
-        {tile('#/konto', '⚙️', 'Einstellungen')}
-        {api.social ? tile('#/shop', '🛒', 'Shop') : tile('#/backup', '💾', 'Backup')}
+        {tile('#/aufgaben', 'aufgaben', 'Aufgaben')}
+        {tile('#/medaillen', 'medaillen', 'Medaillen')}
+        {tile('#/workouts', 'vorlagen', 'Vorlagen')}
+        {tile('#/verlauf', 'verlauf', 'Verlauf')}
+        {tile('#/koerper', 'gewicht', 'Gewicht')}
+        {tile('#/konto', 'einstellungen', 'Einstellungen')}
+        {api.social && tile('#/essen', 'essen', 'Essen', 'Kalorien & Nährwerte tracken')}
+        {api.social ? tile('#/shop', 'shop', 'Shop', 'Farben & Titel mit Credits') : tile('#/backup', 'backup', 'Backup', 'Daten sichern und wiederherstellen')}
       </div>
       <Calendar workouts={g.workouts} />
     </>
