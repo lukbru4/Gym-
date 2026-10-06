@@ -1,6 +1,7 @@
 // Essen: Kalorien und Nährwerte pro Tag und Mahlzeit (nur Pro). Hinzufügen per Suche, Barcode oder manuell.
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
+import { foodPhotoEnabled } from '../data/config';
 import { useAsync } from '../app/useAsync';
 import { LoadError, Loading } from '../components/Bits';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -174,14 +175,14 @@ function AddFood({ meal, onClose, onAdd, onAddMany, analyze }: { meal: Meal; onC
       ) : (
         <>
           <div className="picker-cats" role="tablist" aria-label="Wie hinzufügen?">
-            {([['search', 'Suche'], ['barcode', 'Barcode'], ['photo', 'Foto'], ['manual', 'Manuell']] as const).map(([id, text]) => (
+            {([['search', 'Suche'], ['barcode', 'Barcode'], ...(foodPhotoEnabled() ? ([['photo', 'Foto']] as const) : []), ['manual', 'Manuell']] as const).map(([id, text]) => (
               <button key={id} type="button" className="picker-cat" role="tab" data-tab={id} aria-selected={tab === id} onClick={() => setTab(id)}>{text}</button>
             ))}
           </div>
           <div className="food-body">
             {tab === 'search' && <Search onPick={(item) => setPicked({ item, source: 'search' })} onError={showError} />}
             {tab === 'barcode' && <Barcode onPick={(item) => setPicked({ item, source: 'barcode' })} onError={showError} />}
-            {tab === 'photo' && <Photo analyze={analyze} onAddMany={onAddMany} onError={showError} />}
+            {tab === 'photo' && foodPhotoEnabled() && <Photo analyze={analyze} onAddMany={onAddMany} onError={showError} />}
             {tab === 'manual' && <Manual onAdd={onAdd} />}
           </div>
         </>

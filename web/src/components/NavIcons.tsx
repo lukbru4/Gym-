@@ -1,7 +1,7 @@
 // Symbole der unteren Leiste (Duoton: leicht gefüllte Fläche + Kontur, übernehmen die Textfarbe).
 import type { ReactNode } from 'react';
 
-export type NavIconId = 'workout' | 'home' | 'raenge' | 'freunde' | 'profil';
+export type NavIconId = 'workout' | 'home' | 'raenge' | 'essen' | 'freunde' | 'profil';
 
 const PATHS: Record<NavIconId, ReactNode> = {
   workout: (
@@ -18,6 +18,13 @@ const PATHS: Record<NavIconId, ReactNode> = {
     <>
       <path d="M12 2.8 19.2 5.6v5.6c0 4.6-3 8.4-7.2 10-4.2-1.6-7.2-5.4-7.2-10V5.6z" />
       <path className="nav-icon-detail" d="M8.6 10.6 12 13l3.4-2.4M8.6 14.2 12 16.6l3.4-2.4" />
+    </>
+  ),
+  essen: (
+    <>
+      <path d="M7 3.2v6.6a2.1 2.1 0 0 0 4.2 0V3.2" />
+      <path className="nav-icon-detail" d="M9.1 3.2V21" />
+      <path d="M17.6 21V3.2c-2.4 1.1-3.7 4-3.7 7.6h3.7" />
     </>
   ),
   freunde: (

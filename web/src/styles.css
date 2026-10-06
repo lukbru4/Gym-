@@ -1569,3 +1569,15 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .recipe-fit.ok { color: var(--accent); }
 .recipe-left-kcal { font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; font-size: 1.8rem; }
 .recipe-ingredients, .recipe-steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+
+/* Mit Essen sind links drei Reiter: etwas enger, der aktive zeigt seinen Namen */
+.bottom-nav .nav-group.three .nav-tab.active { flex-grow: 2.7; }
+.bottom-nav .nav-group.three .nav-pill { padding: 8px 6px; gap: 3px; }
+.bottom-nav .nav-group.three .nav-tab.active .nav-pill { padding: 8px 8px 8px 6px; }
+@media (max-width: 379px) {
+  .bottom-nav .nav-group.three .nav-tab.active .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}
+@media (max-width: 359px) {
+  .bottom-nav .nav-group.three .nav-tab.active { flex-grow: 1.6; }
+  .bottom-nav .nav-group.three .nav-pill { padding: 8px 4px; }
+}

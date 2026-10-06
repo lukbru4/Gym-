@@ -11,3 +11,16 @@ export const USE_CLOUD = import.meta.env.VITE_BACKEND !== 'local';
 /** Muss zu public.schema_version() am Ende von supabase/schema.sql passen (ein Test prüft das).
  *  Ist die Datenbank älter, zeigt die App dem Admin „Datenbank-Update nötig“. */
 export const SCHEMA_VERSION = 46;
+
+/** Foto-Auswertung beim Essen (KI): erst einschalten (true), wenn die Server-Funktion „food-photo“ eingerichtet ist
+ *  (supabase/functions/food-photo/README.md). Zum Ausprobieren ohne neue App-Version: im Browser
+ *  localStorage „gym-tracker-food-photo“ auf „1“ setzen. */
+export const FOOD_PHOTO_ENABLED = false;
+export function foodPhotoEnabled(): boolean {
+  if (FOOD_PHOTO_ENABLED) return true;
+  try {
+    return localStorage.getItem('gym-tracker-food-photo') === '1';
+  } catch {
+    return false;
+  }
+}

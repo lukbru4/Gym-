@@ -112,18 +112,20 @@ export function SubNav() {
   );
 }
 
-// Aufbau: Home · Ränge · [Workout-Knopf in der Mitte] · Freunde · Profil.
+// Aufbau: Home · Ränge · Essen · [Workout-Knopf in der Mitte] · Freunde · Profil (Essen nur mit Konto).
 // Die aktive Seite wird breiter und zeigt ihren Namen; die übrigen zeigen nur das Symbol.
 const NAV_LEFT: [string, Section, NavIconId, string][] = [
   ['#/', 'home', 'home', 'Home'],
   ['#/raenge', 'raenge', 'raenge', 'Ränge'],
 ];
+const NAV_FOOD: [string, Section, NavIconId, string] = ['#/essen', 'essen', 'essen', 'Essen'];
 const NAV_RIGHT: [string, Section, NavIconId, string][] = [
   ['#/freunde', 'freunde', 'freunde', 'Freunde'],
   ['#/profil', 'profil', 'profil', 'Profil'],
 ];
 
 export function BottomNav() {
+  const { api } = useApp();
   const hash = useHash();
   const section = sectionOf(hash);
   const running = hasDraft();
@@ -137,7 +139,7 @@ export function BottomNav() {
   );
   return (
     <nav id="nav" className="bottom-nav" aria-label="Hauptnavigation">
-      <div className="nav-group">{NAV_LEFT.map(item)}</div>
+      <div className={`nav-group${api.social ? ' three' : ''}`}>{(api.social ? [...NAV_LEFT, NAV_FOOD] : NAV_LEFT).map(item)}</div>
       <a
         href={running ? '#/neu' : '#/workouts'}
         data-section="workouts"
