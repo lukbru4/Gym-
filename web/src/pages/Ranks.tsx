@@ -4,14 +4,14 @@ import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
 import { BodyGraph } from '../components/BodyGraph';
-import { CreditsRules, LevelBar, LoadError, Loading, ProgressBar, RankRules } from '../components/Bits';
+import { LevelBar, LoadError, Loading, ProgressBar, RankRules } from '../components/Bits';
 import { ChartView } from '../components/ChartView';
 import { RankBadge } from '../components/RankBadge';
 import { datedSets } from '../lib/editor';
 import { fmt, fmtDate, fmtShortDate, plural } from '../lib/format';
 import { strengthLevels } from '../lib/muscles';
 import { rankFromPoints } from '../lib/ranks';
-import { exerciseProgress, personalRecords, todayISO, type CardioPoint, type PersonalRecord, type StrengthPoint } from '../lib/stats';
+import { exerciseProgress, todayISO, type CardioPoint, type StrengthPoint } from '../lib/stats';
 import { KG_PER_WEIGHT_LEVEL, exerciseLevel, weightLevel, type Progress } from '../lib/xp';
 
 export function Ranks() {
@@ -60,103 +60,6 @@ const levelOf = (progress: Progress, exId: number) => {
   const st = progress.perExercise.get(exId) || { xp: 0, sessions: 0, best: 0, improvements: 0, records: 0, last: 0 };
   return { st, ex: exerciseLevel(st.xp), w: st.best > 0 ? weightLevel(st.best) : null };
 };
-
-function RecordsTables({ records }: { records: PersonalRecord[] }) {
-  const cell = (rec: { date: string } | null, text: string | null) =>
-    rec ? (
-      <>
-        {text}
-        <br />
-        <span className="muted small">{fmtShortDate(rec.date)}{rec.date.slice(2, 4)}</span>
-      </>
-    ) : (
-      '–'
-    );
-  const strength = records.filter((r) => r.type === 'strength');
-  const cardio = records.filter((r) => r.type === 'cardio');
-  return (
-    <>
-      {strength.length > 0 && (
-        <div className="card scroll-x">
-          <h3>Kraft</h3>
-          <table className="table">
-            <thead><tr><th>Übung</th><th>Schwerster Satz</th><th>Bestes gesch. 1RM</th><th>Meistes Volumen</th></tr></thead>
-            <tbody>
-              {strength.map((r) => (
-                <tr key={r.exercise}>
-                  <td>{r.exercise}</td>
-                  <td>{cell(r.heaviest, r.heaviest && `${fmt(r.heaviest.weight, 2)} kg × ${r.heaviest.reps}`)}</td>
-                  <td>{cell(r.bestE1RM, r.bestE1RM && `${fmt(r.bestE1RM.value)} kg`)}</td>
-                  <td>{cell(r.bestVolume, r.bestVolume && `${fmt(r.bestVolume.value, 0)} kg`)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {cardio.length > 0 && (
-        <div className="card scroll-x">
-          <h3>Cardio</h3>
-          <table className="table">
-            <thead><tr><th>Übung</th><th>Längste Dauer</th><th>Weiteste Distanz</th></tr></thead>
-            <tbody>
-              {cardio.map((r) => (
-                <tr key={r.exercise}>
-                  <td>{r.exercise}</td>
-                  <td>{cell(r.longestDuration, r.longestDuration && `${fmt(r.longestDuration.value)} min`)}</td>
-                  <td>{cell(r.longestDistance, r.longestDistance && `${fmt(r.longestDistance.value, 2)} km`)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </>
-  );
-}
-
-export function Records() {
-  const { exercises, exerciseMap } = useApp();
-  const game = useGame();
-  if (game.status === 'loading') return <Loading />;
-  if (game.status === 'error') return <LoadError error={game.error} />;
-  const g = game.data;
-  const dated = datedSets(g.workouts, g.sets);
-  const used = exercises.filter((e) => dated.some((x) => x.exercise_id === e.id));
-  if (!used.length)
-    return (
-      <>
-        <h2>Rekorde</h2>
-        <p className="muted">Sobald du Trainings erfasst hast, siehst du hier deine Rekorde.</p>
-      </>
-    );
-  return (
-    <>
-      <h2>Level pro Übung</h2>
-      <div className="card scroll-x">
-        <table className="table">
-          <thead><tr><th>Übung</th><th>Übungs-Level</th><th>Gewichts-Level</th><th>Trainings</th></tr></thead>
-          <tbody>
-            {used
-              .map((e) => ({ e, l: levelOf(g.progress, e.id) }))
-              .sort((a, b) => b.l.st.xp - a.l.st.xp || a.e.name.localeCompare(b.e.name, 'de'))
-              .map(({ e, l }) => (
-                <tr key={e.id}>
-                  <td>{e.name}</td>
-                  <td><span className="level-badge small-badge">{l.ex.level}</span></td>
-                  <td>{l.w ? <span className="level-badge small-badge weight">{l.w}</span> : '–'}</td>
-                  <td>{l.st.sessions}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-        <CreditsRules />
-      </div>
-      <h2>Persönliche Rekorde</h2>
-      <RecordsTables records={personalRecords(dated, exerciseMap())} />
-    </>
-  );
-}
 
 const PROGRESS_KEY = 'gym-tracker-progress-exercise';
 

@@ -1,5 +1,5 @@
 // Körpergraph: Neon-Drahtgitter von vorne und hinten; trainierte Muskeln leuchten je nach Stufe.
-import { BACK, BACK_LINES, BACK_NEUTRAL, FRONT, FRONT_LINES, FRONT_NEUTRAL, HEAD, OUTLINE } from '../lib/bodyShapes';
+import { BACK, BACK_LINES, BACK_NEUTRAL, EAR, FRONT, FRONT_LINES, FRONT_NEUTRAL, HEAD_PATH, OUTLINE } from '../lib/bodyShapes';
 import { useCosmetics } from '../lib/cosmetics';
 import { MUSCLE_NAMES, type MuscleLevel } from '../lib/muscles';
 import type { MuscleId } from '../lib/types';
@@ -23,6 +23,10 @@ const Paths = ({ list }: { list: string[] }) => (
 
 export const GlowFilter = () => (
   <defs>
+    <linearGradient id="body-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style={{ stopColor: 'color-mix(in srgb, var(--neon) 16%, var(--neon-bg))' }} />
+      <stop offset="1" style={{ stopColor: 'var(--neon-bg)' }} />
+    </linearGradient>
     <filter id="neon-glow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="2.6" result="b" />
       <feMerge>
@@ -47,7 +51,9 @@ function Figure({ parts, neutral, lines, levels, offsetX, onSelect }: FigureProp
     <g transform={`translate(${offsetX} 0)`}>
       <g className="body-base">
         <Both d={OUTLINE} />
-        <ellipse cx={HEAD.cx} cy={HEAD.cy} rx={HEAD.rx} ry={HEAD.ry} />
+        <path d={HEAD_PATH} />
+        <path d={EAR} />
+        <path d={EAR} transform={MIRROR} />
       </g>
       <g className="body-neutral">
         <Paths list={neutral} />

@@ -19,6 +19,9 @@ export const OUTLINE = `M101 62 L86 62 C86 70 86 76 86 82 C80 88 70 94 58 96
   C93 344 94 336 94 330 C96 316 97 300 98 286 C99 280 100 276 100 272 L101 272 Z`;
 
 export const HEAD = { cx: 100, cy: 38, rx: 22, ry: 27 };
+/** Kopf mit Kinn und Kiefer (symmetrisch, einmal gezeichnet) und Ohr (links, rechts gespiegelt) */
+export const HEAD_PATH = 'M100 11 C88 11 79.5 20 79.5 33 C79.5 40 80.5 46 83 52 C85 57 88 61 93 64.5 C96 66.5 98 67 100 67 C102 67 104 66.5 107 64.5 C112 61 115 57 117 52 C119.5 46 120.5 40 120.5 33 C120.5 20 112 11 100 11 Z';
+export const EAR = 'M79.5 31 C75 30 74 37 77 43 C78 45 79 46 80 46';
 
 const DELTOID = 'M58 96 C42 98 26 104 18 116 C12 126 11 142 13 158 C18 162 24 160 27 154 C30 140 36 126 44 116 C50 108 56 101 58 96 Z';
 const FOREARMS: string[] = [

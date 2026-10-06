@@ -14,6 +14,7 @@ import { LEVELS, MUSCLE_NAMES, musclesOf, strengthLevels } from '../lib/muscles'
 import { todayISO } from '../lib/stats';
 import type { Exercise, MuscleId } from '../lib/types';
 import { ask } from '../components/Dialog';
+import { pickNumber } from '../components/NumberPicker';
 
 const pct = (g: number | null) => (g == null ? '' : `${g >= 0 ? '+' : ''}${fmt(g * 100, 0)} %`);
 
@@ -172,7 +173,22 @@ export function Body() {
           </label>
           <label className="grow">
             Gewicht (kg)
-            <input name="weight" inputMode="decimal" placeholder="z. B. 80,5" required value={weight} onChange={(e) => setWeight(e.target.value)} />
+            <input
+              name="weight"
+              inputMode="none"
+              placeholder="antippen"
+              required
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              onClick={async () => {
+                const last = list[list.length - 1]?.weight_kg;
+                const v = await pickNumber({
+                  title: 'Körpergewicht', unit: 'kg', value: weight || (last ? String(last) : '75'),
+                  min: 30, max: 250, step: 0.1, bigStep: 0.5, itemW: 10, labelEvery: 10,
+                });
+                if (v !== null) setWeight(v);
+              }}
+            />
           </label>
         </div>
         <button className="btn primary block" type="submit">Speichern</button>

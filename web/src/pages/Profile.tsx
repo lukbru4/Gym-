@@ -57,7 +57,6 @@ export function Profile() {
         {tile('#/aufgaben', '📜', 'Aufgaben')}
         {tile('#/medaillen', '🏅', 'Medaillen')}
         {tile('#/workouts', '📋', 'Vorlagen')}
-        {tile('#/rekorde', '🏋️', 'Übungen')}
         {tile('#/verlauf', '🗓️', 'Verlauf')}
         {tile('#/koerper', '⚖️', 'Gewicht')}
         {tile('#/konto', '⚙️', 'Einstellungen')}

@@ -3,6 +3,9 @@ import { App } from './app/App';
 import { isNative } from './lib/platform';
 import { initTheme } from './lib/theme';
 import { notifyThemeChanged } from './lib/themeStore';
+import '@fontsource-variable/inter';
+import '@fontsource/barlow-condensed/700.css';
+import '@fontsource/barlow-condensed/800-italic.css';
 import './styles.css';
 
 // Kein Zoomen mit zwei Fingern: iOS Safari beachtet „user-scalable=no“ im Viewport nicht,
