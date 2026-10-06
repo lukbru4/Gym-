@@ -22,6 +22,7 @@ import { setServerCatalog } from '../lib/shop';
 import { enforceSchemeRules } from '../lib/theme';
 import { getWeekGoal, setLocalWeekGoal } from '../lib/weekGoal';
 import { Analysis, Ranks } from '../pages/Ranks';
+import { Quiz } from '../pages/Quiz';
 import { History, WorkoutDetail } from '../pages/Workout';
 import { StartFromTemplate, Workouts } from '../pages/Workouts';
 import { AppProvider, useApp } from './context';
@@ -48,6 +49,7 @@ const ROUTES: Route[] = [
   [/^#\/koerper$/, () => <Body />],
   [/^#\/backup$/, () => <Backup />],
   [/^#\/konto$/, () => <Account />],
+  [/^#\/fragen$/, () => <Quiz />],
   [/^#\/raenge$/, () => <Ranks />],
   [/^#\/freunde$/, () => <Friends />],
   [/^#\/freunde\/add\/([A-Za-z0-9]{8})$/, (m) => <AcceptInvite code={m[1].toUpperCase()} />],

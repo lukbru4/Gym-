@@ -10,6 +10,7 @@ import { STARTER_TEMPLATES, type StarterTemplate } from '../lib/starterTemplates
 import { REST_OPTIONS, getDefaultRest, setDefaultRest } from '../lib/timer';
 import type { Exercise, Template, TemplateExercise } from '../lib/types';
 import { ask } from '../components/Dialog';
+import { loadQuiz, PLAN_PREFIX } from '../lib/plan';
 
 export function Workouts() {
   const { api, exerciseById, exercises, addExercise, showError, dataVersion, dataChanged } = useApp();
@@ -51,6 +52,27 @@ export function Workouts() {
   return (
     <>
       <h2>Workouts</h2>
+      {(() => {
+        const plan = loadQuiz()?.plan;
+        if (!plan?.week.length) return null;
+        const byName = new Map(list.map((t) => [t.name, t]));
+        return (
+          <div className="card" id="week-plan">
+            <h3>Mein Wochenplan</h3>
+            <ul className="plan-week">
+              {plan.week.map((w) => {
+                const t = byName.get(w.template);
+                return (
+                  <li key={w.day}>
+                    <strong>{w.day}</strong>
+                    {t ? <a href={`#/start/${t.id}`}>{w.template.replace(PLAN_PREFIX, '')}</a> : <span>{w.template.replace(PLAN_PREFIX, '')}</span>}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })()}
       {draft?.blocks.length ? (
         <div className="card highlight">
           <h3>Laufendes Training{draft.name ? `: ${draft.name}` : ''}</h3>

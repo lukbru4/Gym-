@@ -1453,3 +1453,21 @@ body.picker-open { overflow: hidden; }
 .wheel-item.on .wheel-name { font-size: 1.1rem; }
 .wheel-sub { font-size: 0.75rem; color: var(--text-secondary); }
 .wheel-empty { padding: 16px 32px; }
+
+/* Fragen / Trainingsplan */
+.quiz-top { display: flex; justify-content: space-between; align-items: center; }
+.quiz-progress { height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; margin: 8px 0 16px; }
+.quiz-progress i { display: block; height: 100%; background: var(--accent); transition: width 0.25s; }
+.quiz-q { font-size: 1.6rem; margin: 0 0 6px; }
+.quiz-options { display: grid; gap: 8px; margin: 14px 0; }
+.quiz-option { min-height: 52px; padding: 10px 16px; text-align: left; font: inherit; font-weight: 600; color: var(--text); background: var(--input-bg, var(--bg)); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; }
+.quiz-option.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.quiz-range { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; margin: 14px 0; padding: 18px; font: inherit; color: var(--text); background: var(--input-bg, var(--bg)); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; }
+.quiz-range strong { font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; font-size: 3rem; line-height: 1; }
+.quiz-range small { color: var(--text-secondary); }
+.quiz-foot { margin-top: 8px; flex-wrap: wrap; }
+.plan-week, .plan-list, .plan-notes { list-style: none; margin: 0 0 8px; padding: 0; }
+.plan-week li, .plan-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.plan-week li:last-child, .plan-list li:last-child { border-bottom: 0; }
+.plan-notes { margin: 12px 0; display: grid; gap: 6px; }
+#plan-back, #plan-apply { margin-top: 8px; }

@@ -12,6 +12,7 @@ import { plural } from '../lib/format';
 import { todayISO } from '../lib/stats';
 import { useCosmetics } from '../lib/cosmetics';
 import { useShopItems } from '../lib/shop';
+import { activeQuestions, isAnswered, loadQuiz } from '../lib/plan';
 import { setLocalWeekGoal, useWeekGoal } from '../lib/weekGoal';
 import {
   SCHEMES,
@@ -32,6 +33,22 @@ import { APP_VERSION } from '../version';
 
 const confirmDelete = (what: string) =>
   askText(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen.`, { title: 'Wirklich löschen?', ok: 'Endgültig löschen', danger: true, requireText: 'LÖSCHEN' }).then((t) => t?.trim().toUpperCase() === 'LÖSCHEN');
+
+function QuestionsCard() {
+  const saved = loadQuiz();
+  const total = activeQuestions(saved?.answers ?? {}).length;
+  const done = saved ? activeQuestions(saved.answers).filter((q) => isAnswered(q, saved.answers)).length : 0;
+  return (
+    <div className="card" id="questions-card">
+      <h3>Fragen</h3>
+      <p className="muted small">
+        Beantworte ein paar Fragen zu Ziel, Zeit und Geräten – daraus erstellen wir deinen Trainingsplan mit Vorlagen und Wochenplan.
+        {saved ? ` Bisher beantwortet: ${done} von ${total}.` : ''}
+      </p>
+      <a className="btn primary block" id="open-quiz" href="#/fragen">{saved ? 'Antworten ansehen & Plan erstellen' : 'Fragen beantworten'}</a>
+    </div>
+  );
+}
 
 function WeekGoalCard() {
   const { api, showError, dataChanged } = useApp();
@@ -151,6 +168,7 @@ export function Account() {
         </div>
       )}
       <WeekGoalCard />
+      <QuestionsCard />
       <div className="card">
         <h3>Stil</h3>
         <label>
