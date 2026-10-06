@@ -106,6 +106,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Körper: Beine 16 % länger, Kopf 24 % größer; Verlauf neu: Monatsgruppen mit Summe, Karten mit Datum, Übungen und Kennzahlen, Gesamtzahlen oben
 - [x] Essen: Kalorienring (übrig in der Mitte, gegessen/Ziel an der Seite) und Nährwert-Score (4 Stufen, einfache Schätzung); Empfehlung (Tagesziel-Vorschlag) und Makro-Kacheln entfernt
 - [x] Pro: Hinweis-Karte im Profil (nur ohne Pro, nur mit Konto); Körpergraph und Muskel-Radar nur mit Pro (Körpergewicht bleibt frei)
+- [x] Einstellungen: Karte „Ziele“ (Trainings pro Woche + Zielgewicht, nur auf dem Gerät); Essen: eine Liste mit einem „Hinzufügen“ statt Mahlzeiten
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

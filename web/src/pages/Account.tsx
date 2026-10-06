@@ -18,6 +18,9 @@ import { refreshAvatars, useAvatarUrl } from '../lib/avatars';
 import { AvatarCropper } from '../components/AvatarCropper';
 import { AvatarDot } from '../components/AvatarDot';
 import { setLocalWeekGoal, useWeekGoal } from '../lib/weekGoal';
+import { setGoalWeight, useGoalWeight } from '../lib/goalWeight';
+import { pickNumber } from '../components/NumberPicker';
+import { fmt } from '../lib/format';
 import {
   SCHEMES,
   THEME_OPTIONS,
@@ -71,6 +74,13 @@ function QuestionsCard() {
 function WeekGoalCard() {
   const { api, showError, dataChanged } = useApp();
   const goal = useWeekGoal();
+  const goalKg = useGoalWeight();
+  const weights = useAsync(() => api.listBodyWeights(), [api]);
+  const lastKg = weights.status === 'ok' && weights.data.length ? weights.data[weights.data.length - 1].weight_kg : null;
+  const editKg = async () => {
+    const v = await pickNumber({ title: 'Zielgewicht', unit: 'kg', value: String(goalKg ?? lastKg ?? 75), min: 30, max: 250, step: 0.1, bigStep: 0.5, itemW: 10, labelEvery: 10 });
+    if (v !== null) setGoalWeight(Number(v.replace(',', '.')));
+  };
   const change = async (n: number) => {
     const before = goal;
     setLocalWeekGoal(n);
@@ -85,7 +95,7 @@ function WeekGoalCard() {
   };
   return (
     <div className="card" id="week-goal-card">
-      <h3>Trainingsziel</h3>
+      <h3>Ziele</h3>
       <label>
         Wie oft pro Woche willst du trainieren?
         <select id="week-goal" value={goal} onChange={(e) => change(Number(e.target.value))}>
@@ -94,6 +104,15 @@ function WeekGoalCard() {
           ))}
         </select>
       </label>
+      <button type="button" className="btn block" id="goal-weight" onClick={editKg}>
+        Zielgewicht: {goalKg ? `${fmt(goalKg, 1)} kg` : 'festlegen'}
+      </button>
+      {goalKg && lastKg != null && (
+        <p className="small" id="goal-weight-info">
+          Aktuell {fmt(lastKg, 1)} kg · {Math.abs(lastKg - goalKg) < 0.05 ? 'Ziel erreicht 🎉' : `noch ${fmt(Math.abs(lastKg - goalKg), 1)} kg ${lastKg > goalKg ? 'abnehmen' : 'zunehmen'}`}
+          {' · '}<button type="button" className="linklike" id="goal-weight-clear" onClick={() => setGoalWeight(null)}>entfernen</button>
+        </p>
+      )}
       <p className="muted small">
         Deine 🔥 Serie zählt Tage: Jedes Training zählt die Tage der Woche bis dahin (Training am Mittwoch = 3 Tage). Schaffst du dein
         Wochenziel, zählt die ganze Woche. Verpasst du es, beginnt die Serie in der nächsten Woche neu.

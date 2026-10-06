@@ -10,7 +10,7 @@ import { ask } from '../components/Dialog';
 import { pickNumber } from '../components/NumberPicker';
 import { Paywall } from '../components/Pro';
 import { fmt } from '../lib/format';
-import { FoodAiError, isBarcode, lookupBarcode, MEALS, nutritionScore, rescaleItem, scale, searchFood, totals, type FoodEntry, type FoodItem, type Meal, type PhotoAnalysis, type PhotoItem } from '../lib/food';
+import { FoodAiError, isBarcode, lookupBarcode, mealForHour, nutritionScore, rescaleItem, scale, searchFood, totals, type FoodEntry, type FoodItem, type Meal, type PhotoAnalysis, type PhotoItem } from '../lib/food';
 import { toMaxJpeg } from '../lib/image';
 import { usePro } from '../lib/pro';
 import { addDays, todayISO } from '../lib/stats';
@@ -90,24 +90,20 @@ export function Food() {
         </div>
         <p className="muted small">{score ? 'Einfache Schätzung aus Eiweiß, Fett, Kohlenhydraten und Kalorien des Tages.' : 'Trage etwas ein, dann siehst du hier deinen Score.'}</p>
       </div>
-      {MEALS.map(([meal, label]) => {
-        const mine = list.filter((e) => e.meal === meal);
-        return (
-          <div className="card" key={meal} data-meal={meal}>
-            <div className="block-head"><h3>{label}</h3><span className="muted small">{fmt(totals(mine).kcal, 0)} kcal</span></div>
-            <ul className="food-list">
-              {mine.map((e) => (
-                <li key={e.id}>
-                  <span className="food-name">{e.name}<small className="muted">{[e.brand, e.amount_g ? `${fmt(e.amount_g, 0)} g` : null].filter(Boolean).join(' · ')}</small></span>
-                  <span>{fmt(e.kcal, 0)} kcal</span>
-                  <button className="icon-btn" aria-label={`${e.name} löschen`} data-del={e.id} onClick={() => remove(e)}>✕</button>
-                </li>
-              ))}
-            </ul>
-            <button className="btn block" data-add={meal} disabled={!pro.pro} onClick={() => setAdding(meal)}>+ Hinzufügen</button>
-          </div>
-        );
-      })}
+      <div className="card" id="food-day">
+        <div className="block-head"><h3>Gegessen</h3><span className="muted small">{fmt(sum.kcal, 0)} kcal</span></div>
+        <ul className="food-list">
+          {list.map((e) => (
+            <li key={e.id}>
+              <span className="food-name">{e.name}<small className="muted">{[e.brand, e.amount_g ? `${fmt(e.amount_g, 0)} g` : null].filter(Boolean).join(' · ')}</small></span>
+              <span>{fmt(e.kcal, 0)} kcal</span>
+              <button className="icon-btn" aria-label={`${e.name} löschen`} data-del={e.id} onClick={() => remove(e)}>✕</button>
+            </li>
+          ))}
+        </ul>
+        {!list.length && <p className="muted small">Noch nichts eingetragen.</p>}
+        <button className="btn primary block" id="food-add" disabled={!pro.pro} onClick={() => setAdding(mealForHour(new Date().getHours()))}>+ Hinzufügen</button>
+      </div>
       {foodChatEnabled() && pro.pro && (
         <button className="btn primary block" id="open-chat" onClick={() => setChatOpen(true)}>💬 Mit dem Essens-Assistenten eintragen</button>
       )}
@@ -126,7 +122,6 @@ export function Food() {
       )}
       {adding && (
         <AddFood
-          meal={adding}
           onClose={() => setAdding(null)}
           onAdd={async (item) => {
             try {
@@ -156,7 +151,7 @@ export function Food() {
 
 type NewEntry = { name: string; brand?: string | null; amount_g?: number | null; kcal: number; protein: number; carbs: number; fat: number; barcode?: string | null; source: FoodEntry['source'] };
 
-function AddFood({ meal, onClose, onAdd, onAddMany, analyze }: { meal: Meal; onClose: () => void; onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void>; analyze: (base64: string) => Promise<PhotoAnalysis> }) {
+function AddFood({ onClose, onAdd, onAddMany, analyze }: { onClose: () => void; onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void>; analyze: (base64: string) => Promise<PhotoAnalysis> }) {
   const { showError } = useApp();
   const [tab, setTab] = useState<'search' | 'barcode' | 'manual' | 'photo'>('search');
   const [picked, setPicked] = useState<{ item: FoodItem; source: 'search' | 'barcode' } | null>(null);
@@ -164,12 +159,11 @@ function AddFood({ meal, onClose, onAdd, onAddMany, analyze }: { meal: Meal; onC
     document.body.classList.add('picker-open');
     return () => document.body.classList.remove('picker-open');
   }, []);
-  const label = MEALS.find((m) => m[0] === meal)![1];
 
   return (
-    <div className="picker food-add" role="dialog" aria-modal="true" aria-label={`${label} hinzufügen`}>
+    <div className="picker food-add" role="dialog" aria-modal="true" aria-label="Essen hinzufügen">
       <div className="picker-head">
-        <h2>{label}</h2>
+        <h2>Essen hinzufügen</h2>
         <button className="icon-btn" type="button" aria-label="Schließen" id="food-close" onClick={onClose}>✕</button>
       </div>
       {picked ? (

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ask } from './Dialog';
 import { pickNumber } from './NumberPicker';
 import { fmt } from '../lib/format';
-import { FoodAiError, MEALS, mealForHour, rescaleItem, totals, type ChatMsg, type ChatTurn, type Meal, type PhotoItem } from '../lib/food';
+import { FoodAiError, mealForHour, rescaleItem, totals, type ChatMsg, type ChatTurn, type Meal, type PhotoItem } from '../lib/food';
 
 const AI_KEY = 'gym-tracker-food-chat-ok';
 const GREETING = 'Hallo! Was hast du gegessen oder getrunken? Schreib es einfach auf – ich frage nach, wenn mir etwas fehlt.';
@@ -21,7 +21,6 @@ export function FoodChat({ chat, onAdd, onClose, onError }: {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [proposal, setProposal] = useState<Item[] | null>(null);
-  const [meal, setMeal] = useState<Meal>(mealForHour(new Date().getHours()));
   const [remaining, setRemaining] = useState<number | null>(null);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -71,7 +70,7 @@ export function FoodChat({ chat, onAdd, onClose, onError }: {
     if (!proposal) return;
     setBusy(true);
     try {
-      await onAdd(meal, proposal);
+      await onAdd(mealForHour(new Date().getHours()), proposal);
       setBubbles((b) => [...b, { role: 'assistant', content: `Eingetragen: ${fmt(totals(proposal).kcal, 0)} kcal ✓ Noch etwas?`, suggestions: ['Nein, danke'] }]);
       setProposal(null);
     } catch (err) {
@@ -108,11 +107,6 @@ export function FoodChat({ chat, onAdd, onClose, onError }: {
                 </li>
               ))}
             </ul>
-            <div className="picker-cats" role="tablist" aria-label="Mahlzeit">
-              {MEALS.map(([id, label]) => (
-                <button key={id} type="button" className="picker-cat" role="tab" data-meal-choice={id} aria-selected={meal === id} onClick={() => setMeal(id)}>{label}</button>
-              ))}
-            </div>
             <button className="btn primary block" id="chat-confirm" disabled={busy} onClick={confirm}>Eintragen · {fmt(sum.kcal, 0)} kcal</button>
           </div>
         )}
