@@ -1581,3 +1581,11 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
   .bottom-nav .nav-group.three .nav-tab.active { flex-grow: 1.6; }
   .bottom-nav .nav-group.three .nav-pill { padding: 8px 4px; }
 }
+
+/* Profilbild zurechtrücken */
+.avatar-crop { gap: 10px; }
+.crop-view { position: relative; margin: 0 auto; overflow: hidden; border-radius: 14px; background: #000; touch-action: none; cursor: grab; }
+.crop-view canvas { display: block; width: 100%; height: 100%; }
+.crop-mask { position: absolute; inset: 0; pointer-events: none; border-radius: 14px; box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.5);
+  background: radial-gradient(circle at center, transparent 0, transparent 49%, rgb(0 0 0 / 0.55) 50%); }
+#crop-zoom { width: 100%; accent-color: var(--accent); }

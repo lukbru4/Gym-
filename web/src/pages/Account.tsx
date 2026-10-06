@@ -15,7 +15,7 @@ import { useShopItems } from '../lib/shop';
 import { activeQuestions, isAnswered, loadQuiz } from '../lib/plan';
 import { usePro } from '../lib/pro';
 import { refreshAvatars, useAvatarUrl } from '../lib/avatars';
-import { toSquareJpeg } from '../lib/image';
+import { AvatarCropper } from '../components/AvatarCropper';
 import { AvatarDot } from '../components/AvatarDot';
 import { setLocalWeekGoal, useWeekGoal } from '../lib/weekGoal';
 import {
@@ -267,12 +267,13 @@ function AvatarEditor({ name }: { name: string }) {
   const social = api.social!;
   const url = useAvatarUrl(user?.id);
   const [busy, setBusy] = useState(false);
-  const pick = async (file: File | undefined) => {
-    if (!file) return;
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const save = async (jpeg: Blob) => {
     setBusy(true);
     try {
-      await social.uploadAvatar(await toSquareJpeg(file));
+      await social.uploadAvatar(jpeg);
       await refreshAvatars(social);
+      setCropFile(null);
     } catch (err) {
       showError(err instanceof Error && /bucket|not found|storage|function/i.test(err.message) ? new Error('Profilbild ist noch nicht verfügbar – in Supabase fehlt das neue SQL (Version 44).') : err);
     } finally {
@@ -296,11 +297,12 @@ function AvatarEditor({ name }: { name: string }) {
       <div className="avatar-editor-actions">
         <label className={`btn small-btn${busy ? ' disabled' : ''}`}>
           {url ? 'Foto ändern' : 'Foto wählen'}
-          <input type="file" id="avatar-file" accept="image/*" hidden disabled={busy} onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }} />
+          <input type="file" id="avatar-file" accept="image/*" hidden disabled={busy} onChange={(e) => { setCropFile(e.target.files?.[0] ?? null); e.target.value = ''; }} />
         </label>
         {url && <button className="btn small-btn" id="avatar-remove" disabled={busy} onClick={remove}>Entfernen</button>}
-        <p className="muted small">Nur deine Freunde sehen dein Foto. Es wird auf 256 × 256 Pixel verkleinert.</p>
+        <p className="muted small">Nur deine Freunde sehen dein Foto. Du kannst es vor dem Speichern verschieben und vergrößern.</p>
       </div>
+      {cropFile && <AvatarCropper file={cropFile} onCancel={() => setCropFile(null)} onDone={save} />}
     </div>
   );
 }
