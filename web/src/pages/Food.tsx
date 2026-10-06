@@ -8,7 +8,8 @@ import { ask } from '../components/Dialog';
 import { pickNumber } from '../components/NumberPicker';
 import { Paywall } from '../components/Pro';
 import { fmt } from '../lib/format';
-import { isBarcode, lookupBarcode, MEALS, scale, searchFood, suggestCalories, totals, type FoodEntry, type FoodItem, type Meal } from '../lib/food';
+import { FoodAiError, isBarcode, lookupBarcode, MEALS, rescaleItem, scale, searchFood, suggestCalories, totals, type FoodEntry, type FoodItem, type Meal, type PhotoAnalysis, type PhotoItem } from '../lib/food';
+import { toMaxJpeg } from '../lib/image';
 import { loadQuiz } from '../lib/plan';
 import { usePro } from '../lib/pro';
 import { addDays, todayISO } from '../lib/stats';
@@ -116,6 +117,17 @@ export function Food() {
               showError(err);
             }
           }}
+          onAddMany={async (list) => {
+            try {
+              for (const item of list) await social.foodAdd({ date, meal: adding, ...item });
+              setAdding(null);
+              dataChanged();
+            } catch (err) {
+              dataChanged();
+              showError(err);
+            }
+          }}
+          analyze={(b64) => social.analyzeFoodPhoto(b64)}
         />
       )}
     </>
@@ -137,9 +149,9 @@ function SuggestGoal({ target, onTake }: { target: number; onTake: (kcal: number
 
 type NewEntry = { name: string; brand?: string | null; amount_g?: number | null; kcal: number; protein: number; carbs: number; fat: number; barcode?: string | null; source: FoodEntry['source'] };
 
-function AddFood({ meal, onClose, onAdd }: { meal: Meal; onClose: () => void; onAdd: (e: NewEntry) => Promise<void> }) {
+function AddFood({ meal, onClose, onAdd, onAddMany, analyze }: { meal: Meal; onClose: () => void; onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void>; analyze: (base64: string) => Promise<PhotoAnalysis> }) {
   const { showError } = useApp();
-  const [tab, setTab] = useState<'search' | 'barcode' | 'manual'>('search');
+  const [tab, setTab] = useState<'search' | 'barcode' | 'manual' | 'photo'>('search');
   const [picked, setPicked] = useState<{ item: FoodItem; source: 'search' | 'barcode' } | null>(null);
   useEffect(() => {
     document.body.classList.add('picker-open');
@@ -161,19 +173,108 @@ function AddFood({ meal, onClose, onAdd }: { meal: Meal; onClose: () => void; on
       ) : (
         <>
           <div className="picker-cats" role="tablist" aria-label="Wie hinzufügen?">
-            {([['search', 'Suche'], ['barcode', 'Barcode'], ['manual', 'Manuell']] as const).map(([id, text]) => (
+            {([['search', 'Suche'], ['barcode', 'Barcode'], ['photo', 'Foto'], ['manual', 'Manuell']] as const).map(([id, text]) => (
               <button key={id} type="button" className="picker-cat" role="tab" data-tab={id} aria-selected={tab === id} onClick={() => setTab(id)}>{text}</button>
             ))}
-            <button type="button" className="picker-cat" disabled title="Foto-Erkennung folgt">Foto (bald)</button>
           </div>
           <div className="food-body">
             {tab === 'search' && <Search onPick={(item) => setPicked({ item, source: 'search' })} onError={showError} />}
             {tab === 'barcode' && <Barcode onPick={(item) => setPicked({ item, source: 'barcode' })} onError={showError} />}
+            {tab === 'photo' && <Photo analyze={analyze} onAddMany={onAddMany} onError={showError} />}
             {tab === 'manual' && <Manual onAdd={onAdd} />}
           </div>
         </>
       )}
     </div>
+  );
+}
+
+const AI_KEY = 'gym-tracker-food-ai-ok';
+function Photo({ analyze, onAddMany, onError }: { analyze: (b64: string) => Promise<PhotoAnalysis>; onAddMany: (e: NewEntry[]) => Promise<void>; onError: (e: unknown) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<PhotoAnalysis | null>(null);
+  const [items, setItems] = useState<(PhotoItem & { on: boolean })[]>([]);
+  const [msg, setMsg] = useState('');
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    let ok = false;
+    try {
+      ok = localStorage.getItem(AI_KEY) === '1';
+    } catch {
+      /* nochmal fragen */
+    }
+    if (!ok) {
+      if (!(await ask('Dein Foto wird zur Auswertung an einen KI-Dienst (Anthropic, USA) gesendet. Es wird bei uns nicht gespeichert. Die Werte sind Schätzungen.', { title: 'Foto auswerten?', ok: 'Einverstanden' }))) return;
+      try {
+        localStorage.setItem(AI_KEY, '1');
+      } catch {
+        /* ignorieren */
+      }
+    }
+    setBusy(true);
+    setMsg('');
+    try {
+      const jpeg = await toMaxJpeg(file, 1024, 0.8);
+      const b64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result).split(',')[1] ?? '');
+        r.onerror = () => reject(new Error('Das Foto konnte nicht gelesen werden.'));
+        r.readAsDataURL(jpeg);
+      });
+      const res = await analyze(b64);
+      setResult(res);
+      setItems(res.items.map((i) => ({ ...i, on: true })));
+      if (!res.items.length) setMsg('Auf dem Foto konnte kein Essen erkannt werden. Versuche ein näheres Foto oder trage es manuell ein.');
+    } catch (err) {
+      if (err instanceof FoodAiError) setMsg(err.message);
+      else onError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const chosen = items.filter((i) => i.on);
+  const sum = totals(chosen);
+  return (
+    <>
+      {!result && (
+        <>
+          <label className={`btn primary block${busy ? ' disabled' : ''}`} id="photo-pick">
+            📷 Foto aufnehmen oder auswählen
+            <input type="file" id="photo-file" accept="image/*" capture="environment" hidden disabled={busy} onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }} />
+          </label>
+          <p className="muted small">Die KI schätzt Gericht, Menge und Nährwerte. Das sind <strong>Schätzungen</strong> – prüfe die Mengen, bevor du speicherst. Das Foto wird nicht gespeichert.</p>
+        </>
+      )}
+      {busy && <p className="muted" id="photo-busy">Das Foto wird ausgewertet …</p>}
+      {msg && <p className="notice" id="photo-msg">{msg}</p>}
+      {result && items.length > 0 && (
+        <div className="card" id="photo-result">
+          <h3>Erkannt</h3>
+          {result.confidence === 'low' && <p className="notice small">Die KI ist unsicher. Bitte Mengen genau prüfen.</p>}
+          {result.note && <p className="muted small">{result.note}</p>}
+          <ul className="photo-items">
+            {items.map((it, i) => (
+              <li key={i} className={it.on ? '' : 'off'}>
+                <label className="photo-check">
+                  <input type="checkbox" checked={it.on} aria-label={`${it.name} übernehmen`} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, on: e.target.checked } : x)))} />
+                  <span className="food-name">{it.name}<small className="muted">{fmt(it.protein, 0)} g Eiweiß · {fmt(it.carbs, 0)} g KH · {fmt(it.fat, 0)} g Fett</small></span>
+                </label>
+                <button type="button" className="btn small-btn" data-grams={i} onClick={async () => {
+                  const v = await pickNumber({ title: it.name, unit: 'g', value: String(it.grams), min: 1, max: 3000, step: 1, bigStep: 10, itemW: 8, labelEvery: 50, integer: false });
+                  if (v !== null) setItems(items.map((x, j) => (j === i ? { ...rescaleItem(x, Number(v.replace(',', '.'))), on: x.on } : x)));
+                }}>{fmt(it.grams, 0)} g</button>
+                <strong className="photo-kcal">{fmt(it.kcal, 0)} kcal</strong>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small" id="photo-sum">Zusammen {fmt(sum.kcal, 0)} kcal · noch {result.remaining} Foto{result.remaining === 1 ? '' : 's'} heute</p>
+          <button className="btn primary block" id="photo-add" disabled={!chosen.length} onClick={() => onAddMany(chosen.map((i) => ({ name: i.name, amount_g: i.grams, kcal: i.kcal, protein: i.protein, carbs: i.carbs, fat: i.fat, source: 'photo' as const })))}>
+            Hinzufügen
+          </button>
+          <button className="btn block" id="photo-again" onClick={() => { setResult(null); setItems([]); setMsg(''); }}>Anderes Foto</button>
+        </div>
+      )}
+    </>
   );
 }
 

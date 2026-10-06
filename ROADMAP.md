@@ -96,7 +96,8 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Training beenden: „Vorlage wie vorher lassen“ oder „Vorlage speichern“ (Standard: lassen)
 - [x] Kalorienziel-Vorschlag aus den Fragen (Größe, Gewicht, Alter, Ziel)
 - [x] Profilbild (SQL-Version 44): privater Speicher, nur Freunde sehen es, Foto wird auf 256 px verkleinert
-- [ ] Foto-KI für Essen: Server-Funktion (Supabase Edge Function) mit eigenem KI-Schlüssel, Pro-Prüfung, Tageslimit
+- [x] Foto-KI für Essen (SQL-Version 45): Edge Function `food-photo` (supabase/functions/food-photo), Pro + Tageslimit auf dem Server, Mengen korrigieren
+- [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
 - [ ] Eigene Domain + E-Mail-Versand (SMTP) in Supabase, deutsche E-Mail-Vorlagen (**Lukas**: Domain kaufen)

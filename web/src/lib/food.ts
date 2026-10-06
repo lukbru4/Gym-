@@ -115,3 +115,27 @@ export function suggestCalories(a: Record<string, string | string[] | undefined>
   const kcal = Math.min(6000, Math.max(1200, Math.round((tdee + adjust) / 50) * 50));
   return { kcal, bmr: Math.round(bmr), tdee: Math.round(tdee), note };
 }
+
+// ---- Foto-KI ----------------------------------------------------------------------------
+export interface PhotoItem extends Nutrients { name: string; grams: number }
+export interface PhotoAnalysis { items: PhotoItem[]; confidence: 'low' | 'medium' | 'high'; note: string; remaining: number }
+/** Fehler der Foto-Auswertung mit Code: pro | limit | not_configured | auth | bad_image | ai | network */
+export class FoodAiError extends Error {
+  constructor(public code: string, public limit?: number) {
+    super(FOOD_AI_MESSAGES[code] ?? FOOD_AI_MESSAGES.ai);
+  }
+}
+const FOOD_AI_MESSAGES: Record<string, string> = {
+  pro: 'Die Foto-Auswertung gibt es mit Pro.',
+  limit: 'Das Tageslimit für Foto-Auswertungen ist erreicht. Morgen geht es weiter – oder trage das Essen per Suche, Barcode oder manuell ein.',
+  not_configured: 'Die Foto-Auswertung ist noch nicht eingerichtet.',
+  auth: 'Bitte melde dich erneut an.',
+  bad_image: 'Das Foto konnte nicht verarbeitet werden. Versuche ein anderes.',
+  network: 'Keine Verbindung. Versuche es später noch einmal.',
+  ai: 'Die Auswertung hat diesmal nicht geklappt. Versuche es noch einmal oder trage es manuell ein.',
+};
+/** Menge ändern: Nährwerte der Portion wachsen/schrumpfen im gleichen Verhältnis */
+export function rescaleItem(item: PhotoItem, grams: number): PhotoItem {
+  const f = item.grams > 0 ? grams / item.grams : 1;
+  return { ...item, grams, kcal: round1(item.kcal * f), protein: round1(item.protein * f), carbs: round1(item.carbs * f), fat: round1(item.fat * f) };
+}

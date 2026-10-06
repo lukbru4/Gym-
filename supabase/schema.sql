@@ -1526,10 +1526,47 @@ create policy "avatars: eigenes löschen" on storage.objects for delete to authe
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ===========================================================================
+-- Foto-KI fürs Essen: Zähler pro Tag. Die Edge Function „food-photo“ ruft das mit dem Service-Schlüssel auf
+-- (Nutzer können es nicht selbst aufrufen, sonst könnten sie das Tageslimit zurücksetzen).
+-- ===========================================================================
+create table if not exists public.food_ai_usage (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  day     date not null default current_date,
+  n       integer not null default 0,
+  primary key (user_id, day)
+);
+alter table public.food_ai_usage enable row level security;
+revoke all on public.food_ai_usage from anon, authenticated;
+
+-- Zählt eine Auswertung; liefert die verbleibenden für heute. Fehler: PRO_REQUIRED, DAILY_LIMIT
+create or replace function public.food_ai_claim(p_user uuid, p_limit integer default 20)
+returns integer language plpgsql security definer set search_path = '' as $$
+declare used integer;
+begin
+  if not public.has_pro(p_user) then raise exception 'PRO_REQUIRED'; end if;
+  insert into public.food_ai_usage (user_id, day, n) values (p_user, current_date, 1)
+  on conflict (user_id, day) do update set n = public.food_ai_usage.n + 1 where public.food_ai_usage.n < p_limit
+  returning n into used;
+  if used is null then raise exception 'DAILY_LIMIT'; end if;
+  return p_limit - used;
+end;
+$$;
+create or replace function public.food_ai_refund(p_user uuid)
+returns void language sql security definer set search_path = '' as $$
+  update public.food_ai_usage set n = greatest(n - 1, 0) where user_id = p_user and day = current_date
+$$;
+revoke all on function public.food_ai_claim(uuid, integer), public.food_ai_refund(uuid) from public, anon, authenticated;
+do $$ begin
+  if exists (select 1 from pg_roles where rolname = 'service_role') then
+    grant execute on function public.food_ai_claim(uuid, integer), public.food_ai_refund(uuid) to service_role;
+  end if;
+end $$;
+
+-- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 44 $$;
+returns integer language sql immutable set search_path = '' as $$ select 45 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

@@ -1,6 +1,6 @@
 // Freunde & Community (nur Cloud). Alle Abfragen laufen über Server-Funktionen in supabase/schema.sql,
 // die selbst prüfen, wer was sehen darf.
-import type { FoodEntry, Meal } from '../lib/food';
+import { FoodAiError, type FoodEntry, type Meal, type PhotoAnalysis } from '../lib/food';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { publicUrl } from '../lib/platform';
 import type { Equipped } from '../lib/shop';
@@ -87,6 +87,8 @@ export interface Social {
   foodAdd(e: { date: string; meal: Meal; name: string; brand?: string | null; amount_g?: number | null; kcal: number; protein: number; carbs: number; fat: number; barcode?: string | null; source: FoodEntry['source'] }): Promise<number>;
   foodDelete(id: number): Promise<void>;
   nutritionGoal(): Promise<number>;
+  /** Foto einer Mahlzeit von der KI auswerten lassen (Edge Function, nur Pro) */
+  analyzeFoodPhoto(base64Jpeg: string): Promise<PhotoAnalysis>;
   setNutritionGoal(kcal: number): Promise<void>;
   buy(itemId: string): Promise<number>;
   equip(kind: 'skin' | 'accessory' | 'title', itemId: string | null): Promise<void>;
@@ -177,6 +179,26 @@ export function createSocial(supabase: SupabaseClient): Social {
       await rpc('food_delete', { p_id });
     },
     nutritionGoal: () => rpc('my_nutrition_goal'),
+    analyzeFoodPhoto: async (image) => {
+      const { data, error } = await supabase.functions.invoke('food-photo', { body: { image, mediaType: 'image/jpeg' } });
+      if (error) {
+        let code = 'ai';
+        let limit: number | undefined;
+        const ctx = (error as { context?: Response }).context;
+        if (ctx && typeof ctx.json === 'function') {
+          try {
+            const b = await ctx.json();
+            if (b && typeof b.error === 'string') code = b.error;
+            if (typeof b?.limit === 'number') limit = b.limit;
+          } catch {
+            /* Standardfehler */
+          }
+        } else if ((error as { name?: string }).name === 'FunctionsFetchError') code = 'network';
+        throw new FoodAiError(code, limit);
+      }
+      if (!data || !Array.isArray(data.items)) throw new FoodAiError('ai');
+      return data as PhotoAnalysis;
+    },
     setNutritionGoal: async (p_kcal) => {
       await rpc('set_nutrition_goal', { p_kcal });
     },
