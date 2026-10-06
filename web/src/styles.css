@@ -994,17 +994,18 @@ form.assign { padding: 10px 0; border-top: 1px solid var(--border); }
 .bodygraph, .radar { display: block; width: 100%; max-width: 520px; margin: 0 auto; }
 .bodygraph path, .bodygraph ellipse { stroke-linejoin: round; stroke-linecap: round; }
 .bodygraph .body-base { fill: url(#body-fill); stroke: var(--neon-line); stroke-width: 1.4; }
-.bodygraph .body-neutral { fill: none; stroke: var(--neon-line); stroke-width: 1.2; }
-.bodygraph .body-lines { fill: none; stroke: var(--neon-line); stroke-width: 1; pointer-events: none; }
-.bodygraph .muscle { cursor: pointer; outline: none; fill: transparent; stroke: var(--neon-line); stroke-width: 1; }
+.bodygraph .body-neutral { fill: color-mix(in srgb, var(--neon) 17%, var(--neon-bg)); stroke: color-mix(in srgb, var(--neon) 45%, var(--neon-bg)); stroke-width: 0.9; filter: url(#vol); }
+.bodygraph .body-lines { fill: none; stroke: color-mix(in srgb, var(--neon) 40%, var(--neon-bg)); stroke-width: 0.9; pointer-events: none; }
+.bodygraph .face-lines { stroke-width: 0.8; opacity: 0.8; }
+.bodygraph .muscle { cursor: pointer; outline: none; fill: color-mix(in srgb, var(--neon) 17%, var(--neon-bg)); stroke: color-mix(in srgb, var(--neon) 45%, var(--neon-bg)); stroke-width: 0.9; filter: url(#vol); }
 .bodygraph .muscle.lv-1 { fill: color-mix(in srgb, var(--glow-1) 18%, transparent); stroke: var(--glow-1); stroke-width: 1.4; }
 .bodygraph .muscle.lv-2 { fill: color-mix(in srgb, var(--glow-2) 22%, transparent); stroke: var(--glow-2); stroke-width: 1.5; }
-.bodygraph .muscle.lv-3 { fill: color-mix(in srgb, var(--glow-3) 28%, transparent); stroke: var(--glow-3); stroke-width: 1.6; filter: url(#neon-glow); }
-.bodygraph .muscle.lv-4 { fill: color-mix(in srgb, var(--glow-4) 34%, transparent); stroke: var(--glow-4); stroke-width: 1.7; filter: url(#neon-glow); }
-.bodygraph .muscle.lv-5 { fill: color-mix(in srgb, var(--glow-5) 42%, transparent); stroke: var(--glow-5); stroke-width: 1.8; filter: url(#neon-glow); }
+.bodygraph .muscle.lv-3 { fill: color-mix(in srgb, var(--glow-3) 28%, transparent); stroke: var(--glow-3); stroke-width: 1.6; filter: url(#vol) url(#neon-glow); }
+.bodygraph .muscle.lv-4 { fill: color-mix(in srgb, var(--glow-4) 34%, transparent); stroke: var(--glow-4); stroke-width: 1.7; filter: url(#vol) url(#neon-glow); }
+.bodygraph .muscle.lv-5 { fill: color-mix(in srgb, var(--glow-5) 42%, transparent); stroke: var(--glow-5); stroke-width: 1.8; filter: url(#vol) url(#neon-glow); }
 .bodygraph .muscle:hover, .bodygraph .muscle:focus-visible { stroke: #ffffff; stroke-width: 2; }
 .radar .radar-grid { fill: none; stroke: var(--neon-line); stroke-width: 1; }
-.radar .radar-shape { fill: color-mix(in srgb, var(--neon) 22%, transparent); stroke: var(--neon); stroke-width: 2.5; stroke-linejoin: round; filter: url(#neon-glow); }
+.radar .radar-shape { fill: color-mix(in srgb, var(--neon) 22%, transparent); stroke: var(--neon); stroke-width: 2.5; stroke-linejoin: round; filter: url(#vol) url(#neon-glow); }
 .radar .radar-dots { fill: var(--glow-5); }
 .radar .radar-labels { font-size: 19px; font-weight: 600; fill: #8f96a0; }
 .radar .radar-labels .on { fill: var(--glow-5); }

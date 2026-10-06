@@ -1,5 +1,5 @@
 // Körpergraph: Neon-Drahtgitter von vorne und hinten; trainierte Muskeln leuchten je nach Stufe.
-import { BACK, BACK_LINES, BACK_NEUTRAL, EAR, FRONT, FRONT_LINES, FRONT_NEUTRAL, HEAD_PATH, OUTLINE } from '../lib/bodyShapes';
+import { BACK, BACK_LINES, BACK_NEUTRAL, EAR, FACE_FRONT, FRONT, FRONT_LINES, FRONT_NEUTRAL, HEAD_BACK, HEAD_PATH, OUTLINE } from '../lib/bodyShapes';
 import { useCosmetics } from '../lib/cosmetics';
 import { MUSCLE_NAMES, type MuscleLevel } from '../lib/muscles';
 import type { MuscleId } from '../lib/types';
@@ -24,9 +24,18 @@ const Paths = ({ list }: { list: string[] }) => (
 export const GlowFilter = () => (
   <defs>
     <linearGradient id="body-fill" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" style={{ stopColor: 'color-mix(in srgb, var(--neon) 16%, var(--neon-bg))' }} />
+      <stop offset="0" style={{ stopColor: 'color-mix(in srgb, var(--neon) 24%, var(--neon-bg))' }} />
       <stop offset="1" style={{ stopColor: 'var(--neon-bg)' }} />
     </linearGradient>
+    {/* Plastische Wirkung: weiches Licht von links oben macht aus den flachen Flächen gewölbte Muskeln */}
+    <filter id="vol" x="-8%" y="-8%" width="116%" height="116%" colorInterpolationFilters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="bump" />
+      <feSpecularLighting in="bump" surfaceScale="4" specularConstant="0.6" specularExponent="14" lightingColor="#f3e9e9" result="spec">
+        <feDistantLight azimuth="235" elevation="52" />
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceAlpha" operator="in" result="lit" />
+      <feComposite in="SourceGraphic" in2="lit" operator="arithmetic" k1="0" k2="1" k3="0.42" k4="0" />
+    </filter>
     <filter id="neon-glow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="2.6" result="b" />
       <feMerge>
@@ -43,10 +52,12 @@ interface FigureProps {
   lines: string[];
   levels: Map<MuscleId, MuscleLevel>;
   offsetX: number;
+  /** Gesichtslinien (vorne) bzw. Hinterkopf (hinten) */
+  face: string;
   onSelect?: (m: MuscleId) => void;
 }
 
-function Figure({ parts, neutral, lines, levels, offsetX, onSelect }: FigureProps) {
+function Figure({ parts, neutral, lines, levels, offsetX, face, onSelect }: FigureProps) {
   return (
     <g transform={`translate(${offsetX} 0)`}>
       <g className="body-base">
@@ -87,6 +98,7 @@ function Figure({ parts, neutral, lines, levels, offsetX, onSelect }: FigureProp
       })}
       <g className="body-lines">
         <Paths list={lines} />
+        <path d={face} className="face-lines" />
       </g>
     </g>
   );
@@ -104,8 +116,8 @@ export function BodyGraph({ levels, onSelect, skin }: { levels: Map<MuscleId, Mu
         aria-label="Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten"
       >
         <GlowFilter />
-        <Figure parts={FRONT} neutral={FRONT_NEUTRAL} lines={FRONT_LINES} levels={levels} offsetX={0} onSelect={onSelect} />
-        <Figure parts={BACK} neutral={BACK_NEUTRAL} lines={BACK_LINES} levels={levels} offsetX={270} onSelect={onSelect} />
+        <Figure parts={FRONT} neutral={FRONT_NEUTRAL} lines={FRONT_LINES} levels={levels} offsetX={0} face={FACE_FRONT} onSelect={onSelect} />
+        <Figure parts={BACK} neutral={BACK_NEUTRAL} lines={BACK_LINES} levels={levels} offsetX={270} face={HEAD_BACK} onSelect={onSelect} />
       </svg>
     </div>
   );

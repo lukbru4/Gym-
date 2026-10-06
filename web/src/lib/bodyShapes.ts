@@ -62,7 +62,11 @@ export const FRONT: Partial<Record<MuscleId, string[]>> = {
   waden: ['M61 368 C56 382 57 398 63 410 C68 398 69 382 67 370 Z', 'M87 370 C92 382 92 398 88 410 C85 398 84 384 85 372 Z'],
 };
 // Linien: Sixpack, Sägemuskel, Finger
-export const FRONT_LINES: string[] = [`M86 186 L100 186 M86 206 L100 206 M86 228 L100 228 M50 170 L57 176 M51 180 L58 185 M53 190 L59 194 ${HAND_LINES}`];
+// Zusätzlich: Schlüsselbein, Brustwarze, Bauchnabel, Beckenlinie (Leiste), Kniescheibe
+const FRONT_DETAILS = 'M97 77 C90 73 80 75 71 83 M76 134 a1.7 1.7 0 1 0 3.4 0 a1.7 1.7 0 1 0 -3.4 0 M100 212 C97 212 96 215 98 218 C99 219 100 219 100 219 M72 238 C80 246 90 252 100 258';
+export const FRONT_LINES: string[] = [`M86 186 L100 186 M86 206 L100 206 M86 228 L100 228 M50 170 L57 176 M51 180 L58 185 M53 190 L59 194 ${HAND_LINES} ${FRONT_DETAILS}`];
+/** Gesicht von vorne (ganz gezeichnet, nicht gespiegelt): Brauen, Augen, Nase, Mund */
+export const FACE_FRONT = 'M86 28 C89 26 93 26 96 28 M104 28 C107 26 111 26 114 28 M88.5 32 C90.5 31 93 31 95 32 M105 32 C107 31 109.5 31 111.5 32 M100 32 L100 43 C98.5 45 97 45.5 96 45 M100 43 C101.5 45 103 45.5 104 45 M93 54 C97 56.5 103 56.5 107 54';
 
 export const BACK: Partial<Record<MuscleId, string[]>> = {
   oberer_ruecken: [
@@ -87,4 +91,7 @@ export const BACK: Partial<Record<MuscleId, string[]>> = {
     'M62 406 C62 416 67 424 74 428 C80 424 86 416 88 408 C80 412 70 412 62 406 Z'
   ],
 };
-export const BACK_LINES: string[] = [`M101 70 L101 266 ${HAND_LINES}`];
+// Rückseite: Wirbelsäule, Hände, Beugefalte unter dem Gesäß, Kniekehle
+export const BACK_LINES: string[] = [`M101 70 L101 266 ${HAND_LINES} M62 288 C72 292 88 292 100 288 M64 350 C70 354 80 354 88 350`];
+/** Hinterkopf: Haaransatz und Nackenlinie */
+export const HEAD_BACK = 'M85 44 C90 50 110 50 115 44 M100 52 L100 66';
