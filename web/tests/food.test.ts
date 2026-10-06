@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { suggestCalories, isBarcode, lookupBarcode, parseProduct, scale, searchFood, totals } from '../src/lib/food';
+import { nutritionScore, suggestCalories, isBarcode, lookupBarcode, parseProduct, scale, searchFood, totals } from '../src/lib/food';
 
 const nutella = { code: '3017620422003', product_name: 'Nutella', brands: 'Ferrero, Nutella', serving_quantity: '15', nutriments: { 'energy-kcal_100g': 539, proteins_100g: 6.3, carbohydrates_100g: 57.5, fat_100g: 30.9 } };
 const fakeFetch = (body: unknown, ok = true) => async () => ({ ok, json: async () => body });
@@ -54,5 +54,20 @@ describe('Essen tracken', () => {
     expect(suggestCalories({ sex: 'w', age: '30', height: '165', weight: '60', days: '2', goal: 'abnehmen' })!.kcal).toBe(1400);
     expect(suggestCalories({ age: '30', height: '180' })).toBeNull();
     expect(suggestCalories({ sex: 'w', age: '70', height: '140', weight: '35', days: '1', goal: 'abnehmen' })!.kcal).toBe(1200); // nie unter 1.200
+  });
+});
+
+describe('nutritionScore', () => {
+  test('gibt ohne Einträge keinen Score', () => {
+    expect(nutritionScore({ kcal: 0, protein: 0, carbs: 0, fat: 0 }, 2500)).toBeNull();
+  });
+  test('bewertet ausgewogene Tage mit „Sehr gut“', () => {
+    // 2000 kcal: 125 g Eiweiß (25 %), 225 g KH (45 %), 67 g Fett (30 %)
+    expect(nutritionScore({ kcal: 2000, protein: 125, carbs: 225, fat: 67 }, 2500)).toEqual({ level: 4, label: 'Sehr gut' });
+  });
+  test('bewertet einseitiges Essen schwächer und mindestens mit einem Segment', () => {
+    const s = nutritionScore({ kcal: 3000, protein: 0, carbs: 100, fat: 267 }, 2000)!;
+    expect(s.level).toBe(1);
+    expect(s.label).toBe('Schwach');
   });
 });

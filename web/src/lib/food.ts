@@ -39,6 +39,25 @@ export function totals(entries: Pick<FoodEntry, 'kcal' | 'protein' | 'carbs' | '
   return { kcal: Math.round(t.kcal), protein: Math.round(t.protein), carbs: Math.round(t.carbs), fat: Math.round(t.fat) };
 }
 
+export type NutritionScore = { level: 1 | 2 | 3 | 4; label: string };
+
+/** Einfache Schätzung für den Tag (kein medizinischer Wert): je ein Punkt für Eiweißanteil ≥ 15 %,
+ *  Fettanteil 20–35 %, Kohlenhydratanteil 40–65 % und höchstens 10 % über dem Kalorienziel.
+ *  Ohne Einträge gibt es keinen Score. */
+export function nutritionScore(t: Nutrients, target: number): NutritionScore | null {
+  if (t.kcal <= 0) return null;
+  const share = (g: number, perG: number) => (g * perG) / (t.protein * 4 + t.carbs * 4 + t.fat * 9 || 1);
+  let pts = 0;
+  if (share(t.protein, 4) >= 0.15) pts++;
+  const f = share(t.fat, 9);
+  if (f >= 0.2 && f <= 0.35) pts++;
+  const c = share(t.carbs, 4);
+  if (c >= 0.4 && c <= 0.65) pts++;
+  if (t.kcal <= target * 1.1) pts++;
+  const level = Math.max(1, pts) as 1 | 2 | 3 | 4;
+  return { level, label: ['', 'Schwach', 'Okay', 'Gut', 'Sehr gut'][level] };
+}
+
 /** EAN-8, UPC-A (12), EAN-13 und GTIN-14: nur Ziffern */
 export const isBarcode = (s: string) => /^\d{8,14}$/.test(s.trim());
 

@@ -10,12 +10,12 @@ import { ask } from '../components/Dialog';
 import { pickNumber } from '../components/NumberPicker';
 import { Paywall } from '../components/Pro';
 import { fmt } from '../lib/format';
-import { FoodAiError, isBarcode, lookupBarcode, MEALS, rescaleItem, scale, searchFood, suggestCalories, totals, type FoodEntry, type FoodItem, type Meal, type PhotoAnalysis, type PhotoItem } from '../lib/food';
+import { FoodAiError, isBarcode, lookupBarcode, MEALS, nutritionScore, rescaleItem, scale, searchFood, totals, type FoodEntry, type FoodItem, type Meal, type PhotoAnalysis, type PhotoItem } from '../lib/food';
 import { toMaxJpeg } from '../lib/image';
-import { loadQuiz } from '../lib/plan';
 import { usePro } from '../lib/pro';
 import { addDays, todayISO } from '../lib/stats';
 
+const RING_LEN = 2 * Math.PI * 52;
 const fmtDay = (iso: string, today: string) => (iso === today ? 'Heute' : iso === addDays(today, -1) ? 'Gestern' : new Date(iso + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }));
 
 export function Food() {
@@ -39,6 +39,7 @@ export function Food() {
   const sum = totals(list);
   const target = goal.data;
   const pct = Math.min(100, Math.round((sum.kcal / target) * 100));
+  const score = nutritionScore(sum, target);
   const editGoal = async () => {
     const v = await pickNumber({ title: 'Tagesziel', unit: 'kcal', value: String(target), min: 800, max: 6000, step: 50, bigStep: 100, itemW: 12, labelEvery: 10, integer: true });
     if (v === null) return;
@@ -69,24 +70,25 @@ export function Food() {
         <button className="btn small-btn" id="day-next" aria-label="Nächster Tag" disabled={date >= today} onClick={() => setDate(addDays(date, 1))}>›</button>
       </div>
       <div className="card food-summary" id="food-summary">
-        <button type="button" className="food-kcal" id="food-goal" onClick={editGoal} aria-label="Tagesziel ändern">
-          <strong>{fmt(sum.kcal, 0)}</strong> <span>/ {fmt(target, 0)} kcal</span>
-          <small>{sum.kcal <= target ? `noch ${fmt(target - sum.kcal, 0)} kcal` : `${fmt(sum.kcal - target, 0)} kcal drüber`} · Ziel ändern</small>
+        <button type="button" className="food-ring" id="food-goal" onClick={editGoal} aria-label="Tagesziel ändern">
+          <span className="ring-side"><strong>{fmt(sum.kcal, 0)}</strong><small>gegessen</small></span>
+          <svg viewBox="0 0 120 120" className="ring-svg" aria-hidden="true">
+            <circle cx="60" cy="60" r="52" className="ring-track" />
+            <circle cx="60" cy="60" r="52" className={`ring-fill${sum.kcal > target ? ' over' : ''}`} strokeDasharray={`${(pct / 100) * RING_LEN} ${RING_LEN}`} transform="rotate(-90 60 60)" />
+          </svg>
+          <span className="ring-mid" id="food-left">
+            <strong>{fmt(Math.abs(target - sum.kcal), 0)}</strong>
+            <small>{sum.kcal <= target ? 'übrig' : 'drüber'}</small>
+          </span>
+          <span className="ring-side"><strong>{fmt(target, 0)}</strong><small>Ziel</small></span>
         </button>
-        <SuggestGoal target={target} onTake={async (kcal) => {
-          try {
-            await social.setNutritionGoal(kcal);
-            setGoalVersion((n) => n + 1);
-          } catch (err) {
-            showError(err);
-          }
-        }} />
-        <div className="food-bar" aria-hidden="true"><i className={sum.kcal > target ? 'over' : ''} style={{ width: `${pct}%` }} /></div>
-        <div className="tiles">
-          <div className="tile"><span className="tile-value">{sum.protein}</span><span className="tile-label">g Eiweiß</span></div>
-          <div className="tile"><span className="tile-value">{sum.carbs}</span><span className="tile-label">g Kohlenhydrate</span></div>
-          <div className="tile"><span className="tile-value">{sum.fat}</span><span className="tile-label">g Fett</span></div>
+      </div>
+      <div className="card" id="food-score">
+        <div className="block-head"><h3>Nährwert-Score</h3><strong id="food-score-label">{score ? score.label : '–'}</strong></div>
+        <div className="score-bar" aria-hidden="true">
+          {[1, 2, 3, 4].map((n) => <i key={n} className={score && n <= score.level ? `on l${score.level}` : ''} />)}
         </div>
+        <p className="muted small">{score ? 'Einfache Schätzung aus Eiweiß, Fett, Kohlenhydraten und Kalorien des Tages.' : 'Trage etwas ein, dann siehst du hier deinen Score.'}</p>
       </div>
       {MEALS.map(([meal, label]) => {
         const mine = list.filter((e) => e.meal === meal);
@@ -149,19 +151,6 @@ export function Food() {
         />
       )}
     </>
-  );
-}
-
-function SuggestGoal({ target, onTake }: { target: number; onTake: (kcal: number) => void }) {
-  const sug = suggestCalories(loadQuiz()?.answers ?? {});
-  if (!sug)
-    return <p className="muted small" id="food-nosuggest">Beantworte in den Einstellungen die Fragen (Größe, Gewicht, Alter), dann schlagen wir dir ein Tagesziel vor.</p>;
-  if (sug.kcal === target) return <p className="muted small" id="food-suggest-ok">Dein Ziel passt zu deinem geschätzten Bedarf ({sug.note}).</p>;
-  return (
-    <div className="notice small" id="food-suggest">
-      Vorschlag aus deinen Antworten: <strong>{fmt(sug.kcal, 0)} kcal</strong> ({sug.note}). Das ist nur eine Schätzung.
-      <button className="btn small-btn" id="food-suggest-take" onClick={() => onTake(sug.kcal)}>Übernehmen</button>
-    </div>
   );
 }
 
