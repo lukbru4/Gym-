@@ -33,14 +33,37 @@ describe('KI-Antwort für Essensfotos prüfen', () => {
   });
 });
 
-describe('Edge Function', () => {
-  test('index.ts enthält den getesteten Parser unverändert', async () => {
+describe('Edge Functions', () => {
+  test('beide index.ts enthalten den getesteten Parser unverändert', async () => {
     const { readFileSync } = await import('node:fs');
-    const dir = new URL('../../supabase/functions/food-photo/', import.meta.url);
-    const parse = readFileSync(new URL('parse.ts', dir), 'utf8').split('\n').slice(1).join('\n').replace(/export (interface|function)/g, '$1').trim();
-    const index = readFileSync(new URL('index.ts', dir), 'utf8');
-    expect(index).toContain(parse);
-    expect(index).not.toMatch(/claude-[a-z0-9-]+/); // Modellname kommt aus dem Secret FOOD_MODEL
-    expect(index).not.toMatch(/sk-ant-/);
+    const parse = readFileSync(new URL('../../supabase/functions/food-photo/parse.ts', import.meta.url), 'utf8').split('\n').slice(1).join('\n').replace(/export (interface|function)/g, '$1').trim();
+    for (const fn of ['food-photo', 'food-chat']) {
+      const index = readFileSync(new URL(`../../supabase/functions/${fn}/index.ts`, import.meta.url), 'utf8');
+      expect(index, fn).toContain(parse);
+      expect(index, fn).not.toMatch(/claude-[a-z0-9-]+/); // Modellname kommt aus dem Secret FOOD_MODEL
+      expect(index, fn).not.toMatch(/sk-ant-/);
+    }
+  });
+});
+
+import { parseChatJson } from '../../supabase/functions/food-photo/parse';
+describe('Essens-Chat: Antwort der KI prüfen', () => {
+  test('Rückfrage mit Schnellantworten', () => {
+    const r = parseChatJson('{"reply":"Wie groß war die Pizza?","ready":false,"items":[],"suggestions":["Klein","Normal","Groß","Familie","zu viele"]}')!;
+    expect(r).toEqual({ reply: 'Wie groß war die Pizza?', ready: false, items: [], suggestions: ['Klein', 'Normal', 'Groß', 'Familie'] });
+  });
+  test('fertiger Vorschlag mit geprüften Zahlen', () => {
+    const r = parseChatJson('{"reply":"Passt das so?","ready":true,"items":[{"name":"Pizza Margherita","grams":"350","kcal":950,"protein":38,"carbs":110,"fat":36},{"name":"","grams":1,"kcal":1}],"suggestions":["Ja","Ändern"]}')!;
+    expect(r.ready).toBe(true);
+    expect(r.items).toEqual([{ name: 'Pizza Margherita', grams: 350, kcal: 950, protein: 38, carbs: 110, fat: 36 }]);
+  });
+  test('„fertig“ ohne brauchbare Einträge gilt nicht als fertig', () => {
+    expect(parseChatJson('{"reply":"ok","ready":true,"items":[]}')!.ready).toBe(false);
+    expect(parseChatJson('{"reply":"ok","ready":false,"items":[{"name":"Apfel","grams":100,"kcal":52}]}')!.items).toEqual([]);
+  });
+  test('Text ohne JSON wird als normale Antwort genommen; leer = null', () => {
+    expect(parseChatJson('Erzähl mir mehr!')).toEqual({ reply: 'Erzähl mir mehr!', ready: false, items: [], suggestions: [] });
+    expect(parseChatJson('   ')).toBeNull();
+    expect(parseChatJson('{"reply": ')!.reply).toBe('{"reply":');
   });
 });

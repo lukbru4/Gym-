@@ -1,6 +1,6 @@
 // Freunde & Community (nur Cloud). Alle Abfragen laufen über Server-Funktionen in supabase/schema.sql,
 // die selbst prüfen, wer was sehen darf.
-import { FoodAiError, type FoodEntry, type Meal, type PhotoAnalysis } from '../lib/food';
+import { FoodAiError, type ChatMsg, type ChatTurn, type FoodEntry, type Meal, type PhotoAnalysis } from '../lib/food';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { publicUrl } from '../lib/platform';
 import type { Equipped } from '../lib/shop';
@@ -89,6 +89,8 @@ export interface Social {
   nutritionGoal(): Promise<number>;
   /** Foto einer Mahlzeit von der KI auswerten lassen (Edge Function, nur Pro) */
   analyzeFoodPhoto(base64Jpeg: string): Promise<PhotoAnalysis>;
+  /** Essens-Chat: die KI fragt nach und schlägt Einträge vor (Edge Function, nur Pro) */
+  foodChat(messages: ChatMsg[]): Promise<ChatTurn>;
   setNutritionGoal(kcal: number): Promise<void>;
   buy(itemId: string): Promise<number>;
   equip(kind: 'skin' | 'accessory' | 'title', itemId: string | null): Promise<void>;
@@ -118,6 +120,27 @@ export function createSocial(supabase: SupabaseClient): Social {
   async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
     const { data, error } = await supabase.rpc(fn, args);
     if (error) throw error;
+    return data as T;
+  }
+  /** Edge Function der KI-Funktionen aufrufen; Fehler als FoodAiError mit Code (pro | limit | not_configured | auth | bad_image | ai | network) */
+  async function callFoodFunction<T>(name: string, body: Record<string, unknown>): Promise<T> {
+    const { data, error } = await supabase.functions.invoke(name, { body });
+    if (error) {
+      let code = 'ai';
+      let limit: number | undefined;
+      const ctx = (error as { context?: Response }).context;
+      if (ctx && typeof ctx.json === 'function') {
+        try {
+          const b = await ctx.json();
+          if (b && typeof b.error === 'string') code = b.error;
+          if (typeof b?.limit === 'number') limit = b.limit;
+        } catch {
+          /* Standardfehler */
+        }
+      } else if ((error as { name?: string }).name === 'FunctionsFetchError') code = 'network';
+      throw new FoodAiError(code, limit);
+    }
+    if (!data || typeof data !== 'object') throw new FoodAiError('ai');
     return data as T;
   }
   return {
@@ -180,24 +203,14 @@ export function createSocial(supabase: SupabaseClient): Social {
     },
     nutritionGoal: () => rpc('my_nutrition_goal'),
     analyzeFoodPhoto: async (image) => {
-      const { data, error } = await supabase.functions.invoke('food-photo', { body: { image, mediaType: 'image/jpeg' } });
-      if (error) {
-        let code = 'ai';
-        let limit: number | undefined;
-        const ctx = (error as { context?: Response }).context;
-        if (ctx && typeof ctx.json === 'function') {
-          try {
-            const b = await ctx.json();
-            if (b && typeof b.error === 'string') code = b.error;
-            if (typeof b?.limit === 'number') limit = b.limit;
-          } catch {
-            /* Standardfehler */
-          }
-        } else if ((error as { name?: string }).name === 'FunctionsFetchError') code = 'network';
-        throw new FoodAiError(code, limit);
-      }
-      if (!data || !Array.isArray(data.items)) throw new FoodAiError('ai');
-      return data as PhotoAnalysis;
+      const data = await callFoodFunction<PhotoAnalysis>('food-photo', { image, mediaType: 'image/jpeg' });
+      if (!Array.isArray(data.items)) throw new FoodAiError('ai');
+      return data;
+    },
+    foodChat: async (messages) => {
+      const data = await callFoodFunction<ChatTurn>('food-chat', { messages });
+      if (typeof data.reply !== 'string') throw new FoodAiError('ai');
+      return { reply: data.reply, ready: data.ready === true, items: Array.isArray(data.items) ? data.items : [], suggestions: Array.isArray(data.suggestions) ? data.suggestions : [], remaining: Number(data.remaining) || 0 };
     },
     setNutritionGoal: async (p_kcal) => {
       await rpc('set_nutrition_goal', { p_kcal });

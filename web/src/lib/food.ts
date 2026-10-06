@@ -20,7 +20,7 @@ export interface FoodEntry extends Nutrients {
   name: string;
   brand: string | null;
   amount_g: number | null;
-  source: 'manual' | 'search' | 'barcode' | 'photo';
+  source: 'manual' | 'search' | 'barcode' | 'photo' | 'chat';
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -139,3 +139,9 @@ export function rescaleItem(item: PhotoItem, grams: number): PhotoItem {
   const f = item.grams > 0 ? grams / item.grams : 1;
   return { ...item, grams, kcal: round1(item.kcal * f), protein: round1(item.protein * f), carbs: round1(item.carbs * f), fat: round1(item.fat * f) };
 }
+
+// ---- Essens-Chat -------------------------------------------------------------------------
+export interface ChatMsg { role: 'user' | 'assistant'; content: string }
+export interface ChatTurn { reply: string; ready: boolean; items: PhotoItem[]; suggestions: string[]; remaining: number }
+/** Standard-Mahlzeit nach Tageszeit (für den Eintragsvorschlag) */
+export const mealForHour = (hour: number): Meal => (hour < 10 ? 'fruehstueck' : hour < 15 ? 'mittag' : hour < 18 ? 'snack' : 'abend');

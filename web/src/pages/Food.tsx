@@ -1,7 +1,8 @@
 // Essen: Kalorien und Nährwerte pro Tag und Mahlzeit (nur Pro). Hinzufügen per Suche, Barcode oder manuell.
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
-import { foodPhotoEnabled } from '../data/config';
+import { foodChatEnabled, foodPhotoEnabled } from '../data/config';
+import { FoodChat } from '../components/FoodChat';
 import { useAsync } from '../app/useAsync';
 import { LoadError, Loading } from '../components/Bits';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -24,6 +25,7 @@ export function Food() {
   const today = todayISO();
   const [date, setDate] = useState(today);
   const [adding, setAdding] = useState<Meal | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
   const [goalVersion, setGoalVersion] = useState(0);
   const entries = useAsync(() => (social ? social.foodList(date) : Promise.resolve([] as FoodEntry[])), [social, date, dataVersion]);
   const goal = useAsync(() => (social ? social.nutritionGoal() : Promise.resolve(2500)), [social, goalVersion]);
@@ -104,8 +106,22 @@ export function Food() {
           </div>
         );
       })}
+      {foodChatEnabled() && pro.pro && (
+        <button className="btn primary block" id="open-chat" onClick={() => setChatOpen(true)}>💬 Mit dem Essens-Assistenten eintragen</button>
+      )}
       <a className="btn block" id="open-recipes" href="#/rezepte">🍳 Rezepte – was kann ich jetzt kochen?</a>
       <p className="muted small">Kalorien und Nährwerte sind Richtwerte. Produktdaten stammen von Open Food Facts (Mitmach-Datenbank, nicht immer vollständig).</p>
+      {chatOpen && (
+        <FoodChat
+          chat={(msgs) => social.foodChat(msgs)}
+          onClose={() => setChatOpen(false)}
+          onError={showError}
+          onAdd={async (meal, items) => {
+            for (const it of items) await social.foodAdd({ date, meal, name: it.name, amount_g: it.grams, kcal: it.kcal, protein: it.protein, carbs: it.carbs, fat: it.fat, source: 'chat' });
+            dataChanged();
+          }}
+        />
+      )}
       {adding && (
         <AddFood
           meal={adding}

@@ -1409,7 +1409,7 @@ create table if not exists public.food_entries (
   carbs      numeric(7, 1) not null default 0 check (carbs >= 0 and carbs <= 5000),
   fat        numeric(7, 1) not null default 0 check (fat >= 0 and fat <= 2000),
   barcode    text check (barcode is null or barcode ~ '^[0-9]{6,14}$'),
-  source     text not null default 'manual' check (source in ('manual', 'search', 'barcode', 'photo')),
+  source     text not null default 'manual' check (source in ('manual', 'search', 'barcode', 'photo', 'chat')),
   created_at timestamptz not null default now()
 );
 create index if not exists food_entries_user_date on public.food_entries (user_id, date);
@@ -1579,10 +1579,49 @@ do $$ begin
 end $$;
 
 -- ===========================================================================
+-- Essens-Chat (KI fragt nach, was gegessen wurde): Zähler pro Tag, wie bei der Foto-Auswertung.
+-- Die Edge Function „food-chat“ ruft das mit dem Service-Schlüssel auf (Nutzer können es nicht selbst aufrufen).
+-- ===========================================================================
+alter table public.food_entries drop constraint if exists food_entries_source_check;
+alter table public.food_entries add constraint food_entries_source_check check (source in ('manual', 'search', 'barcode', 'photo', 'chat'));
+
+create table if not exists public.food_chat_usage (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  day     date not null default current_date,
+  n       integer not null default 0,
+  primary key (user_id, day)
+);
+alter table public.food_chat_usage enable row level security;
+revoke all on public.food_chat_usage from anon, authenticated;
+
+create or replace function public.food_chat_claim(p_user uuid, p_limit integer default 60)
+returns integer language plpgsql security definer set search_path = '' as $$
+declare used integer;
+begin
+  if not public.has_pro(p_user) then raise exception 'PRO_REQUIRED'; end if;
+  insert into public.food_chat_usage (user_id, day, n) values (p_user, current_date, 1)
+  on conflict (user_id, day) do update set n = public.food_chat_usage.n + 1 where public.food_chat_usage.n < p_limit
+  returning n into used;
+  if used is null then raise exception 'DAILY_LIMIT'; end if;
+  return p_limit - used;
+end;
+$$;
+create or replace function public.food_chat_refund(p_user uuid)
+returns void language sql security definer set search_path = '' as $$
+  update public.food_chat_usage set n = greatest(n - 1, 0) where user_id = p_user and day = current_date
+$$;
+revoke all on function public.food_chat_claim(uuid, integer), public.food_chat_refund(uuid) from public, anon, authenticated;
+do $$ begin
+  if exists (select 1 from pg_roles where rolname = 'service_role') then
+    grant execute on function public.food_chat_claim(uuid, integer), public.food_chat_refund(uuid) to service_role;
+  end if;
+end $$;
+
+-- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 46 $$;
+returns integer language sql immutable set search_path = '' as $$ select 47 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;
