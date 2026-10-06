@@ -59,6 +59,7 @@ export function Profile() {
         {tile('#/workouts', '📋', 'Vorlagen')}
         {tile('#/verlauf', '🗓️', 'Verlauf')}
         {tile('#/koerper', '⚖️', 'Gewicht')}
+        {api.social && tile('#/essen', '🍽️', 'Essen')}
         {tile('#/konto', '⚙️', 'Einstellungen')}
         {api.social ? tile('#/shop', '🛒', 'Shop') : tile('#/backup', '💾', 'Backup')}
       </div>

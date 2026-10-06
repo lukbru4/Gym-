@@ -23,6 +23,7 @@ import { enforceSchemeRules } from '../lib/theme';
 import { getWeekGoal, setLocalWeekGoal } from '../lib/weekGoal';
 import { Analysis, Ranks } from '../pages/Ranks';
 import { Quiz } from '../pages/Quiz';
+import { Food } from '../pages/Food';
 import { ProPage } from '../components/Pro';
 import { setPro } from '../lib/pro';
 import { History, WorkoutDetail } from '../pages/Workout';
@@ -53,6 +54,7 @@ const ROUTES: Route[] = [
   [/^#\/konto$/, () => <Account />],
   [/^#\/fragen$/, () => <Quiz />],
   [/^#\/pro$/, () => <ProPage />],
+  [/^#\/essen$/, () => <Food />],
   [/^#\/raenge$/, () => <Ranks />],
   [/^#\/freunde$/, () => <Friends />],
   [/^#\/freunde\/add\/([A-Za-z0-9]{8})$/, (m) => <AcceptInvite code={m[1].toUpperCase()} />],

@@ -1377,10 +1377,96 @@ grant execute on function public.my_pro() to authenticated;
 grant execute on function public.admin_grant_pro(uuid, timestamptz) to authenticated;
 
 -- ===========================================================================
+-- Essen tracken (nur Pro): Mahlzeiten pro Tag mit Kalorien und Nährwerten.
+-- Zugriff nur über die Funktionen unten; Hinzufügen prüft Pro auf dem Server, Ansehen/Löschen geht immer.
+-- ===========================================================================
+create table if not exists public.food_entries (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  date       date not null default current_date,
+  meal       text not null check (meal in ('fruehstueck', 'mittag', 'abend', 'snack')),
+  name       text not null check (length(trim(name)) between 1 and 120),
+  brand      text check (brand is null or length(brand) <= 120),
+  amount_g   numeric(8, 2) check (amount_g is null or (amount_g > 0 and amount_g <= 100000)),
+  kcal       numeric(8, 1) not null check (kcal >= 0 and kcal <= 20000),
+  protein    numeric(7, 1) not null default 0 check (protein >= 0 and protein <= 2000),
+  carbs      numeric(7, 1) not null default 0 check (carbs >= 0 and carbs <= 5000),
+  fat        numeric(7, 1) not null default 0 check (fat >= 0 and fat <= 2000),
+  barcode    text check (barcode is null or barcode ~ '^[0-9]{6,14}$'),
+  source     text not null default 'manual' check (source in ('manual', 'search', 'barcode', 'photo')),
+  created_at timestamptz not null default now()
+);
+create index if not exists food_entries_user_date on public.food_entries (user_id, date);
+alter table public.food_entries enable row level security;
+revoke all on public.food_entries from anon, authenticated;
+
+create table if not exists public.nutrition_goals (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  kcal    integer not null check (kcal between 800 and 10000)
+);
+alter table public.nutrition_goals enable row level security;
+revoke all on public.nutrition_goals from anon, authenticated;
+
+create or replace function public.has_pro(p_user uuid default auth.uid())
+returns boolean language sql stable security definer set search_path = '' as $$
+  select p_user is not null and (public.is_admin(p_user)
+    or coalesce((select s.pro_until > now() from public.subscriptions s where s.user_id = p_user), false))
+$$;
+
+create or replace function public.food_add(
+  p_date date, p_meal text, p_name text, p_brand text, p_amount numeric,
+  p_kcal numeric, p_protein numeric, p_carbs numeric, p_fat numeric, p_barcode text, p_source text)
+returns bigint language plpgsql security definer set search_path = '' as $$
+declare new_id bigint;
+begin
+  if auth.uid() is null then raise exception 'Bitte melde dich an.'; end if;
+  if not public.has_pro() then raise exception 'Kalorien tracken gibt es mit Pro.'; end if;
+  if p_date < current_date - 400 or p_date > current_date + 1 then raise exception 'Ungültiges Datum.'; end if;
+  insert into public.food_entries (user_id, date, meal, name, brand, amount_g, kcal, protein, carbs, fat, barcode, source)
+  values (auth.uid(), p_date, p_meal, trim(p_name), nullif(trim(coalesce(p_brand, '')), ''), p_amount, p_kcal,
+          coalesce(p_protein, 0), coalesce(p_carbs, 0), coalesce(p_fat, 0), nullif(p_barcode, ''), coalesce(p_source, 'manual'))
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+create or replace function public.food_list(p_date date)
+returns table (id bigint, meal text, name text, brand text, amount_g numeric, kcal numeric, protein numeric, carbs numeric, fat numeric, source text)
+language sql stable security definer set search_path = '' as $$
+  select f.id, f.meal, f.name, f.brand, f.amount_g, f.kcal, f.protein, f.carbs, f.fat, f.source
+  from public.food_entries f where f.user_id = auth.uid() and f.date = p_date order by f.created_at, f.id
+$$;
+
+create or replace function public.food_delete(p_id bigint)
+returns void language sql security definer set search_path = '' as $$
+  delete from public.food_entries where id = p_id and user_id = auth.uid()
+$$;
+
+create or replace function public.my_nutrition_goal()
+returns integer language sql stable security definer set search_path = '' as $$
+  select coalesce((select g.kcal from public.nutrition_goals g where g.user_id = auth.uid()), 2500)
+$$;
+
+create or replace function public.set_nutrition_goal(p_kcal integer)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'Bitte melde dich an.'; end if;
+  if p_kcal is null or p_kcal < 800 or p_kcal > 10000 then raise exception 'Das Tagesziel muss zwischen 800 und 10000 kcal liegen.'; end if;
+  insert into public.nutrition_goals (user_id, kcal) values (auth.uid(), p_kcal)
+  on conflict (user_id) do update set kcal = excluded.kcal;
+end;
+$$;
+
+revoke all on function public.has_pro(uuid), public.food_add(date, text, text, text, numeric, numeric, numeric, numeric, numeric, text, text),
+  public.food_list(date), public.food_delete(bigint), public.my_nutrition_goal(), public.set_nutrition_goal(integer) from public, anon;
+grant execute on function public.food_add(date, text, text, text, numeric, numeric, numeric, numeric, numeric, text, text),
+  public.food_list(date), public.food_delete(bigint), public.my_nutrition_goal(), public.set_nutrition_goal(integer) to authenticated;
+
+-- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 42 $$;
+returns integer language sql immutable set search_path = '' as $$ select 43 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

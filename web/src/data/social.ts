@@ -1,5 +1,6 @@
 // Freunde & Community (nur Cloud). Alle Abfragen laufen über Server-Funktionen in supabase/schema.sql,
 // die selbst prüfen, wer was sehen darf.
+import type { FoodEntry, Meal } from '../lib/food';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { publicUrl } from '../lib/platform';
 import type { Equipped } from '../lib/shop';
@@ -76,6 +77,12 @@ export interface Social {
   myShop(): Promise<{ owned: string[]; equipped: Equipped; admin?: boolean }>;
   /** Pro-Abo (Status kommt nur vom Server) */
   myPro(): Promise<{ pro: boolean; until: string | null; admin: boolean }>;
+  /** Essen tracken (Hinzufügen nur mit Pro, prüft der Server) */
+  foodList(date: string): Promise<FoodEntry[]>;
+  foodAdd(e: { date: string; meal: Meal; name: string; brand?: string | null; amount_g?: number | null; kcal: number; protein: number; carbs: number; fat: number; barcode?: string | null; source: FoodEntry['source'] }): Promise<number>;
+  foodDelete(id: number): Promise<void>;
+  nutritionGoal(): Promise<number>;
+  setNutritionGoal(kcal: number): Promise<void>;
   buy(itemId: string): Promise<number>;
   equip(kind: 'skin' | 'accessory' | 'title', itemId: string | null): Promise<void>;
   catalog(): Promise<CatalogRow[]>;
@@ -136,6 +143,16 @@ export function createSocial(supabase: SupabaseClient): Social {
     wallet: async () => (await rpc<{ earned: number; spent: number; balance: number }[]>('my_wallet'))[0] ?? { earned: 0, spent: 0, balance: 0 },
     myShop: () => rpc('my_shop'),
     myPro: () => rpc('my_pro'),
+    foodList: async (p_date) => (await rpc<FoodEntry[]>('food_list', { p_date })).map((e) => ({ ...e, kcal: Number(e.kcal), protein: Number(e.protein), carbs: Number(e.carbs), fat: Number(e.fat), amount_g: e.amount_g == null ? null : Number(e.amount_g) })),
+    foodAdd: (e) =>
+      rpc('food_add', { p_date: e.date, p_meal: e.meal, p_name: e.name, p_brand: e.brand ?? null, p_amount: e.amount_g ?? null, p_kcal: e.kcal, p_protein: e.protein, p_carbs: e.carbs, p_fat: e.fat, p_barcode: e.barcode ?? null, p_source: e.source }),
+    foodDelete: async (p_id) => {
+      await rpc('food_delete', { p_id });
+    },
+    nutritionGoal: () => rpc('my_nutrition_goal'),
+    setNutritionGoal: async (p_kcal) => {
+      await rpc('set_nutrition_goal', { p_kcal });
+    },
     buy: (p_item) => rpc('buy_item', { p_item }),
     equip: (p_kind, p_item) => rpc('equip_item', { p_kind, p_item }),
     catalog: () => rpc('shop_catalog'),

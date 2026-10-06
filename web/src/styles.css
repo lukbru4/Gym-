@@ -1480,3 +1480,26 @@ body.picker-open { overflow: hidden; }
 .paywall-tier strong { font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; font-size: 1.3rem; text-transform: uppercase; }
 .paywall-tier small { color: var(--text-secondary); }
 .paywall-print { margin: 12px 0 0; font-size: 0.75rem; }
+
+/* Essen */
+.day-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 12px; }
+.day-nav strong { font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; text-transform: uppercase; font-size: 1.4rem; }
+.food-kcal { display: flex; flex-direction: column; align-items: flex-start; width: 100%; padding: 0; background: none; border: 0; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
+.food-kcal strong { font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; font-size: 2.6rem; line-height: 1; display: inline; }
+.food-kcal span { color: var(--text-secondary); font-size: 1.1rem; }
+.food-kcal small { color: var(--text-secondary); margin-top: 2px; }
+.food-bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; margin: 10px 0 12px; }
+.food-bar i { display: block; height: 100%; background: var(--accent); }
+.food-bar i.over { background: var(--danger); }
+.food-list { list-style: none; margin: 0 0 10px; padding: 0; }
+.food-list li { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.food-name { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.food-name small { font-size: 0.78rem; }
+.food-add { overflow-y: auto; }
+.food-body { display: grid; gap: 12px; align-content: start; padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
+.food-results { margin: 0 -16px; padding: 0 16px; }
+.scanner { display: grid; gap: 12px; }
+.scanner video { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; background: #000; }
+.scanner { position: relative; }
+.scanner-frame { position: absolute; left: 12%; right: 12%; top: 22%; height: 26%; border: 2px solid var(--accent); border-radius: 10px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35); }
+.food-summary .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .food-summary .tile { padding: 10px; } .food-summary .tile-label { font-size: 0.72rem; }

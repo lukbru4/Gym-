@@ -90,7 +90,9 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Einstellungen → Fragen: bis zu 20 Fragen → persönlicher Trainingsplan (Vorlagen „Plan · …“, Wochenplan, Wochenziel)
 - [x] Pro-Grundlage: Status nur vom Server (SQL-Version 42), Bezahlseite (9,99 €/Monat, 64,99 €/Jahr), Plan nur mit Pro, Admin hat immer Pro
 - [ ] Echte Käufe: Apple-/Google-Konto (**Lukas**), RevenueCat, Server-Eintrag in `subscriptions`
-- [ ] Kalorien tracken (nur Pro): zuerst manuell + Open Food Facts, dann Barcode-Kamera, dann Foto-KI über Server-Funktion
+- [x] Essen tracken (nur Pro, SQL-Version 43): Tag/Mahlzeiten, Tagesziel, Suche + Barcode (Open Food Facts), Kamera-Scan, manuell – Server prüft Pro beim Hinzufügen
+- [ ] Barcode-Kamera auf dem echten Handy prüfen (Kamera-Erlaubnis in iOS/Android eingetragen, nicht getestet)
+- [ ] Foto-KI für Essen: Server-Funktion (Supabase Edge Function) mit eigenem KI-Schlüssel, Pro-Prüfung, Tageslimit
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
 - [ ] Eigene Domain + E-Mail-Versand (SMTP) in Supabase, deutsche E-Mail-Vorlagen (**Lukas**: Domain kaufen)

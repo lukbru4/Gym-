@@ -66,5 +66,7 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Die Kamera wird nur zum Scannen von Barcodes auf Lebensmitteln benutzt.</string>
 </dict>
 </plist>
