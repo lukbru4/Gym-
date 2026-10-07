@@ -1667,3 +1667,9 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .food-group { margin: 14px 0 4px; font-size: 1rem; }
 .check-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
 .check-row input { width: 22px; height: 22px; }
+
+.picker-filter { display: flex; align-items: center; gap: 12px; margin: 0 0 8px; flex: none; }
+.picker-filter .muted { margin-left: auto; }
+.picker-filter-panel { flex: none; margin-bottom: 8px; }
+.picker-filter-panel p { margin: 6px 0 4px; }
+.picker-cats.wrap { flex-wrap: wrap; overflow: visible; }

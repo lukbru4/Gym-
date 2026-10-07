@@ -116,11 +116,18 @@ export function exerciseCategories(ex: Exercise): Set<CategoryId> {
 /** Kleinschreibung ohne Akzente/Umlaut-Punkte: „drucken“ findet „Drücken“ */
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
 
-/** Filtert nach Kategorie und Suchtext. Jedes Suchwort muss im Namen oder in einem Muskelnamen vorkommen. */
-export function filterExercises(exercises: Exercise[], { query = '', category = 'alle' }: { query?: string; category?: CategoryId } = {}): Exercise[] {
+/** Filtert nach Kategorie, Art (Kraft/Cardio), gewählten Muskelgruppen (mindestens eine muss passen) und Suchtext. Jedes Suchwort muss im Namen oder in einem Muskelnamen vorkommen. */
+export type TypeFilter = 'alle' | 'strength' | 'cardio';
+
+export function filterExercises(
+  exercises: Exercise[],
+  { query = '', category = 'alle', type = 'alle', muscles = [] }: { query?: string; category?: CategoryId; type?: TypeFilter; muscles?: MuscleId[] } = {},
+): Exercise[] {
   const words = normalize(query).split(/\s+/).filter(Boolean);
   return exercises.filter((ex) => {
     if (category !== 'alle' && !exerciseCategories(ex).has(category)) return false;
+    if (type !== 'alle' && ex.type !== type) return false;
+    if (muscles.length && !musclesOf(ex).some((m) => muscles.includes(m))) return false;
     if (!words.length) return true;
     const hay = normalize([ex.name, keywordsOf(ex.name), ...musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m)].join(' '));
     return words.every((w) => hay.includes(w));

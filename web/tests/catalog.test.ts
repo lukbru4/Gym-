@@ -54,4 +54,21 @@ describe('Übungskatalog', () => {
     expect(m.nextId).toBeGreaterThan(Math.max(...m.exercises.map((e) => e.id)));
     expect(create).toBeTypeOf('function');
   });
+  test('Filter: Art (Kraft/Cardio) und mehrere Muskelgruppen', () => {
+    const ex: Exercise[] = CATALOG.map((c, i) => ({ id: i + 1, name: c.name, type: c.type, user_id: null, muscles: c.muscles }));
+    const cardio = filterExercises(ex, { type: 'cardio' });
+    expect(cardio.length).toBeGreaterThanOrEqual(10);
+    expect(cardio.every((e) => e.type === 'cardio')).toBe(true);
+    const kraft = filterExercises(ex, { type: 'strength' });
+    expect(kraft.every((e) => e.type === 'strength')).toBe(true);
+    expect(kraft.length + cardio.length).toBe(ex.length);
+    const bizeps = filterExercises(ex, { muscles: ['bizeps'] });
+    expect(bizeps.map((e) => e.name)).toContain('Scott-Curls (Maschine)');
+    const both = filterExercises(ex, { muscles: ['bizeps', 'waden'] }).map((e) => e.name);
+    expect(both).toEqual(expect.arrayContaining(['Scott-Curls (Maschine)', 'Wadenheben (sitzend)']));
+    expect(both).not.toContain('Bankdrücken');
+    // Kombination mit Suche und Kategorie
+    expect(filterExercises(ex, { muscles: ['bizeps'], query: 'maschine' }).every((e) => e.name.toLowerCase().includes('maschine') || keywordsOf(e.name).toLowerCase().includes('maschine'))).toBe(true);
+    expect(filterExercises(ex, { muscles: ['bizeps'], type: 'cardio' })).toEqual([]);
+  });
 });
