@@ -1673,3 +1673,8 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .picker-filter-panel { flex: none; margin-bottom: 8px; }
 .picker-filter-panel p { margin: 6px 0 4px; }
 .picker-cats.wrap { flex-wrap: wrap; overflow: visible; }
+
+.calorie-target { margin: 10px 0 4px; }
+.calorie-target strong { font-family: "Barlow Condensed", system-ui, sans-serif; font-style: italic; font-weight: 800; font-size: 2.6rem; line-height: 1; }
+.calorie-target span { color: var(--text-secondary); font-size: 1.1rem; }
+.calorie-lines li { gap: 12px; }

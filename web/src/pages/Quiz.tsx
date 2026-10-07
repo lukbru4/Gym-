@@ -2,10 +2,12 @@
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { navigate } from '../app/router';
-import { ask } from '../components/Dialog';
+import { ask, notify } from '../components/Dialog';
 import { pickNumber } from '../components/NumberPicker';
 import { Paywall } from '../components/Pro';
 import { usePro } from '../lib/pro';
+import { calorieNeeds, JOB_OPTIONS } from '../lib/calories';
+import { fmt } from '../lib/format';
 import { activeQuestions, answerLabel, generatePlan, isAnswered, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
 import { setLocalWeekGoal } from '../lib/weekGoal';
 import type { TemplateExercise } from '../lib/types';
@@ -39,7 +41,7 @@ export function Quiz() {
         <div className="card" id="plan-locked">
           <p>
             Wir haben aus deinen Antworten <strong>{preview.templates.length} {preview.templates.length === 1 ? 'Vorlage' : 'Vorlagen'}</strong> und einen
-            Wochenplan mit <strong>{preview.weekGoal}× Training pro Woche</strong> zusammengestellt.
+            Wochenplan mit <strong>{preview.weekGoal}× Training pro Woche</strong> zusammengestellt – dazu gehört auch die Berechnung, wie viele Kalorien du am Tag essen solltest.
           </p>
           <p className="muted small">Deine Antworten sind gespeichert – nach dem Freischalten ist dein Plan sofort da.</p>
         </div>
@@ -50,6 +52,17 @@ export function Quiz() {
   }
   if (phase === 'plan') {
     const plan = generatePlan(answers);
+    const needs = calorieNeeds(answers);
+    const setDays = (v: string) => store({ ...answers, days: v });
+    const takeGoal = async () => {
+      if (!needs || !api.social) return;
+      try {
+        await api.social.setNutritionGoal(needs.target);
+        await notify(`Dein Tagesziel ist jetzt ${fmt(needs.target, 0)} kcal. Du siehst es auf der Seite „Essen“.`, { title: 'Tagesziel übernommen' });
+      } catch (err) {
+        showError(err);
+      }
+    };
     const apply = async () => {
       setBusy(true);
       try {
@@ -88,6 +101,40 @@ export function Quiz() {
             ))}
           </ul>
           <p className="muted small">Wochenziel: {plan.weekGoal}× pro Woche – das zählt für deine 🔥 Serie.</p>
+        </div>
+        <div className="card" id="calorie-card">
+          <h3>Dein Kalorienbedarf</h3>
+          <label>Training pro Woche
+            <select id="plan-days" value={String(plan.weekGoal)} onChange={(e) => setDays(e.target.value)}>
+              {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}× pro Woche</option>)}
+            </select>
+          </label>
+          <label>Alltag (ohne Training)
+            <select id="plan-job" value={String(answers.job ?? 'gemischt')} onChange={(e) => store({ ...answers, job: e.target.value })}>
+              {JOB_OPTIONS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+            </select>
+          </label>
+          {needs ? (
+            <>
+              <p className="calorie-target"><strong id="calorie-target">{fmt(needs.target, 0)}</strong> <span>kcal pro Tag</span></p>
+              <ul className="plan-list calorie-lines">
+                <li><span>Grundumsatz</span><span>{fmt(needs.bmr, 0)} kcal</span></li>
+                <li><span>Alltag</span><span>+ {fmt(needs.daily - needs.bmr, 0)} kcal</span></li>
+                <li><span>Training ({plan.weekGoal}× pro Woche)</span><span>+ {fmt(needs.training, 0)} kcal</span></li>
+                <li><span>Verbrauch gesamt</span><span>{fmt(needs.tdee, 0)} kcal</span></li>
+                <li><span>Ziel: {needs.goalNote}</span><span>{needs.adjust > 0 ? '+' : ''}{fmt(needs.adjust, 0)} kcal</span></li>
+              </ul>
+              <p className="small" id="calorie-macros">Richtwerte: <strong>{needs.protein} g Eiweiß</strong> · {needs.carbs} g Kohlenhydrate · {needs.fat} g Fett</p>
+              {api.social ? (
+                <button className="btn block" id="calorie-take" onClick={takeGoal}>Als Tagesziel übernehmen</button>
+              ) : (
+                <p className="muted small">Kalorien tracken (Essen) braucht ein Konto – dann kannst du den Wert als Tagesziel übernehmen.</p>
+              )}
+              <p className="muted small">Nur eine Schätzung (Grundumsatz nach Mifflin-St-Jeor plus Aktivität), kein ärztlicher Rat.{Number(answers.age) < 18 ? ' Unter 18 Jahren bitte unbedingt mit einer Ärztin oder einem Arzt sprechen – Wachstum braucht mehr Energie.' : ''} Bei Beschwerden oder Vorerkrankungen bitte ärztlich abklären.</p>
+            </>
+          ) : (
+            <p className="muted small">Beantworte Alter, Größe und Gewicht, dann rechnen wir deinen Kalorienbedarf aus.</p>
+          )}
         </div>
         {plan.templates.map((t) => (
           <div className="card" key={t.name} data-plan-template={t.name}>

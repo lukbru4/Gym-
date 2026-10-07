@@ -27,6 +27,7 @@ export const QUESTIONS: Question[] = [
   { id: 'age', q: 'Wie alt bist du?', type: 'range', min: 14, max: 90, def: 30, step: 1, unit: 'Jahre' },
   { id: 'height', q: 'Wie groß bist du?', type: 'range', min: 120, max: 220, def: 175, step: 1, unit: 'cm' },
   { id: 'weight', q: 'Wie viel wiegst du?', type: 'range', min: 35, max: 200, def: 75, step: 0.5, unit: 'kg' },
+  { id: 'job', q: 'Wie aktiv bist du im Alltag (ohne Training)?', hint: 'Für deinen Kalorienbedarf.', type: 'one', options: [['sitzend', 'Überwiegend sitzend (Büro, Schule)'], ['gemischt', 'Gemischt'], ['beine', 'Viel auf den Beinen'], ['koerper', 'Körperlich anstrengend']] },
   { id: 'exp', q: 'Wie lange trainierst du schon mit Gewichten?', type: 'one', options: [['neu', 'Gar nicht / gerade angefangen'], ['basis', 'Unter 1 Jahr'], ['mittel', '1–3 Jahre'], ['profi', 'Über 3 Jahre']] },
   { id: 'days', q: 'Wie oft pro Woche willst du trainieren?', hint: 'Wird dein Wochenziel für die Serie.', type: 'one', options: [['1', '1× pro Woche'], ['2', '2× pro Woche'], ['3', '3× pro Woche'], ['4', '4× pro Woche'], ['5', '5× pro Woche'], ['6', '6× pro Woche']] },
   { id: 'split', q: 'Welche Aufteilung möchtest du?', hint: 'Wie die Trainings über die Woche verteilt werden.', type: 'one', options: [['auto', 'Automatisch (passend zu meinen Tagen)'], ['ppl', 'Push / Pull / Beine'], ['ganz', 'Ganzkörper'], ['ob', 'Oberkörper / Unterkörper']] },
