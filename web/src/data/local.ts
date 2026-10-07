@@ -1,26 +1,16 @@
 // Lokaler Speicher im Browser (localStorage) – funktioniert ohne Konto und ohne Server.
 // Gleiche Schnittstelle wie supabase.ts.
+import { CATALOG } from '../lib/exerciseCatalog';
 import { DEFAULT_MUSCLES } from '../lib/muscles';
 import type { Exercise, ExerciseType, Template, User } from '../lib/types';
 import type { Backend, LocalData } from './backend';
 
 export const STORAGE_KEY = 'gym-tracker-data';
-const VERSION = 2;
+const VERSION = 3;
 const LOCAL_USER: User = Object.freeze({ id: 'local', email: 'Lokal' });
 
-// Gleiche Standardübungen wie in supabase/schema.sql
-const DEFAULT_EXERCISES: [string, ExerciseType][] = [
-  ['Bankdrücken', 'strength'], ['Schrägbankdrücken', 'strength'], ['Kurzhantel-Bankdrücken', 'strength'],
-  ['Butterfly', 'strength'], ['Dips', 'strength'], ['Kniebeuge', 'strength'], ['Beinpresse', 'strength'],
-  ['Ausfallschritte', 'strength'], ['Beinstrecker', 'strength'], ['Beinbeuger', 'strength'],
-  ['Wadenheben', 'strength'], ['Kreuzheben', 'strength'], ['Rumänisches Kreuzheben', 'strength'],
-  ['Klimmzüge', 'strength'], ['Latziehen', 'strength'], ['Langhantelrudern', 'strength'],
-  ['Kabelrudern', 'strength'], ['Schulterdrücken', 'strength'], ['Seitheben', 'strength'],
-  ['Face Pulls', 'strength'], ['Bizepscurls', 'strength'], ['Hammercurls', 'strength'],
-  ['Trizepsdrücken am Kabel', 'strength'], ['French Press', 'strength'], ['Crunches', 'strength'],
-  ['Plank', 'strength'], ['Laufband', 'cardio'], ['Crosstrainer', 'cardio'], ['Fahrradergometer', 'cardio'],
-  ['Rudergerät', 'cardio'], ['Stepper', 'cardio'], ['Laufen (draußen)', 'cardio'],
-];
+// Gleiche Standardübungen wie in supabase/schema.sql (beide kommen aus lib/exerciseCatalog.ts)
+const DEFAULT_EXERCISES: [string, ExerciseType][] = CATALOG.map((c) => [c.name, c.type]);
 
 const TABLES = ['exercises', 'workouts', 'sets', 'body_weights'] as const;
 
@@ -52,6 +42,12 @@ export function migrate(data: LocalData): LocalData {
   data.templates ??= [];
   for (const e of data.exercises) e.muscles ??= e.user_id ? [] : DEFAULT_MUSCLES[e.name] || [];
   for (const s of data.sets) s.is_warmup ??= false;
+  // Version 3: neue Standardübungen aus dem Katalog ergänzen (nicht, wenn es den Namen schon gibt)
+  const have = new Set(data.exercises.map((e) => e.name.toLowerCase()));
+  for (const c of CATALOG) {
+    if (have.has(c.name.toLowerCase())) continue;
+    data.exercises.push({ id: data.nextId++, name: c.name, type: c.type, user_id: null, muscles: c.muscles });
+  }
   data.version = VERSION;
   return data;
 }

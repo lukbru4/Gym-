@@ -110,6 +110,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Essen: drei Nährwert-Ringe (Kohlenhydrate, Eiweiß, Fett; Richtwert 50/25/25 %) und „+“-Knopf unter dem Kalorienring
 - [x] Einstellungen → Ziele: Training pro Woche, Zielgewicht, Kalorien pro Tag und eigene abhakbare Ziele
 - [x] Essen: Tab „Beschreiben“ (Satz → Zutaten mit Gramm und Nährwerten, eingebaute Tabelle mit ~140 Lebensmitteln, Online-Rückfall); Rezepte von 12 auf 63, mit Suche
+- [x] Übungskatalog: 207 vorgegebene Übungen (Gerät/Kurzhantel/Kabel/Smith getrennt) mit umgangssprachlichen und englischen Stichwörtern für die Suche; Datenbank-Version 48
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

@@ -10,7 +10,7 @@ export const USE_CLOUD = import.meta.env.VITE_BACKEND !== 'local';
 
 /** Muss zu public.schema_version() am Ende von supabase/schema.sql passen (ein Test prüft das).
  *  Ist die Datenbank älter, zeigt die App dem Admin „Datenbank-Update nötig“. */
-export const SCHEMA_VERSION = 47;
+export const SCHEMA_VERSION = 48;
 
 /** Foto-Auswertung beim Essen (KI): erst einschalten (true), wenn die Server-Funktion „food-photo“ eingerichtet ist
  *  (supabase/functions/food-photo/README.md). Zum Ausprobieren ohne neue App-Version: im Browser

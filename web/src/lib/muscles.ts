@@ -1,4 +1,5 @@
 // Muskelgruppen, Zuordnung der Übungen, Kraft-Stufe für den Körpergraphen und Übungs-Kategorien.
+import { CATALOG_MUSCLES, keywordsOf } from './exerciseCatalog';
 import { addDays, estimate1RM, isWorkingSet } from './stats';
 import type { DatedSet, Exercise, ExerciseMap, ISODate, MuscleId } from './types';
 
@@ -18,38 +19,12 @@ export const MUSCLES: [MuscleId, string][] = [
 ];
 export const MUSCLE_NAMES = new Map<MuscleId, string>(MUSCLES);
 
-// Hauptmuskeln der Standardübungen (gleiche Werte wie in supabase/schema.sql).
+// Hauptmuskeln der Standardübungen (kommen aus exerciseCatalog.ts, gleiche Werte wie in supabase/schema.sql).
 export const DEFAULT_MUSCLES: Record<string, MuscleId[]> = {
-  'Bankdrücken': ['brust'],
-  'Schrägbankdrücken': ['brust'],
-  'Kurzhantel-Bankdrücken': ['brust'],
-  'Butterfly': ['brust'],
-  'Dips': ['trizeps', 'brust'],
-  'Kniebeuge': ['quadrizeps', 'gesaess'],
-  'Beinpresse': ['quadrizeps'],
-  'Ausfallschritte': ['quadrizeps', 'gesaess'],
-  'Beinstrecker': ['quadrizeps'],
-  'Beinbeuger': ['beinbeuger'],
-  'Wadenheben': ['waden'],
-  'Kreuzheben': ['unterer_ruecken', 'gesaess'],
-  'Rumänisches Kreuzheben': ['beinbeuger', 'gesaess'],
-  'Klimmzüge': ['lat'],
-  'Latziehen': ['lat'],
-  'Langhantelrudern': ['oberer_ruecken', 'lat'],
-  'Kabelrudern': ['oberer_ruecken'],
-  'Schulterdrücken': ['schultern'],
-  'Seitheben': ['schultern'],
-  'Face Pulls': ['schultern'],
-  'Bizepscurls': ['bizeps'],
-  'Hammercurls': ['bizeps'],
-  'Trizepsdrücken am Kabel': ['trizeps'],
-  'French Press': ['trizeps'],
-  'Crunches': ['bauch'],
-  'Plank': ['bauch'],
+  ...CATALOG_MUSCLES,
   // Nur in der App (nicht in schema.sql): so wird eine selbst angelegte Übung dieses Namens automatisch zugeordnet
   'Hip Thrust': ['gesaess', 'beinbeuger'],
 };
-
 
 type MuscleSource = Pick<Exercise, 'name'> & { muscles?: MuscleId[] | null };
 export const musclesOf = (exercise: MuscleSource | null | undefined): MuscleId[] =>
@@ -147,7 +122,7 @@ export function filterExercises(exercises: Exercise[], { query = '', category = 
   return exercises.filter((ex) => {
     if (category !== 'alle' && !exerciseCategories(ex).has(category)) return false;
     if (!words.length) return true;
-    const hay = normalize([ex.name, ...musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m)].join(' '));
+    const hay = normalize([ex.name, keywordsOf(ex.name), ...musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m)].join(' '));
     return words.every((w) => hay.includes(w));
   });
 }

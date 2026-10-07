@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { CATEGORIES, MUSCLE_NAMES, filterExercises, musclesOf, type CategoryId } from '../lib/muscles';
+import { keywordsOf } from '../lib/exerciseCatalog';
 import type { Exercise } from '../lib/types';
 
 export function ExercisePicker(props: {
@@ -29,6 +30,15 @@ export function ExercisePicker(props: {
   const muscleText = (ex: Exercise) =>
     ex.type === 'cardio' ? 'Cardio' : musclesOf(ex).map((m) => MUSCLE_NAMES.get(m)).join(', ') || 'Keine Muskeln zugeordnet';
   const q = query.trim();
+  // Bei der Suche zeigen, unter welchem Stichwort (z. B. „Preacher Curl Maschine“) die Übung gefunden wurde
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const alias = (ex: Exercise) => {
+    if (!words.length) return '';
+    const name = ex.name.toLowerCase();
+    if (words.every((w) => name.includes(w))) return '';
+    const hit = keywordsOf(ex.name).split(', ').find((k) => words.every((w) => k.toLowerCase().includes(w)));
+    return hit ? `auch: ${hit}` : '';
+  };
 
   return (
     <div className="picker" role="dialog" aria-modal="true" aria-label="Übung wählen">
@@ -63,7 +73,7 @@ export function ExercisePicker(props: {
                 {ex.name}
                 {ex.user_id && <span className="muted"> ★</span>}
               </span>
-              <span className="picker-sub">{muscleText(ex)}</span>
+              <span className="picker-sub">{muscleText(ex)}{alias(ex) && <> · <em>{alias(ex)}</em></>}</span>
               {props.added.has(ex.id) && <span className="picker-added">✓ drin</span>}
             </button>
           </li>
