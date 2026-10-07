@@ -6,6 +6,7 @@ import { LoadError, Loading } from '../components/Bits';
 import { FoodPlusPaywall } from '../components/Pro';
 import { fmt } from '../lib/format';
 import { MEALS, totals, type Meal } from '../lib/food';
+import { norm } from '../lib/describe';
 import { usePro } from '../lib/pro';
 import { nutrition, RECIPE_FILTERS, RECIPES, suggestRecipes, type Recipe, type RecipeFilter } from '../lib/recipes';
 import { todayISO } from '../lib/stats';
@@ -18,6 +19,7 @@ export function Recipes() {
   const today = todayISO();
   const [filter, setFilter] = useState<RecipeFilter>('alle');
   const [open, setOpen] = useState<string | null>(null);
+  const [q, setQ] = useState('');
   const day = useAsync(() => (social && pro.food ? Promise.all([social.foodList(today), social.nutritionGoal()]) : Promise.resolve(null)), [social, pro.food, dataVersion]);
   if (!social) return <><h2>Rezepte</h2><FoodPlusPaywall /></>;
   if (!pro.loaded) return <Loading />;
@@ -45,7 +47,8 @@ export function Recipes() {
   const [entries, goal] = day.data!;
   const eaten = totals(entries);
   const left = { kcal: Math.max(0, goal - eaten.kcal), protein: 0 };
-  const list = suggestRecipes(left, filter);
+  const needle = norm(q);
+  const list = suggestRecipes(left, filter).filter(({ recipe }) => !needle || norm(`${recipe.name} ${recipe.ingredients.map((i) => i[2]).join(' ')}`).includes(needle));
   const current: Recipe | undefined = RECIPES.find((r) => r.id === open);
 
   const log = async (r: Recipe, meal: Meal) => {
@@ -89,6 +92,7 @@ export function Recipes() {
         <p className="muted small">Heute noch übrig</p>
         <p><strong className="recipe-left-kcal">{fmt(left.kcal, 0)} kcal</strong> <span className="muted">von {fmt(goal, 0)}</span></p>
       </div>
+      <input type="search" id="recipe-q" className="block" placeholder={`${RECIPES.length} Rezepte durchsuchen (Name oder Zutat)`} aria-label="Rezepte suchen" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="picker-cats recipe-filters" role="tablist" aria-label="Filter">
         {RECIPE_FILTERS.map(([id, label]) => (
           <button key={id} type="button" className="picker-cat" role="tab" data-filter={id} aria-selected={filter === id} onClick={() => setFilter(id)}>{label}</button>
@@ -104,7 +108,7 @@ export function Recipes() {
             </button>
           </li>
         ))}
-        {!list.length && <li className="muted">Dazu gibt es noch keine Rezepte.</li>}
+        {!list.length && <li className="muted" id="recipe-none">Dazu gibt es keine Rezepte. Probiere einen anderen Filter oder Suchbegriff.</li>}
       </ul>
     </>
   );

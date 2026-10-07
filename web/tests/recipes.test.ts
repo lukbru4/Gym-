@@ -3,7 +3,7 @@ import { nutrition, RECIPES, suggestRecipes } from '../src/lib/recipes';
 
 describe('Rezepte', () => {
   test('alle Zutaten sind bekannt, Nährwerte plausibel, Anleitung vorhanden', () => {
-    expect(RECIPES.length).toBeGreaterThanOrEqual(12);
+    expect(RECIPES.length).toBeGreaterThanOrEqual(60);
     const ids = new Set<string>();
     for (const r of RECIPES) {
       expect(ids.has(r.id)).toBe(false);

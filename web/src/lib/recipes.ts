@@ -1,48 +1,10 @@
 // Rezepte mit Anleitung: Nährwerte werden aus den Zutaten berechnet (Richtwerte, Zutaten roh bzw. wie angegeben).
 import type { Meal, Nutrients } from './food';
-
-/** Nährwerte pro 100 g (ungefähre Durchschnittswerte, Quelle: übliche Nährwerttabellen) */
-const BASE: Record<string, Nutrients> = {
-  haferflocken: { kcal: 372, protein: 13.5, carbs: 58.7, fat: 7 },
-  milch: { kcal: 47, protein: 3.4, carbs: 4.9, fat: 1.5 },
-  banane: { kcal: 90, protein: 1.1, carbs: 20.3, fat: 0.2 },
-  heidelbeeren: { kcal: 42, protein: 0.6, carbs: 9, fat: 0.4 },
-  honig: { kcal: 304, protein: 0.3, carbs: 75, fat: 0 },
-  eier: { kcal: 143, protein: 12.6, carbs: 0.7, fat: 9.9 },
-  vollkornbrot: { kcal: 210, protein: 7, carbs: 38, fat: 1.5 },
-  butter: { kcal: 741, protein: 0.7, carbs: 0.6, fat: 83 },
-  tomate: { kcal: 18, protein: 0.9, carbs: 2.6, fat: 0.2 },
-  magerquark: { kcal: 67, protein: 12, carbs: 4, fat: 0.3 },
-  apfel: { kcal: 52, protein: 0.3, carbs: 12, fat: 0.2 },
-  walnuesse: { kcal: 654, protein: 15, carbs: 7, fat: 65 },
-  haehnchenbrust: { kcal: 106, protein: 23, carbs: 0, fat: 1.5 },
-  reis: { kcal: 350, protein: 7, carbs: 78, fat: 0.6 },
-  brokkoli: { kcal: 34, protein: 2.8, carbs: 2.7, fat: 0.4 },
-  olivenoel: { kcal: 884, protein: 0, carbs: 0, fat: 100 },
-  sojasauce: { kcal: 60, protein: 8, carbs: 5, fat: 0 },
-  spaghetti: { kcal: 358, protein: 13, carbs: 71, fat: 1.5 },
-  tomatensauce: { kcal: 28, protein: 1.4, carbs: 4.5, fat: 0.2 },
-  parmesan: { kcal: 392, protein: 36, carbs: 0, fat: 28 },
-  zwiebel: { kcal: 40, protein: 1.1, carbs: 9, fat: 0.1 },
-  linsen: { kcal: 340, protein: 24, carbs: 50, fat: 1.5 },
-  karotte: { kcal: 41, protein: 0.9, carbs: 10, fat: 0.2 },
-  kartoffel: { kcal: 77, protein: 2, carbs: 17, fat: 0.1 },
-  thunfisch: { kcal: 116, protein: 26, carbs: 0, fat: 1 },
-  kichererbsen: { kcal: 120, protein: 7, carbs: 18, fat: 2 },
-  gurke: { kcal: 15, protein: 0.7, carbs: 2.4, fat: 0.1 },
-  lachs: { kcal: 208, protein: 20, carbs: 0, fat: 13 },
-  spinat: { kcal: 23, protein: 2.9, carbs: 0.8, fat: 0.4 },
-  paprika: { kcal: 31, protein: 1, carbs: 6, fat: 0.3 },
-  champignons: { kcal: 22, protein: 3.1, carbs: 0.5, fat: 0.3 },
-  gouda: { kcal: 356, protein: 25, carbs: 1, fat: 28 },
-  tofu: { kcal: 120, protein: 13, carbs: 1.5, fat: 7 },
-  zucchini: { kcal: 17, protein: 1.2, carbs: 2, fat: 0.3 },
-  skyr: { kcal: 63, protein: 11, carbs: 4, fat: 0.2 },
-  muesli: { kcal: 360, protein: 9.5, carbs: 64, fat: 5.5 },
-  himbeeren: { kcal: 43, protein: 1.2, carbs: 4.9, fat: 0.4 },
-};
+import { BASE, FOOD_BY_KEY } from './foodDb';
+import { MORE_RECIPES } from './recipesMore';
 
 export type Ingredient = [key: string, grams: number, label: string];
+type RawIngredient = [key: string, grams: number, label?: string];
 export interface Recipe {
   id: string;
   name: string;
@@ -53,7 +15,9 @@ export interface Recipe {
   steps: string[];
 }
 
-export const RECIPES: Recipe[] = [
+export type RawRecipe = Omit<Recipe, 'ingredients'> & { ingredients: RawIngredient[] };
+
+const CORE: RawRecipe[] = [
   {
     id: 'hafer-beeren', name: 'Haferflocken mit Banane und Heidelbeeren', meal: 'fruehstueck', minutes: 10, tags: ['vegetarisch', 'schnell'],
     ingredients: [['haferflocken', 60, '60 g Haferflocken'], ['milch', 200, '200 ml Milch (1,5 %)'], ['banane', 100, '1 kleine Banane'], ['heidelbeeren', 50, '50 g Heidelbeeren'], ['honig', 10, '1 TL Honig']],
@@ -115,6 +79,12 @@ export const RECIPES: Recipe[] = [
     steps: ['Reis nach Packungsanleitung kochen.', 'Tofu in Würfel schneiden und im Öl rundherum goldbraun anbraten, dann herausnehmen.', 'Paprika und Zucchini in Stücken 5 Minuten braten, Tofu und Sojasauce zurückgeben und kurz durchschwenken.', 'Mit dem Reis servieren.'],
   },
 ];
+
+/** Rezepte aus beiden Listen; fehlende Anzeigetexte der Zutaten werden aus dem Namen gebildet */
+export const RECIPES: Recipe[] = [...CORE, ...MORE_RECIPES].map((r) => ({
+  ...r,
+  ingredients: r.ingredients.map(([key, grams, label]): Ingredient => [key, grams, label ?? `${grams} g ${FOOD_BY_KEY.get(key)?.name ?? key}`]),
+}));
 
 export function nutrition(r: Recipe): Nutrients & { grams: number } {
   const t = { kcal: 0, protein: 0, carbs: 0, fat: 0, grams: 0 };

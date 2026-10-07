@@ -12,6 +12,7 @@ import { Paywall } from '../components/Pro';
 import { fmt } from '../lib/format';
 import { FoodAiError, isBarcode, lookupBarcode, mealForHour, nutritionScore, rescaleItem, scale, searchFood, totals, type FoodEntry, type FoodItem, type Meal, type PhotoAnalysis, type PhotoItem } from '../lib/food';
 import { toMaxJpeg } from '../lib/image';
+import { parseDescription, type ParsedItem } from '../lib/describe';
 import { usePro } from '../lib/pro';
 import { addDays, todayISO } from '../lib/stats';
 
@@ -177,7 +178,7 @@ type NewEntry = { name: string; brand?: string | null; amount_g?: number | null;
 
 function AddFood({ onClose, onAdd, onAddMany, analyze }: { onClose: () => void; onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void>; analyze: (base64: string) => Promise<PhotoAnalysis> }) {
   const { showError } = useApp();
-  const [tab, setTab] = useState<'search' | 'barcode' | 'manual' | 'photo'>('search');
+  const [tab, setTab] = useState<'search' | 'barcode' | 'describe' | 'manual' | 'photo'>('search');
   const [picked, setPicked] = useState<{ item: FoodItem; source: 'search' | 'barcode' } | null>(null);
   useEffect(() => {
     document.body.classList.add('picker-open');
@@ -198,7 +199,7 @@ function AddFood({ onClose, onAdd, onAddMany, analyze }: { onClose: () => void; 
       ) : (
         <>
           <div className="picker-cats" role="tablist" aria-label="Wie hinzufügen?">
-            {([['search', 'Suche'], ['barcode', 'Barcode'], ...(foodPhotoEnabled() ? ([['photo', 'Foto']] as const) : []), ['manual', 'Manuell']] as const).map(([id, text]) => (
+            {([['search', 'Suche'], ['barcode', 'Barcode'], ['describe', 'Beschreiben'], ...(foodPhotoEnabled() ? ([['photo', 'Foto']] as const) : []), ['manual', 'Manuell']] as const).map(([id, text]) => (
               <button key={id} type="button" className="picker-cat" role="tab" data-tab={id} aria-selected={tab === id} onClick={() => setTab(id)}>{text}</button>
             ))}
           </div>
@@ -206,6 +207,7 @@ function AddFood({ onClose, onAdd, onAddMany, analyze }: { onClose: () => void; 
             {tab === 'search' && <Search onPick={(item) => setPicked({ item, source: 'search' })} onError={showError} />}
             {tab === 'barcode' && <Barcode onPick={(item) => setPicked({ item, source: 'barcode' })} onError={showError} />}
             {tab === 'photo' && foodPhotoEnabled() && <Photo analyze={analyze} onAddMany={onAddMany} onError={showError} />}
+            {tab === 'describe' && <Describe onAddMany={onAddMany} onError={showError} />}
             {tab === 'manual' && <Manual onAdd={onAdd} />}
           </div>
         </>
@@ -297,6 +299,89 @@ function Photo({ analyze, onAddMany, onError }: { analyze: (b64: string) => Prom
             Hinzufügen
           </button>
           <button className="btn block" id="photo-again" onClick={() => { setResult(null); setItems([]); setMsg(''); }}>Anderes Foto</button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Describe({ onAddMany, onError }: { onAddMany: (e: NewEntry[]) => Promise<void>; onError: (e: unknown) => void }) {
+  const [text, setText] = useState('');
+  const [items, setItems] = useState<(ParsedItem & { on: boolean })[] | null>(null);
+  const [unknown, setUnknown] = useState<string[]>([]);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const go = () => {
+    const r = parseDescription(text);
+    setItems(r.items.map((i) => ({ ...i, on: true })));
+    setUnknown(r.unknown);
+    setMsg(r.items.length || r.unknown.length ? '' : 'Schreibe zum Beispiel „50 g Joghurt, 2 Eier, 1 Banane“.');
+  };
+  const online = async (name: string) => {
+    setBusy(true);
+    try {
+      const found = (await searchFood(name))[0];
+      if (!found) {
+        setMsg(`„${name}“ wurde auch online nicht gefunden. Trage es manuell ein.`);
+        return;
+      }
+      const grams = found.serving_g ?? 100;
+      setItems((cur) => [...(cur ?? []), { key: found.code || name, name: found.name, grams, estimated: true, ...scale(found.per100, grams), on: true }]);
+      setUnknown((u) => u.filter((x) => x !== name));
+    } catch (err) {
+      onError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const chosen = (items ?? []).filter((i) => i.on);
+  const sum = totals(chosen);
+  return (
+    <>
+      <label>Was hast du gegessen?
+        <textarea id="describe-text" rows={3} placeholder="z. B. 50 g Joghurt, 2 Eier, 1 Banane" value={text} onChange={(e) => setText(e.target.value)} />
+      </label>
+      <button className="btn primary block" id="describe-go" disabled={!text.trim()} onClick={go}>Auswerten</button>
+      <p className="muted small">Das ist keine KI: Die Werte kommen aus einer eingebauten Tabelle (Richtwerte). Ohne Mengenangabe wird ein üblicher Wert angenommen – prüfe die Gramm.</p>
+      {msg && <p className="notice" id="describe-msg">{msg}</p>}
+      {items && items.length > 0 && (
+        <div className="card" id="describe-result">
+          <h3>Erkannt</h3>
+          <ul className="photo-items">
+            {items.map((it, i) => (
+              <li key={`${it.key}-${i}`} className={it.on ? '' : 'off'}>
+                <label className="photo-check">
+                  <input type="checkbox" checked={it.on} aria-label={`${it.name} übernehmen`} onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, on: e.target.checked } : x)))} />
+                  <span className="food-name">{it.name}<small className="muted">{it.estimated ? 'Menge geschätzt · ' : ''}{fmt(it.protein, 0)} g Eiweiß · {fmt(it.carbs, 0)} g KH · {fmt(it.fat, 0)} g Fett</small></span>
+                </label>
+                <button type="button" className="btn small-btn" data-grams={i} onClick={async () => {
+                  const v = await pickNumber({ title: it.name, unit: 'g', value: String(it.grams), min: 1, max: 3000, step: 1, bigStep: 10, itemW: 8, labelEvery: 50, integer: false });
+                  if (v !== null) {
+                    const g = Number(v.replace(',', '.'));
+                    const f = g / it.grams;
+                    setItems(items.map((x, j) => (j === i ? { ...x, grams: g, estimated: false, kcal: Math.round(x.kcal * f * 10) / 10, protein: Math.round(x.protein * f * 10) / 10, carbs: Math.round(x.carbs * f * 10) / 10, fat: Math.round(x.fat * f * 10) / 10 } : x)));
+                  }
+                }}>{fmt(it.grams, 0)} g</button>
+                <strong className="photo-kcal">{fmt(it.kcal, 0)} kcal</strong>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small" id="describe-sum">Zusammen {fmt(sum.kcal, 0)} kcal</p>
+          <button className="btn primary block" id="describe-add" disabled={!chosen.length} onClick={() => onAddMany(chosen.map((i) => ({ name: i.name, amount_g: i.grams, kcal: i.kcal, protein: i.protein, carbs: i.carbs, fat: i.fat, source: 'manual' as const })))}>
+            Hinzufügen
+          </button>
+        </div>
+      )}
+      {unknown.length > 0 && (
+        <div className="card" id="describe-unknown">
+          <h3>Nicht gefunden</h3>
+          {unknown.map((u) => (
+            <div className="goal-row" key={u}>
+              <span>{u}</span>
+              <button type="button" className="btn small-btn" data-online={u} disabled={busy} onClick={() => online(u)}>Online suchen</button>
+            </div>
+          ))}
+          <p className="muted small">„Online suchen“ nimmt das erste Ergebnis von Open Food Facts (je nach Produkt ungenau). Sonst: Tab „Manuell“.</p>
         </div>
       )}
     </>

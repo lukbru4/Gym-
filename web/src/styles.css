@@ -1662,3 +1662,4 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .goal-list { list-style: none; margin: 0 0 10px; padding: 0; }
 .goal-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; }
 .goal-list li.done span { text-decoration: line-through; color: var(--text-secondary); }
+.food-add .picker-cats { gap: 6px; } .food-add .picker-cat { padding: 8px 11px; font-size: 0.92rem; }
