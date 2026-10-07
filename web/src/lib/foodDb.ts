@@ -1,6 +1,7 @@
 // Eingebaute Lebensmitteltabelle (ungefähre Durchschnittswerte pro 100 g bzw. 100 ml, übliche Nährwerttabellen).
 // Wird von den Rezepten und vom „Beschreiben“ beim Essen-Eintragen benutzt.
 import type { Nutrients } from './food';
+import { ROWS_MORE } from './foodDbMore';
 
 export interface Food extends Nutrients {
   key: string;
@@ -16,7 +17,7 @@ export interface Food extends Nutrients {
 }
 
 // [key, Name, Aliase (|), kcal, Eiweiß, Kohlenhydrate, Fett, Stück-Gramm?, Dichte?, Esslöffel-Gramm?]
-type Row = [string, string, string, number, number, number, number, number?, number?, number?];
+export type Row = [string, string, string, number, number, number, number, number?, number?, number?];
 const ROWS: Row[] = [
   // Milch & Milchprodukte
   ['milch', 'Milch (1,5 %)', 'milch|fettarme milch|milch 1,5', 47, 3.4, 4.9, 1.5, undefined, 1.03],
@@ -34,7 +35,7 @@ const ROWS: Row[] = [
   ['koerniger-frischkaese', 'Körniger Frischkäse', 'koerniger frischkaese|cottage cheese|hüttenkäse|huettenkaese', 98, 12, 3, 4.3, undefined, 1, 20],
   ['mozzarella', 'Mozzarella', 'mozzarella', 250, 18, 1, 19, 125],
   ['feta', 'Feta', 'feta|schafskaese|hirtenkaese', 264, 17, 1, 21],
-  ['gouda', 'Gouda', 'gouda|kaese|schnittkaese|emmentaler|cheddar', 356, 25, 1, 28, 25],
+  ['gouda', 'Gouda', 'gouda|kaese|schnittkaese', 356, 25, 1, 28, 25],
   ['parmesan', 'Parmesan', 'parmesan|hartkaese', 392, 36, 0, 28, undefined, undefined, 6],
   ['sahne', 'Sahne', 'sahne|schlagsahne|kochsahne', 292, 2.4, 3.3, 30, undefined, 1],
   ['butter', 'Butter', 'butter', 741, 0.7, 0.6, 83, undefined, 0.95, 14],
@@ -52,7 +53,7 @@ const ROWS: Row[] = [
   ['salami', 'Salami', 'salami|wurst aufschnitt|aufschnitt', 400, 20, 1, 35, 8],
   ['bratwurst', 'Bratwurst', 'bratwurst|wurst|wuerstchen|currywurst|bockwurst|wiener', 300, 13, 1, 27, 120],
   ['bacon', 'Bacon', 'bacon|speck|frühstücksspeck|fruehstuecksspeck', 334, 15, 1, 30, 10],
-  ['lachs', 'Lachs', 'lachs|lachsfilet|räucherlachs|raeucherlachs', 208, 20, 0, 13],
+  ['lachs', 'Lachs', 'lachs|lachsfilet', 208, 20, 0, 13],
   ['thunfisch', 'Thunfisch (im eigenen Saft)', 'thunfisch|thunfisch dose', 116, 26, 0, 1, 120],
   ['kabeljau', 'Kabeljau', 'kabeljau|dorsch|seelachs|fischfilet|weissfisch|pangasius', 82, 18, 0, 0.7],
   ['forelle', 'Forelle', 'forelle|lachsforelle', 116, 19, 0, 4.5],
@@ -135,7 +136,7 @@ const ROWS: Row[] = [
   ['zucker', 'Zucker', 'zucker|haushaltszucker', 400, 0, 100, 0, undefined, undefined, 12],
   ['marmelade', 'Marmelade', 'marmelade|konfituere|konfitüre|gelee|fruchtaufstrich', 250, 0.3, 60, 0.1, undefined, undefined, 20],
   ['nuss-nougat-creme', 'Nuss-Nougat-Creme', 'nutella|nuss nougat creme|nussnougatcreme|schokocreme', 531, 6, 57, 31, undefined, undefined, 18],
-  ['schokolade', 'Schokolade', 'schokolade|vollmilchschokolade|zartbitterschokolade|schoko', 540, 7, 57, 31, 5],
+  ['schokolade', 'Schokolade', 'schokolade|vollmilchschokolade|schoko', 540, 7, 57, 31, 5],
   ['kekse', 'Kekse', 'kekse|keks|plaetzchen|butterkeks', 484, 6, 70, 20, 8],
   ['eis', 'Eis', 'eis|speiseeis|vanilleeis', 200, 3.5, 24, 10, 60],
   ['gummibaerchen', 'Gummibärchen', 'gummibaerchen|gummibaer|haribo|weingummi', 340, 7, 77, 0],
@@ -143,18 +144,18 @@ const ROWS: Row[] = [
   ['pommes', 'Pommes', 'pommes|pommes frites|fritten', 302, 4, 40, 14],
   ['pizza', 'Pizza (Margherita)', 'pizza|tiefkuehlpizza|pizzastueck', 245, 11, 30, 9, 350],
   ['proteinpulver', 'Proteinpulver', 'proteinpulver|whey|eiweisspulver|proteinshake|protein pulver|shake pulver', 390, 78, 6, 6, 30, undefined, 10],
-  ['proteinriegel', 'Proteinriegel', 'proteinriegel|eiweissriegel|riegel|energieriegel|müsliriegel|mueslirigel', 368, 30, 35, 12, 50],
+  ['proteinriegel', 'Proteinriegel', 'proteinriegel|eiweissriegel|riegel', 368, 30, 35, 12, 50],
   ['sojasauce', 'Sojasauce', 'sojasauce|sojasosse|sojasoße', 60, 8, 5, 0, undefined, 1.15],
   ['pesto', 'Pesto', 'pesto', 441, 5, 4, 45, undefined, undefined, 15],
   ['ketchup', 'Ketchup', 'ketchup', 110, 1.2, 25, 0.1, undefined, undefined, 17],
   ['mayonnaise', 'Mayonnaise', 'mayonnaise|mayo|remoulade', 691, 1, 3, 75, undefined, undefined, 14],
   // Getränke (pro 100 ml)
   ['cola', 'Cola', 'cola|limo|limonade|fanta|sprite|eistee|softdrink', 42, 0, 10.6, 0, undefined, 1],
-  ['orangensaft', 'Orangensaft', 'orangensaft|saft|apfelsaft|fruchtsaft|multivitaminsaft|apfelschorle', 45, 0.7, 10, 0.2, undefined, 1.04],
+  ['orangensaft', 'Orangensaft', 'orangensaft|saft|apfelsaft|fruchtsaft|multivitaminsaft', 45, 0.7, 10, 0.2, undefined, 1.04],
   ['smoothie', 'Smoothie', 'smoothie|fruchtsmoothie', 55, 0.7, 12, 0.3, undefined, 1.03],
 ];
 
-export const FOODS: Food[] = ROWS.map(([key, name, aliases, kcal, protein, carbs, fat, piece, density, el]) => ({
+export const FOODS: Food[] = [...ROWS, ...ROWS_MORE].map(([key, name, aliases, kcal, protein, carbs, fat, piece, density, el]) => ({
   key, name, aliases: aliases.split('|'), kcal, protein, carbs, fat, piece, density, el,
 }));
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseDescription, findFood } from '../src/lib/describe';
+import { parseDescription, findFood, norm, searchLocalFoods, mealName } from '../src/lib/describe';
 import { FOODS } from '../src/lib/foodDb';
 
 describe('Gericht beschreiben', () => {
@@ -43,7 +43,43 @@ describe('Gericht beschreiben', () => {
     for (const f of FOODS) {
       expect(keys.has(f.key), f.key).toBe(false);
       keys.add(f.key);
-      if (f.kcal > 50) expect(Math.abs(4 * f.protein + 4 * f.carbs + 9 * f.fat - f.kcal) / f.kcal, f.key).toBeLessThan(0.16);
+      // Alkohol liefert Energie ohne Nährstoffe: ausnehmen
+      if (f.kcal > 50 && !['wein', 'spirituose'].includes(f.key)) expect(Math.abs(4 * f.protein + 4 * f.carbs + 9 * f.fat - f.kcal) / f.kcal, f.key).toBeLessThan(0.16);
+    }
+    expect(FOODS.length).toBeGreaterThanOrEqual(300);
+  });
+  test('Stichwörter (Aliase) gehören je zu genau einem Lebensmittel', () => {
+    const owner = new Map<string, string>();
+    for (const f of FOODS) {
+      for (const a of [...f.aliases, f.name]) {
+        const k = norm(a);
+        expect(owner.has(k) && owner.get(k) !== f.key ? `${k}: ${owner.get(k)} / ${f.key}` : '').toBe('');
+        owner.set(k, f.key);
+      }
     }
   });
+});
+
+describe('Suche in der eingebauten Tabelle', () => {
+  test('Joghurt: viele Varianten, ohne Netzwerk', () => {
+    const r = searchLocalFoods('Joghurt');
+    expect(r.length).toBeGreaterThanOrEqual(8);
+    const names = r.map((x) => x.name);
+    expect(names).toEqual(expect.arrayContaining(['Joghurt (3,5 %)', 'Griechischer Joghurt', 'Fruchtjoghurt', 'Vanillejoghurt', 'Sojajoghurt', 'Proteinjoghurt']));
+    expect(r[0].per100.kcal).toBeGreaterThan(0);
+  });
+  test('Teilwörter, Umlaute und mehrere Wörter', () => {
+    expect(searchLocalFoods('käse').length).toBeGreaterThanOrEqual(8);
+    expect(searchLocalFoods('griech joghurt').map((x) => x.name)).toContain('Griechischer Joghurt');
+    expect(searchLocalFoods('pizza').length).toBeGreaterThanOrEqual(2);
+    expect(searchLocalFoods('a')).toEqual([]);
+    expect(searchLocalFoods('xyzxyz')).toEqual([]);
+  });
+});
+
+test('Mahlzeit-Name aus Zutaten, gekürzt', () => {
+  expect(mealName([{ name: 'Joghurt (3,5 %)', grams: 50 }, { name: 'Ei', grams: 100 }])).toBe('50 g Joghurt (3,5 %), 100 g Ei');
+  const long = mealName(Array.from({ length: 20 }, () => ({ name: 'Haferflocken', grams: 100 })));
+  expect(long.length).toBeLessThanOrEqual(121);
+  expect(long.endsWith('…')).toBe(true);
 });

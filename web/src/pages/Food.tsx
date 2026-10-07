@@ -12,7 +12,7 @@ import { Paywall } from '../components/Pro';
 import { fmt } from '../lib/format';
 import { FoodAiError, isBarcode, lookupBarcode, mealForHour, nutritionScore, rescaleItem, scale, searchFood, totals, type FoodEntry, type FoodItem, type Meal, type PhotoAnalysis, type PhotoItem } from '../lib/food';
 import { toMaxJpeg } from '../lib/image';
-import { parseDescription, type ParsedItem } from '../lib/describe';
+import { mealName, parseDescription, searchLocalFoods, type ParsedItem } from '../lib/describe';
 import { usePro } from '../lib/pro';
 import { addDays, todayISO } from '../lib/stats';
 
@@ -207,7 +207,7 @@ function AddFood({ onClose, onAdd, onAddMany, analyze }: { onClose: () => void; 
             {tab === 'search' && <Search onPick={(item) => setPicked({ item, source: 'search' })} onError={showError} />}
             {tab === 'barcode' && <Barcode onPick={(item) => setPicked({ item, source: 'barcode' })} onError={showError} />}
             {tab === 'photo' && foodPhotoEnabled() && <Photo analyze={analyze} onAddMany={onAddMany} onError={showError} />}
-            {tab === 'describe' && <Describe onAddMany={onAddMany} onError={showError} />}
+            {tab === 'describe' && <Describe onAdd={onAdd} onAddMany={onAddMany} onError={showError} />}
             {tab === 'manual' && <Manual onAdd={onAdd} />}
           </div>
         </>
@@ -305,15 +305,18 @@ function Photo({ analyze, onAddMany, onError }: { analyze: (b64: string) => Prom
   );
 }
 
-function Describe({ onAddMany, onError }: { onAddMany: (e: NewEntry[]) => Promise<void>; onError: (e: unknown) => void }) {
+function Describe({ onAdd, onAddMany, onError }: { onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void>; onError: (e: unknown) => void }) {
   const [text, setText] = useState('');
   const [items, setItems] = useState<(ParsedItem & { on: boolean })[] | null>(null);
   const [unknown, setUnknown] = useState<string[]>([]);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [asMeal, setAsMeal] = useState(true);
+  const [name, setName] = useState('');
   const go = () => {
     const r = parseDescription(text);
     setItems(r.items.map((i) => ({ ...i, on: true })));
+    setName(mealName(r.items));
     setUnknown(r.unknown);
     setMsg(r.items.length || r.unknown.length ? '' : 'Schreibe zum Beispiel „50 g Joghurt, 2 Eier, 1 Banane“.');
   };
@@ -366,9 +369,14 @@ function Describe({ onAddMany, onError }: { onAddMany: (e: NewEntry[]) => Promis
               </li>
             ))}
           </ul>
-          <p className="muted small" id="describe-sum">Zusammen {fmt(sum.kcal, 0)} kcal</p>
-          <button className="btn primary block" id="describe-add" disabled={!chosen.length} onClick={() => onAddMany(chosen.map((i) => ({ name: i.name, amount_g: i.grams, kcal: i.kcal, protein: i.protein, carbs: i.carbs, fat: i.fat, source: 'manual' as const })))}>
-            Hinzufügen
+          <p className="muted small" id="describe-sum">Zusammen {fmt(sum.kcal, 0)} kcal · {fmt(sum.protein, 0)} g Eiweiß · {fmt(sum.carbs, 0)} g KH · {fmt(sum.fat, 0)} g Fett</p>
+          <label className="check-row"><input type="checkbox" id="describe-meal" checked={asMeal} onChange={(e) => setAsMeal(e.target.checked)} /> Als eine Mahlzeit speichern</label>
+          {asMeal && <label>Name der Mahlzeit<input id="describe-name" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} /></label>}
+          <button className="btn primary block" id="describe-add" disabled={!chosen.length || (asMeal && !name.trim())} onClick={() => {
+            if (asMeal) return onAdd({ name: name.trim(), amount_g: chosen.reduce((g, i) => g + i.grams, 0), ...sum, source: 'manual' });
+            return onAddMany(chosen.map((i) => ({ name: i.name, amount_g: i.grams, kcal: i.kcal, protein: i.protein, carbs: i.carbs, fat: i.fat, source: 'manual' as const })));
+          }}>
+            {asMeal ? 'Mahlzeit hinzufügen' : 'Einzeln hinzufügen'}
           </button>
         </div>
       )}
@@ -403,28 +411,46 @@ function Search({ onPick, onError }: { onPick: (i: FoodItem) => void; onError: (
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<FoodItem[] | null>(null);
+  const [offline, setOffline] = useState(false);
+  const local = searchLocalFoods(q);
   const go = async () => {
     setBusy(true);
+    setOffline(false);
     try {
       setResults(await searchFood(q));
-    } catch (err) {
-      onError(err);
+    } catch {
+      setResults([]);
+      setOffline(true);
     } finally {
       setBusy(false);
     }
   };
+  void onError;
   return (
     <>
       <form className="row" onSubmit={(e) => { e.preventDefault(); go(); }}>
-        <input type="search" id="food-q" className="grow" placeholder="z. B. Haferflocken" aria-label="Lebensmittel suchen" autoComplete="off" enterKeyHint="search" value={q} onChange={(e) => setQ(e.target.value)} />
-        <button className="btn primary" id="food-search" type="submit" disabled={busy || q.trim().length < 2}>Suchen</button>
+        <input type="search" id="food-q" className="grow" placeholder="z. B. Joghurt, Haferflocken, Pizza" aria-label="Lebensmittel suchen" autoComplete="off" enterKeyHint="search" value={q} onChange={(e) => { setQ(e.target.value); setResults(null); }} />
+        <button className="btn primary" id="food-search" type="submit" disabled={busy || q.trim().length < 2}>Online suchen</button>
       </form>
+      {local.length > 0 && (
+        <>
+          <h3 className="food-group">Standardwerte</h3>
+          <ul className="picker-list food-local" id="food-local">
+            {local.map((r) => <ItemRow key={r.name} item={r} onPick={onPick} />)}
+          </ul>
+        </>
+      )}
+      {q.trim().length >= 2 && !local.length && !results && <p className="muted small">Dazu gibt es keine Standardwerte. Tippe auf „Online suchen“ oder trage es manuell ein.</p>}
       {busy && <p className="muted small">Suche läuft …</p>}
-      {results && !busy && (
-        <ul className="picker-list food-results">
-          {results.map((r, i) => <ItemRow key={`${r.code}-${i}`} item={r} onPick={onPick} />)}
-          {!results.length && <li className="muted picker-empty">Nichts gefunden. Versuche einen anderen Begriff oder trage es manuell ein.</li>}
-        </ul>
+      {offline && <p className="notice small" id="food-offline">Open Food Facts ist gerade nicht erreichbar. Die Standardwerte oben funktionieren trotzdem.</p>}
+      {results && !busy && !offline && (
+        <>
+          <h3 className="food-group">Produkte (Open Food Facts)</h3>
+          <ul className="picker-list food-results">
+            {results.map((r, i) => <ItemRow key={`${r.code}-${i}`} item={r} onPick={onPick} />)}
+            {!results.length && <li className="muted picker-empty">Online nichts gefunden. Versuche einen anderen Begriff oder trage es manuell ein.</li>}
+          </ul>
+        </>
       )}
     </>
   );

@@ -1,7 +1,7 @@
 // „Beschreiben“: Aus einem Satz wie „50 g Joghurt, 2 Eier und 1 Banane“ werden Zutaten mit Gramm und Nährwerten.
 // Läuft komplett auf dem Gerät mit der eingebauten Tabelle (foodDb.ts) – keine KI, Ergebnisse sind Richtwerte.
 import { FOODS, type Food } from './foodDb';
-import { scale, type Nutrients } from './food';
+import { scale, type FoodItem, type Nutrients } from './food';
 
 export interface ParsedItem extends Nutrients {
   key: string;
@@ -104,4 +104,30 @@ export function parseDescription(text: string): ParseResult {
     items.push({ key: food.key, name: food.name, grams, estimated, ...scale(food, grams) });
   }
   return { items, unknown };
+}
+
+/** Suche in der eingebauten Tabelle (Tab „Suche“): jedes Suchwort muss in Name oder Stichwörtern vorkommen. */
+export function searchLocalFoods(query: string, limit = 40): FoodItem[] {
+  const words = norm(query).split(' ').filter((w) => w.length >= 2);
+  if (!words.length) return [];
+  const scored: [number, Food][] = [];
+  for (const f of FOODS) {
+    const name = norm(f.name);
+    const hay = `${name} ${f.aliases.map(norm).join(' ')}`;
+    if (!words.every((w) => hay.includes(w))) continue;
+    // Namensanfang vor Namensteil vor Stichwort; kürzere Namen zuerst
+    const rank = words.every((w) => name.startsWith(w) || name.includes(` ${w}`)) ? (name.startsWith(words[0]) ? 0 : 1) : 2;
+    scored.push([rank * 1000 + name.length, f]);
+  }
+  return scored.sort((a, b) => a[0] - b[0]).slice(0, limit).map(([, f]) => ({
+    name: f.name,
+    per100: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat },
+    serving_g: f.piece,
+  }));
+}
+
+/** Name für eine beschriebene Mahlzeit, z. B. „50 g Joghurt, 100 g Ei, 120 g Banane“ (höchstens 120 Zeichen) */
+export function mealName(items: Pick<ParsedItem, 'name' | 'grams'>[]): string {
+  const text = items.map((i) => `${i.grams} g ${i.name}`).join(', ');
+  return text.length <= 120 ? text : `${text.slice(0, 117).replace(/,?\s*[^,]*$/, '')}…`;
 }
