@@ -1792,11 +1792,40 @@ do $$ begin
   end if;
 end $$;
 
+
+-- ---------------------------------------------------------------------------
+-- Trainingsplan-Antworten im Konto (damit der Plan auf jedem Gerät da ist und neue Geräte nicht erneut fragen)
+-- ---------------------------------------------------------------------------
+create table if not exists public.plan_answers (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  answers    jsonb not null check (jsonb_typeof(answers) = 'object' and pg_column_size(answers) < 8000),
+  updated_at timestamptz not null default now()
+);
+alter table public.plan_answers enable row level security;
+revoke all on public.plan_answers from anon, authenticated;
+
+create or replace function public.my_plan_answers()
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select a.answers from public.plan_answers a where a.user_id = auth.uid()
+$$;
+
+create or replace function public.set_plan_answers(p_answers jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'Bitte melde dich an.'; end if;
+  if p_answers is null or jsonb_typeof(p_answers) <> 'object' then raise exception 'Ungültige Antworten.'; end if;
+  insert into public.plan_answers (user_id, answers) values (auth.uid(), p_answers)
+  on conflict (user_id) do update set answers = excluded.answers, updated_at = now();
+end;
+$$;
+revoke all on function public.my_plan_answers(), public.set_plan_answers(jsonb) from public, anon;
+grant execute on function public.my_plan_answers(), public.set_plan_answers(jsonb) to authenticated;
+
 -- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 48 $$;
+returns integer language sql immutable set search_path = '' as $$ select 49 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

@@ -62,12 +62,12 @@ function QuestionsCard() {
   const done = saved ? activeQuestions(saved.answers).filter((q) => isAnswered(q, saved.answers)).length : 0;
   return (
     <div className="card" id="questions-card">
-      <h3>Fragen</h3>
+      <h3>Trainingsplan</h3>
       <p className="muted small">
-        Beantworte ein paar Fragen zu Ziel, Zeit und Geräten – daraus erstellen wir deinen Trainingsplan mit Vorlagen und Wochenplan.
+        Beantworte ein paar Fragen zu Ziel, Zeit, Geräten und Alltag – daraus erstellen wir deinen persönlichen Trainingsplan mit Vorlagen, Wochenplan und Kalorienbedarf.
         {saved ? ` Bisher beantwortet: ${done} von ${total}.` : ''}
       </p>
-      <a className="btn primary block" id="open-quiz" href="#/fragen">{saved ? 'Antworten ansehen & Plan erstellen' : 'Fragen beantworten'}</a>
+      <a className="btn primary block" id="open-quiz" href="#/trainingsplan">{saved ? 'Plan ansehen & anpassen' : 'Trainingsplan erstellen'}</a>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-// Fragen (Einstellungen → Fragen): beantworten, daraus einen Trainingsplan erstellen und als Vorlagen übernehmen.
+// Trainingsplan (Einstellungen → Trainingsplan): Fragen beantworten, daraus einen Trainingsplan erstellen und als Vorlagen übernehmen.
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { navigate } from '../app/router';
@@ -82,7 +82,7 @@ export function Quiz() {
           const out: TemplateExercise[] = [];
           for (const e of t.exercises) {
             const ex = exercises.find((x) => x.name.toLowerCase() === e.name.toLowerCase());
-            if (ex) out.push({ exercise_id: ex.id, rest_seconds: null, sets: e.sets.map((s) => ({ warmup: Boolean(s.warmup), reps: s.reps ?? null, weight_kg: null, duration_min: s.duration_min ?? null, distance_km: null })) });
+            if (ex) out.push({ exercise_id: ex.id, rest_seconds: e.rest ?? null, sets: e.sets.map((s) => ({ warmup: Boolean(s.warmup), reps: s.reps ?? null, weight_kg: null, duration_min: s.duration_min ?? null, distance_km: null })) });
           }
           if (out.length) await api.saveTemplate({ id: null, name: t.name, exercises: out });
         }
@@ -137,6 +137,7 @@ export function Quiz() {
                 <li><span>Verbrauch gesamt</span><span>{fmt(needs.tdee, 0)} kcal</span></li>
                 <li><span>Ziel: {needs.goalNote}</span><span>{needs.adjust > 0 ? '+' : ''}{fmt(needs.adjust, 0)} kcal</span></li>
               </ul>
+              {needs.weeks && <p className="small" id="calorie-weeks">Mit diesem Wert erreichst du dein Zielgewicht in etwa <strong>{needs.weeks} Wochen</strong> (gesundes Tempo).</p>}
               <p className="small" id="calorie-macros">Richtwerte: <strong>{needs.protein} g Eiweiß</strong> · {needs.carbs} g Kohlenhydrate · {needs.fat} g Fett</p>
               {api.social ? (
                 <button className="btn block" id="calorie-take" onClick={takeGoal}>Als Tagesziel übernehmen</button>
@@ -149,16 +150,29 @@ export function Quiz() {
             <p className="muted small">Beantworte Alter, Größe und Gewicht, dann rechnen wir deinen Kalorienbedarf aus.</p>
           )}
         </div>
+        <div className="card" id="plan-volume">
+          <h3>Wochenvolumen</h3>
+          <ul className="plan-volume">
+            {plan.volume.map((v) => (
+              <li key={v.group}>
+                <span>{v.group}</span>
+                <span className="vol-bar" aria-hidden="true"><i className={v.sets < 8 ? 'low' : v.sets > 22 ? 'high' : ''} style={{ width: `${Math.min(100, (v.sets / 24) * 100)}%` }} /></span>
+                <strong>{v.sets} Sätze</strong>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small">Arbeitssätze pro Woche. Für Muskelaufbau sind etwa 10–20 Sätze pro Muskelgruppe ideal.</p>
+        </div>
         {plan.templates.map((t) => (
           <div className="card" key={t.name} data-plan-template={t.name}>
-            <h3>{t.name.replace(PLAN_PREFIX, '')}</h3>
+            <h3>{t.name.replace(PLAN_PREFIX, '')} <small className="muted plan-minutes">ca. {t.minutes} Min.</small></h3>
             <ul className="plan-list">
               {t.exercises.map((e) => {
                 const work = e.sets.filter((s) => !s.warmup);
                 return (
                   <li key={e.name}>
                     <span>{e.name}</span>
-                    <span className="muted small">{e.cardio ? `${e.sets[0].duration_min} Min.` : `${work.length} × ${work[0]?.reps}`}</span>
+                    <span className="muted small">{e.cardio ? `${e.sets[0].duration_min} Min.` : `${work.length} × ${e.range ? (e.range[0] === e.range[1] ? e.range[0] : `${e.range[0]}–${e.range[1]}`) : work[0]?.reps}${e.rest ? ` · ${e.rest >= 90 ? `${Math.round((e.rest / 60) * 2) / 2} Min.`.replace('.', ',') : `${e.rest} s`} Pause` : ''}`}</span>
                   </li>
                 );
               })}
@@ -188,7 +202,7 @@ export function Quiz() {
     const nextList = cur.includes(v) ? cur.filter((x) => x !== v) : exclusive ? [v] : [...cur.filter((x) => x !== 'keine' && x !== 'alles'), v];
     store({ ...answers, [q.id]: nextList });
   };
-  const rangeValue = value !== undefined ? String(value) : String(q.def ?? q.min ?? 0);
+  const rangeValue = value !== undefined ? String(value) : String((q.defFrom && answers[q.defFrom]) || q.def || q.min || 0);
   const editRange = async () => {
     const v = await pickNumber({ title: q.q, unit: q.unit ?? '', value: rangeValue, min: q.min ?? 0, max: q.max ?? 100, step: q.step ?? 1, bigStep: q.step && q.step < 1 ? 0.5 : 1, itemW: 14, labelEvery: q.step && q.step < 1 ? 10 : 5, integer: !q.step || q.step >= 1 });
     if (v !== null) store({ ...answers, [q.id]: v });
@@ -198,12 +212,12 @@ export function Quiz() {
   return (
     <>
       <div className="editor-head">
-        <h2>Fragen</h2>
+        <h2>Trainingsplan</h2>
         <a className="btn small-btn" href="#/konto" id="quiz-close">Schließen</a>
       </div>
       <div className="card quiz-card">
         <div className="quiz-top">
-          <span className="muted small" id="quiz-count">Frage {Math.min(step, list.length - 1) + 1} von {list.length}</span>
+          <span className="muted small" id="quiz-count">Schritt {Math.min(step, list.length - 1) + 1} von {list.length}</span>
         </div>
         <div className="quiz-progress" aria-hidden="true"><i style={{ width: `${(step / list.length) * 100}%` }} /></div>
         <h3 className="quiz-q">{q.q}</h3>

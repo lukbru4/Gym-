@@ -24,6 +24,8 @@ export interface CalorieNeeds {
   fat: number;
   carbs: number;
   goalNote: string;
+  /** Wochen bis zum Zielgewicht (nur mit Zielgewicht) */
+  weeks: number | null;
 }
 
 const num = (v: unknown) => {
@@ -49,12 +51,25 @@ export function calorieNeeds(a: Answers): CalorieNeeds | null {
   const sport = (sportDays * Math.max(0, meanMet - 1) * weight * ((num(a.sportMin) ?? 60) / 60)) / 7;
   const tdee = daily + training + sport;
   const goal = String(a.goal ?? '');
-  const adjust = goal === 'abnehmen' ? -400 : goal === 'muskel' ? 250 : goal === 'kraft' ? 150 : 0;
-  const goalNote = goal === 'abnehmen' ? 'zum Abnehmen etwa 400 kcal unter deinem Verbrauch' : goal === 'muskel' ? 'zum Muskelaufbau etwa 250 kcal über deinem Verbrauch' : goal === 'kraft' ? 'etwas über deinem Verbrauch für mehr Kraft' : 'etwa dein geschätzter Verbrauch';
+  // Mit Zielgewicht: Tempo ≈ 0,5 % des Körpergewichts pro Woche beim Abnehmen, 0,25 % beim Zunehmen (1 kg Körpergewicht ≈ 7700 kcal)
+  const goalKg = a.goalKg === 'ja' ? num(a.goalWeight) : null;
+  const diff = goalKg ? goalKg - weight : 0;
+  let adjust = goal === 'abnehmen' ? -400 : goal === 'muskel' ? 250 : goal === 'kraft' ? 150 : 0;
+  let goalNote = goal === 'abnehmen' ? 'zum Abnehmen etwa 400 kcal unter deinem Verbrauch' : goal === 'muskel' ? 'zum Muskelaufbau etwa 250 kcal über deinem Verbrauch' : goal === 'kraft' ? 'etwas über deinem Verbrauch für mehr Kraft' : 'etwa dein geschätzter Verbrauch';
+  let weeks: number | null = null;
+  if (goalKg && Math.abs(diff) >= 1) {
+    const rate = Math.abs(diff) > 0 && diff < 0 ? weight * 0.005 : weight * 0.0025; // kg pro Woche
+    adjust = Math.round(((diff < 0 ? -1 : 1) * rate * 7700) / 7 / 10) * 10;
+    weeks = Math.ceil(Math.abs(diff) / rate);
+    goalNote = diff < 0 ? `zum Abnehmen auf ${String(goalKg).replace('.', ',')} kg` : `zum Zunehmen auf ${String(goalKg).replace('.', ',')} kg`;
+  } else if (goalKg) {
+    adjust = 0;
+    goalNote = 'du bist schon nah an deinem Zielgewicht – Gewicht halten';
+  }
   const target = Math.min(6000, Math.max(1200, Math.round((tdee + adjust) / 50) * 50));
   const perKg = goal === 'muskel' || goal === 'abnehmen' ? 2 : goal === 'kraft' ? 1.8 : goal === 'ausdauer' ? 1.5 : 1.6;
   const protein = Math.round(perKg * weight);
   const fat = Math.round((target * 0.25) / 9);
   const carbs = Math.max(0, Math.round((target - protein * 4 - fat * 9) / 4));
-  return { bmr: Math.round(bmr), daily: Math.round(daily), training: Math.round(training), sport: Math.round(sport), tdee: Math.round(tdee), adjust, target, protein, fat, carbs, goalNote };
+  return { bmr: Math.round(bmr), daily: Math.round(daily), training: Math.round(training), sport: Math.round(sport), tdee: Math.round(tdee), adjust, target, protein, fat, carbs, goalNote, weeks };
 }

@@ -58,4 +58,19 @@ describe('Kalorienbedarf', () => {
     expect(ids({ sports: ['keine'] })).not.toContain('sportDays');
     expect(ids({ sports: ['hockey'] })).toEqual(expect.arrayContaining(['sportDays', 'sportMin']));
   });
+  test('Mit Zielgewicht: Tempo und Wochen', () => {
+    // 80 kg → 72 kg: 0,5 % pro Woche = 0,4 kg ≈ 440 kcal Defizit, 8 kg / 0,4 = 20 Wochen
+    const cut = calorieNeeds({ ...base, goal: 'fit', goalKg: 'ja', goalWeight: '72' })!;
+    expect(cut.adjust).toBe(-440);
+    expect(cut.weeks).toBe(20);
+    expect(cut.goalNote).toContain('72');
+    // 80 → 84 kg: 0,25 % pro Woche = 0,2 kg ≈ 220 kcal Überschuss, 20 Wochen
+    const gain = calorieNeeds({ ...base, goal: 'fit', goalKg: 'ja', goalWeight: '84' })!;
+    expect(gain.adjust).toBe(220);
+    expect(gain.weeks).toBe(20);
+    // schon nah dran → halten; „kein Zielgewicht“ → altes Verhalten
+    expect(calorieNeeds({ ...base, goalKg: 'ja', goalWeight: '80.5' })!.adjust).toBe(0);
+    expect(calorieNeeds({ ...base, goalKg: 'kein' })!.weeks).toBeNull();
+    expect(calorieNeeds(base)!.adjust).toBe(250);
+  });
 });

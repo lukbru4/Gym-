@@ -101,6 +101,9 @@ export interface Social {
   adminResolveReport(id: number, deleteComment: boolean): Promise<void>;
   schemaVersion(): Promise<number>;
   myWeekGoal(): Promise<number>;
+  /** Antworten des Trainingsplans (null: noch nie beantwortet) */
+  myPlanAnswers(): Promise<Record<string, string | string[]> | null>;
+  setPlanAnswers(answers: Record<string, string | string[]>): Promise<void>;
   setWeekGoal(goal: number): Promise<void>;
 }
 
@@ -225,6 +228,11 @@ export function createSocial(supabase: SupabaseClient): Social {
     schemaVersion: async () => Number(await rpc('schema_version')) || 0,
     myWeekGoal: async () => Number(await rpc('my_week_goal')) || 2,
     setWeekGoal: (p_goal) => rpc('set_week_goal', { p_goal }),
+    myPlanAnswers: async () => {
+      const v = await rpc<unknown>('my_plan_answers');
+      return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, string | string[]>) : null;
+    },
+    setPlanAnswers: (p_answers) => rpc('set_plan_answers', { p_answers }),
     workoutSocial: async (p_workout) => (await rpc<{ likes: number; comments: number }[]>('workout_social', { p_workout }))[0] ?? null,
   };
 }

@@ -23,6 +23,7 @@ import { enforceSchemeRules } from '../lib/theme';
 import { getWeekGoal, setLocalWeekGoal } from '../lib/weekGoal';
 import { Analysis, Ranks } from '../pages/Ranks';
 import { Quiz } from '../pages/Quiz';
+import { loadQuiz, saveQuiz, setQuizSyncer } from '../lib/plan';
 import { Food } from '../pages/Food';
 import { Recipes } from '../pages/Recipes';
 import { ProPage } from '../components/Pro';
@@ -33,7 +34,7 @@ import { StartFromTemplate, Workouts } from '../pages/Workouts';
 import { AppProvider, useApp } from './context';
 import { loadGame } from './game';
 import { GameProvider } from './gameContext';
-import { redirect, useHash } from './router';
+import { navigate, redirect, useHash } from './router';
 import { useAsync } from './useAsync';
 import { DialogHost } from '../components/Dialog';
 import { NumberPickerHost } from '../components/NumberPicker';
@@ -54,7 +55,7 @@ const ROUTES: Route[] = [
   [/^#\/koerper$/, () => <Body />],
   [/^#\/backup$/, () => <Backup />],
   [/^#\/konto$/, () => <Account />],
-  [/^#\/fragen$/, () => <Quiz />],
+  [/^#\/(trainingsplan|fragen)$/, () => <Quiz />],
   [/^#\/pro$/, () => <ProPage />],
   [/^#\/essen$/, () => <Food />],
   [/^#\/rezepte$/, () => <Recipes />],
@@ -80,7 +81,7 @@ function Toast({ message }: { message: string | null }) {
 
 /** Angemeldeter Bereich: Spielstand laden, Kopfzeile, Seite, Navigation */
 function Shell() {
-  const { api, exerciseMap, exercises, dataVersion, dataChanged } = useApp();
+  const { api, user, exerciseMap, exercises, dataVersion, dataChanged } = useApp();
   const hash = useHash();
   const game = useAsync(() => loadGame(api, exerciseMap()), [api, hash, exercises, dataVersion]);
   // Kopfzeile behält den letzten Stand, während die nächste Seite lädt
@@ -113,6 +114,44 @@ function Shell() {
       () => setCosmetics({ owned: [], equipped: {} }),
     );
   }, [api, dataChanged]);
+
+  // Trainingsplan-Antworten gehören zum Konto: auf neuen Geräten laden, Änderungen mitspeichern.
+  // Wer noch nie einen Plan erstellt hat, kommt nach dem Anmelden direkt dorthin (einmal pro Konto und Gerät).
+  const userId = user?.id ?? '';
+  useEffect(() => {
+    const social = api.social;
+    if (!social) {
+      setQuizSyncer(null);
+      return;
+    }
+    setQuizSyncer((answers) => void social.setPlanAnswers(answers).catch(() => {}));
+    let alive = true;
+    const offer = () => {
+      if (!alive || loadQuiz() || /^#\/(freunde\/add|trainingsplan|fragen)/.test(location.hash)) return;
+      const key = `gym-tracker-plan-offered:${userId}`;
+      try {
+        if (localStorage.getItem(key)) return;
+        localStorage.setItem(key, '1');
+      } catch {
+        return;
+      }
+      navigate('#/trainingsplan');
+    };
+    social.myPlanAnswers().then(
+      (remote) => {
+        if (!alive) return;
+        const local = loadQuiz();
+        if (remote) saveQuiz({ answers: remote, plan: local?.plan ?? null, savedAt: new Date().toISOString() }, true);
+        else if (local) void social.setPlanAnswers(local.answers).catch(() => {});
+        else offer();
+      },
+      () => offer(), // Datenbank noch ohne Plan-Funktionen: nur lokal entscheiden
+    );
+    return () => {
+      alive = false;
+      setQuizSyncer(null);
+    };
+  }, [api, userId]);
 
   // Profilbilder von mir und meinen Freunden (neu laden, wenn sich Daten ändern, z. B. neue Freunde)
   useEffect(() => {

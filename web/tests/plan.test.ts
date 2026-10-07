@@ -77,4 +77,55 @@ describe('Trainingsplan aus dem Fragebogen', () => {
     const q = QUESTIONS.find((x) => x.id === 'goal')!;
     expect(answerLabel(q, { goal: 'kraft' })).toBe('Stärker werden');
   });
+
+  test('Einsteiger mit 3 Tagen → Ganzkörper, Fortgeschrittene → Push/Pull/Beine', () => {
+    expect(generatePlan({ ...base, exp: 'neu' }).templates.map((t) => t.name)).toEqual(['Plan · Ganzkörper A', 'Plan · Ganzkörper B', 'Plan · Ganzkörper C']);
+    expect(generatePlan({ ...base, exp: 'profi' }).templates.map((t) => t.name)).toEqual(['Plan · Push', 'Plan · Pull', 'Plan · Beine']);
+  });
+  test('Sätze, Wiederholungsbereiche und Pausen passen zum Ziel und zur Übungsart', () => {
+    const kraft = generatePlan({ ...base, goal: 'kraft', exp: 'mittel' }).templates[0].exercises[0];
+    expect(kraft.range).toEqual([3, 6]);
+    expect(kraft.rest).toBe(180);
+    expect(kraft.sets.filter((s) => s.warmup).length).toBe(2); // zwei Aufwärmsätze
+    expect(kraft.sets.filter((s) => !s.warmup).length).toBe(4);
+    const muskel = generatePlan({ ...base, goal: 'muskel' }).templates[0].exercises;
+    expect(muskel[0].range).toEqual([6, 10]);
+    const iso = muskel.find((e) => /Seitheben|Curl|Trizeps|French|Fliegende|Butterfly/.test(e.name))!;
+    expect(iso.range![0]).toBeGreaterThanOrEqual(10);
+    expect(iso.rest!).toBeLessThan(muskel[0].rest!);
+    // Anfänger: weniger Sätze, mindestens 8 Wiederholungen
+    const neu = generatePlan({ ...base, exp: 'neu' }).templates[0].exercises[0];
+    expect(neu.sets.filter((s) => !s.warmup).length).toBe(2);
+    expect(neu.range![0]).toBeGreaterThanOrEqual(8);
+  });
+  test('Ganzkörper mit Fokus Arme enthält trotzdem Beine, Brust und Rücken', () => {
+    const p = generatePlan({ ...base, exp: 'basis', days: '2', duration: '45', focus: ['arme'] });
+    for (const t of p.templates) {
+      const muscles = t.exercises.flatMap((e) => e.muscles);
+      expect(muscles, t.name).toEqual(expect.arrayContaining(['beine', 'brust', 'ruecken']));
+      expect(muscles, t.name).toContain('arme');
+    }
+  });
+  test('geschätzte Dauer überschreitet die gewünschte Zeit nicht', () => {
+    for (const duration of ['30', '45', '60', '90'])
+      for (const goal of ['kraft', 'muskel', 'fit'])
+        for (const t of generatePlan({ ...base, goal, duration, exp: 'mittel', intensity: 'hart' }).templates) {
+          expect(t.minutes, `${t.name} ${goal} ${duration}`).toBeLessThanOrEqual(Number(duration) + 8);
+          expect(t.exercises.length).toBeGreaterThanOrEqual(3);
+        }
+  });
+  test('Wochenvolumen und Hinweise', () => {
+    const p = generatePlan({ ...base, days: '4' });
+    expect(p.volume.map((v) => v.group)).toEqual(expect.arrayContaining(['Brust', 'Rücken', 'Beine & Gesäß']));
+    expect(p.volume.every((v) => v.sets > 0)).toBe(true);
+    expect(p.notes.join(' ')).toMatch(/Doppelte Progression/);
+    expect(p.notes.join(' ')).toMatch(/Entlastungswoche/);
+    const sport = generatePlan({ ...base, sports: ['hockey'], sportDays: '3', sportMin: '90' });
+    expect(sport.notes.join(' ')).toMatch(/Sports außerhalb/);
+  });
+  test('neue Maschinen-Übungen kommen im Studio vor, zuhause ohne Geräte nicht', () => {
+    const all = (a: Answers) => generatePlan(a).templates.flatMap((t) => t.exercises.map((e) => e.name));
+    expect(all({ ...base, exp: 'neu', days: '6', duration: '90' }).some((n) => /Maschine|Kabel/.test(n))).toBe(true);
+    expect(all({ ...base, place: 'homeBw', days: '6', duration: '90' }).some((n) => /Maschine|Kabel/.test(n))).toBe(false);
+  });
 });
