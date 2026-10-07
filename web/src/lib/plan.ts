@@ -21,6 +21,12 @@ export interface Question {
 
 const WEEKDAYS: [string, string][] = [['Mo', 'Montag'], ['Di', 'Dienstag'], ['Mi', 'Mittwoch'], ['Do', 'Donnerstag'], ['Fr', 'Freitag'], ['Sa', 'Samstag'], ['So', 'Sonntag']];
 
+/** Hat die Person außerhalb vom Gym noch Sport angegeben? */
+export const hasOtherSport = (a: Answers) => {
+  const v = a.sports;
+  return Array.isArray(v) && v.some((x) => x !== 'keine');
+};
+
 export const QUESTIONS: Question[] = [
   { id: 'goal', q: 'Was ist dein Hauptziel?', type: 'one', options: [['muskel', 'Muskelaufbau'], ['kraft', 'Stärker werden'], ['abnehmen', 'Abnehmen / definieren'], ['fit', 'Fit & gesund bleiben'], ['ausdauer', 'Ausdauer verbessern']] },
   { id: 'sex', q: 'Dein Geschlecht', hint: 'Optional.', type: 'one', options: [['m', 'Männlich'], ['w', 'Weiblich'], ['d', 'Divers'], ['x', 'Keine Angabe']] },
@@ -38,6 +44,9 @@ export const QUESTIONS: Question[] = [
   { id: 'fav', q: 'Welche Übungen willst du unbedingt machen?', hint: 'Kommen bevorzugt in deinen Plan (wenn sie zu Aufteilung, Geräten und Beschwerden passen). Mehrere möglich.', type: 'multi', options: [] },
   { id: 'pain', q: 'Hast du Beschwerden?', hint: 'Solche Übungen lassen wir weg. Bei Schmerzen bitte ärztlich abklären.', type: 'multi', options: [['keine', 'Keine'], ['knie', 'Knie'], ['ruecken', 'Unterer Rücken'], ['schulter', 'Schulter'], ['ellbogen', 'Ellbogen'], ['handgelenk', 'Handgelenk']] },
   { id: 'cardio', q: 'Wie viel Cardio möchtest du pro Training?', type: 'one', options: [['0', 'Keins'], ['10', 'Ein bisschen (10 Min.)'], ['20', 'Regelmäßig (20 Min.)']] },
+  { id: 'sports', q: 'Machst du außerhalb vom Gym noch Sport?', hint: 'Mehrere möglich – das zählt für deinen Kalorienbedarf.', type: 'multi', options: [['keine', 'Keinen'], ['hockey', 'Feldhockey'], ['tennis', 'Tennis'], ['fussball', 'Fußball'], ['laufen', 'Laufen / Joggen'], ['rad', 'Radfahren'], ['schwimmen', 'Schwimmen'], ['basketball', 'Basketball'], ['handball', 'Handball'], ['volleyball', 'Volleyball'], ['badminton', 'Badminton / Tischtennis'], ['kampf', 'Kampfsport / Boxen'], ['klettern', 'Klettern'], ['wandern', 'Wandern / Spazieren'], ['tanzen', 'Tanzen'], ['yoga', 'Yoga / Pilates'], ['ski', 'Ski / Snowboard'], ['andere', 'Anderer Sport']] },
+  { id: 'sportDays', q: 'Wie oft pro Woche machst du diesen Sport?', type: 'one', when: (a) => hasOtherSport(a), options: [['1', '1× pro Woche'], ['2', '2× pro Woche'], ['3', '3× pro Woche'], ['4', '4× pro Woche'], ['5', '5× pro Woche'], ['6', '6× pro Woche']] },
+  { id: 'sportMin', q: 'Wie lange dauert das jeweils ungefähr?', type: 'one', when: (a) => hasOtherSport(a), options: [['30', '30 Minuten'], ['60', '1 Stunde'], ['90', '1,5 Stunden'], ['120', '2 Stunden oder mehr']] },
   { id: 'weekdays', q: 'An welchen Tagen kannst du?', hint: 'Mehrere möglich – darauf verteilen wir die Trainings.', type: 'multi', options: WEEKDAYS },
   { id: 'time', q: 'Wann trainierst du meistens?', type: 'one', options: [['morgens', 'Morgens'], ['mittags', 'Mittags'], ['abends', 'Abends'], ['wechselnd', 'Wechselnd']] },
   { id: 'sleep', q: 'Wie viel schläfst du meistens?', type: 'one', options: [['5', 'Unter 6 Stunden'], ['7', '6–7 Stunden'], ['8', '7–8 Stunden'], ['9', 'Über 8 Stunden']] },

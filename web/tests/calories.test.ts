@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { calorieNeeds } from '../src/lib/calories';
-import { QUESTIONS } from '../src/lib/plan';
+import { activeQuestions, QUESTIONS } from '../src/lib/plan';
 
 const base = { sex: 'm', age: '30', height: '180', weight: '80', job: 'sitzend', days: '3', duration: '60', intensity: 'mittel', cardio: '0', goal: 'muskel' };
 
@@ -38,5 +38,24 @@ describe('Kalorienbedarf', () => {
   test('Frage „job“ steht nach dem Gewicht', () => {
     const ids = QUESTIONS.map((q) => q.id);
     expect(ids.indexOf('job')).toBe(ids.indexOf('weight') + 1);
+  });
+  test('Sport außerhalb vom Gym (z. B. Feldhockey, Tennis) erhöht den Bedarf', () => {
+    const none = calorieNeeds(base)!;
+    expect(none.sport).toBe(0);
+    const hockey = calorieNeeds({ ...base, sports: ['hockey'], sportDays: '2', sportMin: '90' })!;
+    // (8 − 1) MET · 80 kg · 1,5 h = 840 kcal pro Einheit · 2 / 7 = 240 kcal pro Tag
+    expect(hockey.sport).toBe(240);
+    expect(hockey.tdee).toBe(none.tdee + 240);
+    // Mittelwert zweier Sportarten: Hockey (8) und Tennis (7) → 7,5
+    expect(calorieNeeds({ ...base, sports: ['hockey', 'tennis'], sportDays: '2', sportMin: '90' })!.sport).toBe(223); // (7,5 − 1) · 80 · 1,5 · 2 / 7
+    // „Keinen“ oder keine Häufigkeit → kein Zuschlag
+    expect(calorieNeeds({ ...base, sports: ['keine'], sportDays: '3' })!.sport).toBe(0);
+    expect(calorieNeeds({ ...base, sports: ['tennis'] })!.sport).toBe(0);
+  });
+  test('Zusatzfragen erscheinen nur, wenn Sport angegeben wurde', () => {
+    const ids = (a: Record<string, string | string[]>) => activeQuestions(a).map((q) => q.id);
+    expect(ids({})).not.toContain('sportDays');
+    expect(ids({ sports: ['keine'] })).not.toContain('sportDays');
+    expect(ids({ sports: ['hockey'] })).toEqual(expect.arrayContaining(['sportDays', 'sportMin']));
   });
 });

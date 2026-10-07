@@ -8,7 +8,7 @@ import { Paywall } from '../components/Pro';
 import { usePro } from '../lib/pro';
 import { calorieNeeds, JOB_OPTIONS } from '../lib/calories';
 import { fmt } from '../lib/format';
-import { activeQuestions, answerLabel, generatePlan, isAnswered, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
+import { activeQuestions, answerLabel, generatePlan, hasOtherSport, isAnswered, QUESTIONS, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
 import { setLocalWeekGoal } from '../lib/weekGoal';
 import type { TemplateExercise } from '../lib/types';
 
@@ -54,6 +54,12 @@ export function Quiz() {
     const plan = generatePlan(answers);
     const needs = calorieNeeds(answers);
     const setDays = (v: string) => store({ ...answers, days: v });
+    const sportDays = hasOtherSport(answers) ? String(answers.sportDays ?? '0') : '0';
+    // Sport außerhalb vom Gym direkt im Plan ändern (0 = keiner; ohne gewählte Sportart gilt „Anderer Sport“)
+    const setSportDays = (v: string) => {
+      if (v === '0') return store({ ...answers, sports: ['keine'], sportDays: undefined as unknown as string });
+      store({ ...answers, sports: hasOtherSport(answers) ? answers.sports : ['andere'], sportDays: v, sportMin: String(answers.sportMin ?? '60') });
+    };
     const takeGoal = async () => {
       if (!needs || !api.social) return;
       try {
@@ -109,6 +115,12 @@ export function Quiz() {
               {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}× pro Woche</option>)}
             </select>
           </label>
+          <label>Anderer Sport außerhalb vom Gym
+            <select id="plan-sport" value={sportDays} onChange={(e) => setSportDays(e.target.value)}>
+              <option value="0">Keiner</option>
+              {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}× pro Woche</option>)}
+            </select>
+          </label>
           <label>Alltag (ohne Training)
             <select id="plan-job" value={String(answers.job ?? 'gemischt')} onChange={(e) => store({ ...answers, job: e.target.value })}>
               {JOB_OPTIONS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
@@ -121,6 +133,7 @@ export function Quiz() {
                 <li><span>Grundumsatz</span><span>{fmt(needs.bmr, 0)} kcal</span></li>
                 <li><span>Alltag</span><span>+ {fmt(needs.daily - needs.bmr, 0)} kcal</span></li>
                 <li><span>Training ({plan.weekGoal}× pro Woche)</span><span>+ {fmt(needs.training, 0)} kcal</span></li>
+                {needs.sport > 0 && <li><span>Sport außerhalb ({answerLabel(QUESTIONS.find((x) => x.id === 'sports')!, answers)}, {sportDays}× pro Woche)</span><span>+ {fmt(needs.sport, 0)} kcal</span></li>}
                 <li><span>Verbrauch gesamt</span><span>{fmt(needs.tdee, 0)} kcal</span></li>
                 <li><span>Ziel: {needs.goalNote}</span><span>{needs.adjust > 0 ? '+' : ''}{fmt(needs.adjust, 0)} kcal</span></li>
               </ul>

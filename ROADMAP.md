@@ -114,6 +114,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Essen: Tabelle auf 307 Lebensmittel mit Varianten (Joghurt, Käse, Brot, Fast Food …); Suche zeigt sofort Standardwerte (offline) plus Open Food Facts; „Beschreiben“ speichert standardmäßig EINE Mahlzeit
 - [x] Übungsauswahl: Filter nach Art (Kraft/Cardio) und mehreren Muskelgruppen, kombinierbar mit Suche und Kategorie
 - [x] Plan: Karte „Dein Kalorienbedarf“ (Grundumsatz + Alltag + Training + Ziel, Makros) mit Auswahl Training pro Woche/Alltag direkt im Plan, Übernahme als Tagesziel; neue Frage „Alltag“
+- [x] Fragen: Sport außerhalb vom Gym (Feldhockey, Tennis, … mit Häufigkeit und Dauer) fließt in den Kalorienbedarf ein; im Plan direkt einstellbar
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
