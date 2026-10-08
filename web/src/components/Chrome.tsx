@@ -80,6 +80,7 @@ export function Header({ game }: { game: Game | null }) {
           <a href="#/konto">Konto &amp; Einstellungen</a>
           {api.social && <a href="#/shop">Shop</a>}
           {admin && <a href="#/admin" id="menu-admin">🛠 Admin-Menü</a>}
+          {admin && <a href="#/animationen" id="menu-anim">Animationen testen</a>}
           <a href="#/backup">Backup</a>
           {api.mode === 'cloud' && (
             <button id="menu-signout" onClick={() => api.signOut()}>

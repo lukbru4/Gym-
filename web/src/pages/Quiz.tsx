@@ -8,6 +8,7 @@ import { Paywall } from '../components/Pro';
 import { usePro } from '../lib/pro';
 import { calorieNeeds, JOB_OPTIONS } from '../lib/calories';
 import { fmt } from '../lib/format';
+import { ExerciseInfo } from '../components/ExerciseInfo';
 import { activeQuestions, answerLabel, generatePlan, hasOtherSport, isAnswered, QUESTIONS, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
 import { setLocalWeekGoal } from '../lib/weekGoal';
 import type { TemplateExercise } from '../lib/types';
@@ -20,6 +21,7 @@ export function Quiz() {
   const [step, setStep] = useState(0);
   const [phase, setPhase] = useState<'quiz' | 'plan'>('quiz');
   const [busy, setBusy] = useState(false);
+  const [info, setInfo] = useState<string | null>(null);
   const pro = usePro();
   const list = activeQuestions(answers);
   const q: Question | undefined = list[Math.min(step, list.length - 1)];
@@ -171,7 +173,7 @@ export function Quiz() {
                 const work = e.sets.filter((s) => !s.warmup);
                 return (
                   <li key={e.name}>
-                    <span>{e.name}</span>
+                    <span><button type="button" className="linklike plan-ex" data-plan-ex={e.name} onClick={() => setInfo(e.name)}>{e.name}</button></span>
                     <span className="muted small">{e.cardio ? `${e.sets[0].duration_min} Min.` : `${work.length} × ${e.range ? (e.range[0] === e.range[1] ? e.range[0] : `${e.range[0]}–${e.range[1]}`) : work[0]?.reps}${e.rest ? ` · ${e.rest >= 90 ? `${Math.round((e.rest / 60) * 2) / 2} Min.`.replace('.', ',') : `${e.rest} s`} Pause` : ''}`}</span>
                   </li>
                 );
@@ -179,6 +181,7 @@ export function Quiz() {
             </ul>
           </div>
         ))}
+        {info && <ExerciseInfo ex={{ name: info, type: 'strength', muscles: exercises.find((x) => x.name === info)?.muscles }} onClose={() => setInfo(null)} />}
         <ul className="plan-notes muted small">{plan.notes.map((n) => <li key={n}>{n}</li>)}</ul>
         <button className="btn primary block" id="plan-apply" disabled={busy} onClick={apply}>Plan übernehmen</button>
         <button className="btn block" id="plan-back" disabled={busy} onClick={() => setPhase('quiz')}>‹ Antworten ändern</button>

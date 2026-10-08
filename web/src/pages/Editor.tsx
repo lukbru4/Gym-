@@ -5,6 +5,7 @@ import { navigate } from '../app/router';
 import { useAsync } from '../app/useAsync';
 import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ExercisePicker } from '../components/ExercisePicker';
+import { ExerciseInfo } from '../components/ExerciseInfo';
 import {
   blockFor,
   blocksSignature,
@@ -399,6 +400,7 @@ function BlockCard(props: {
   onDone: (si: number) => void;
 }) {
   const { block: b, bi, mode, exercise: ex, update } = props;
+  const [info, setInfo] = useState(false);
   const live = mode === 'live';
   const cardio = ex.type === 'cardio';
   const uni = !cardio && isUnilateral(b);
@@ -443,7 +445,8 @@ function BlockCard(props: {
   return (
     <div className="card block">
       <div className="block-head">
-        <h3>{ex.name}</h3>
+        <h3>{ex.name} <button type="button" className="info-btn" data-action="exercise-info" aria-label={`Anleitung und Animation: ${ex.name}`} onClick={() => setInfo(true)}>▶</button></h3>
+        {info && <ExerciseInfo ex={ex} onClose={() => setInfo(false)} />}
         {!cardio && (
           <button
             type="button"

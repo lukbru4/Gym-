@@ -18,7 +18,7 @@ describe('Übungskatalog', () => {
       if (c.type === 'strength') expect(c.muscles.length, c.name).toBeGreaterThan(0);
       for (const m of c.muscles) expect(ids.has(m), `${c.name}: ${m}`).toBe(true);
     }
-    expect(CATALOG.length).toBeGreaterThanOrEqual(200);
+    expect(CATALOG.length).toBeGreaterThanOrEqual(300);
   });
   test('schema.sql enthält genau die Übungen des Katalogs (mit gleichen Muskeln)', () => {
     const block = sql.slice(sql.indexOf('insert into public.exercises (user_id, name, type, muscles) values'));

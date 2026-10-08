@@ -25,6 +25,7 @@ import { Analysis, Ranks } from '../pages/Ranks';
 import { Quiz } from '../pages/Quiz';
 import { loadQuiz, saveQuiz, setQuizSyncer } from '../lib/plan';
 import { Food } from '../pages/Food';
+import { Animations } from '../pages/Animations';
 import { Recipes } from '../pages/Recipes';
 import { ProPage } from '../components/Pro';
 import { setPro } from '../lib/pro';
@@ -68,6 +69,7 @@ const ROUTES: Route[] = [
   [/^#\/medaillen$/, () => <Medals />],
   [/^#\/shop$/, () => <Shop />],
   [/^#\/admin$/, () => <Admin />],
+  [/^#\/animationen$/, () => <Animations />],
 ];
 
 function Toast({ message }: { message: string | null }) {

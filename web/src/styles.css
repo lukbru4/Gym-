@@ -1686,3 +1686,23 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .vol-bar { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; }
 .vol-bar i { display: block; height: 100%; background: var(--accent); }
 .vol-bar i.low { background: var(--text-secondary); } .vol-bar i.high { background: var(--danger); }
+
+/* Übungs-Animation */
+.anim { display: flex; flex-direction: column; gap: 6px; }
+.anim-canvas { width: 100%; border-radius: 14px; background: var(--card-2, rgba(255,255,255,0.03)); touch-action: none; cursor: grab; }
+.anim-ctrl { display: flex; align-items: center; gap: 8px; }
+.anim-ctrl .muted { margin-left: auto; }
+.anim-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 700px) { .anim-grid { grid-template-columns: repeat(2, 1fr); } }
+.anim-trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+
+/* Übungsseite */
+.picker-list li { position: relative; }
+.picker-info { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border, rgba(255,255,255,0.15)); background: var(--bg-card, rgba(255,255,255,0.05)); color: var(--accent); font-size: 0.85rem; cursor: pointer; }
+.picker-item { padding-right: 56px; }
+.ex-info .anim-canvas { background: rgba(255,255,255,0.04); }
+.info-muscles { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.chip { padding: 4px 10px; border-radius: 999px; background: var(--accent); color: var(--accent-text, #fff); font-size: 0.82rem; }
+.info-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 6px; }
+.info-btn { margin-left: 6px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--accent); background: none; color: var(--accent); font-size: 0.7rem; cursor: pointer; vertical-align: middle; }
+.plan-ex { text-align: left; color: var(--text); text-decoration: underline dotted; }

@@ -5,6 +5,7 @@ import { CATEGORIES, MUSCLES, MUSCLE_NAMES, filterExercises, musclesOf, type Cat
 import type { MuscleId } from '../lib/types';
 import { keywordsOf } from '../lib/exerciseCatalog';
 import type { Exercise } from '../lib/types';
+import { ExerciseInfo } from './ExerciseInfo';
 
 export function ExercisePicker(props: {
   added: Set<number>;
@@ -18,6 +19,7 @@ export function ExercisePicker(props: {
   const [type, setType] = useState<TypeFilter>('alle');
   const [muscles, setMuscles] = useState<MuscleId[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [info, setInfo] = useState<Exercise | null>(null);
   const toggleMuscle = (m: MuscleId) => setMuscles((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]));
   const activeFilters = muscles.length + (type !== 'alle' ? 1 : 0);
   const { onClose } = props;
@@ -94,6 +96,7 @@ export function ExercisePicker(props: {
           </div>
         </div>
       )}
+      {info && <ExerciseInfo ex={info} onClose={() => setInfo(null)} />}
       <ul className="picker-list">
         {found.map((ex) => (
           <li key={ex.id}>
@@ -105,6 +108,7 @@ export function ExercisePicker(props: {
               <span className="picker-sub">{muscleText(ex)}{alias(ex) && <> · <em>{alias(ex)}</em></>}</span>
               {props.added.has(ex.id) && <span className="picker-added">✓ drin</span>}
             </button>
+            <button type="button" className="picker-info" data-info={ex.id} aria-label={`Anleitung und Animation: ${ex.name}`} onClick={() => setInfo(ex)}>▶</button>
           </li>
         ))}
         {!found.length && <li className="muted picker-empty">Keine Übung gefunden.</li>}
