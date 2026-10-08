@@ -1,3 +1,3 @@
 // Muss sich bei jeder Veröffentlichung ändern: Die App vergleicht sie mit version.json auf dem Server
 // und bietet dann ein Update an. version.json wird beim Build aus diesem Wert erzeugt (vite.config.ts).
-export const APP_VERSION = '2026-10-08 · 72 (3D-Animationen, 317 Übungen)';
+export const APP_VERSION = '2026-10-08 · 73 (Muskelkarte, realistischere Figur)';

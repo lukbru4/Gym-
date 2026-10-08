@@ -1,6 +1,6 @@
 // Spielt ein Bewegungsmuster als drehbare 3D-Figur ab (Canvas). Mit dem Finger ziehen = drehen.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { frameOf, drawScene, type Colors } from '../lib/drawFigure';
+import { frameOf, drawScene, type Colors, type Focus } from '../lib/drawFigure';
 import { PATTERNS, type Segment } from '../lib/animations';
 
 const css = (name: string, fallback: string) => {
@@ -8,10 +8,10 @@ const css = (name: string, fallback: string) => {
   return v || fallback;
 };
 const readColors = (): Colors => ({
-  body: '#aab0bb', bodyDark: '#4b5160', accent: css('--accent', '#e8222f'), prop: '#d7dae0', propDark: '#7a8090', floor: 'rgba(160,165,175,0.18)', text: css('--text', '#fff'),
+  body: '#a9b0bd', bodyDark: '#4b5160', accent: css('--accent', '#e8222f'), accent2: '#f5a524', prop: '#d7dae0', propDark: '#7a8090', floor: 'rgba(160,165,175,0.18)', text: css('--text', '#fff'),
 });
 
-export function ExerciseAnim({ id, highlight = [], height = 300, autoplay = true, label, fixedU, compact = false }: { id: string; highlight?: Segment[]; height?: number; autoplay?: boolean; label?: string; /** Standbild (0 = Start, 0,5 = Endstellung) */ fixedU?: number; compact?: boolean }) {
+export function ExerciseAnim({ id, highlight, height = 300, autoplay = true, label, fixedU, compact = false }: { id: string; highlight?: { primary: Segment[]; secondary: Segment[] }; height?: number; autoplay?: boolean; label?: string; /** Standbild (0 = Start, 0,5 = Endstellung) */ fixedU?: number; compact?: boolean }) {
   const pattern = PATTERNS[id] ?? PATTERNS.generic;
   const ref = useRef<HTMLCanvasElement>(null);
   const [playing, setPlaying] = useState(fixedU === undefined && autoplay && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
@@ -20,7 +20,13 @@ export function ExerciseAnim({ id, highlight = [], height = 300, autoplay = true
   const el = useRef(14);
   const u = useRef(fixedU ?? 0);
   const frame = useMemo(() => frameOf(pattern), [pattern]);
-  const hi = useMemo(() => new Set<Segment>(highlight), [highlight.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  const key = highlight ? `${highlight.primary.join(',')}|${highlight.secondary.join(',')}` : '';
+  const hi = useMemo<Focus>(() => {
+    const m: Focus = new Map();
+    for (const sg of highlight?.secondary ?? []) m.set(sg, 's');
+    for (const sg of highlight?.primary ?? []) m.set(sg, 'p');
+    return m;
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     az.current = pattern.azimuth;
@@ -83,4 +89,9 @@ export const MUSCLE_SEGMENTS: Record<string, Segment[]> = {
   brust: ['chest'], schultern: ['shoulders'], bizeps: ['upperArms'], trizeps: ['upperArms'], bauch: ['abs'],
   oberer_ruecken: ['upperBack'], lat: ['upperBack'], unterer_ruecken: ['lowerBack'], gesaess: ['glutes'], quadrizeps: ['thighs'], beinbeuger: ['thighs'], waden: ['calves'],
 };
-export const segmentsFor = (muscles: string[]): Segment[] => [...new Set(muscles.flatMap((m) => MUSCLE_SEGMENTS[m] ?? []))];
+/** Erster Muskel = Hauptmuskel (rot), weitere = Hilfsmuskeln (orange) */
+export const focusFor = (muscles: string[]): { primary: Segment[]; secondary: Segment[] } => {
+  const primary = MUSCLE_SEGMENTS[muscles[0]] ?? [];
+  const secondary = [...new Set(muscles.slice(1).flatMap((m) => MUSCLE_SEGMENTS[m] ?? []))].filter((x) => !primary.includes(x));
+  return { primary, secondary };
+};

@@ -2,10 +2,27 @@
 import { LEN, NEUTRAL, poseAt, project, solve, type Camera, type Joints, type Pose, type V3 } from './rig';
 import type { Pattern, Prop, Segment } from './animations';
 
-export interface Colors { body: string; bodyDark: string; accent: string; prop: string; propDark: string; floor: string; text: string }
+export interface Colors { body: string; bodyDark: string; accent: string; accent2: string; prop: string; propDark: string; floor: string; text: string }
+
+export interface Tone { light: string; mid: string; dark: string; edge: string }
+const hex = (c2: string): [number, number, number] => {
+  const m = c2.trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (m) {
+    const h = m[1].length === 3 ? m[1].split('').map((x) => x + x).join('') : m[1];
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  const r = c2.match(/rgba?\((\d+)[ ,]+(\d+)[ ,]+(\d+)/);
+  return r ? [Number(r[1]), Number(r[2]), Number(r[3])] : [232, 34, 47];
+};
+const mixc = (a: [number, number, number], b: [number, number, number], t: number) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`;
+/** Hell/mittel/dunkel für Verlauf aus einer Grundfarbe */
+export const toneOf = (base: string): Tone => {
+  const b = hex(base);
+  return { light: mixc(b, [255, 255, 255], 0.38), mid: mixc(b, [255, 255, 255], 0.02), dark: mixc(b, [0, 0, 0], 0.5), edge: mixc(b, [0, 0, 0], 0.62) };
+};
+export const tones = (c2: Colors) => ({ body: toneOf(c2.body), primary: toneOf(c2.accent), secondary: toneOf(c2.accent2) });
 
 const mid = (a: V3, b: V3): V3 => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
-const off = (a: V3, d: V3): V3 => [a[0] + d[0], a[1] + d[1], a[2] + d[2]];
 
 export function patternPose(p: Pattern, u: number): Pose {
   if (p.cycle) {
@@ -30,7 +47,9 @@ export function frameOf(p: Pattern): { target: V3; size: number } {
 
 interface Item { depth: number; draw: () => void }
 
-export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p: Pattern, u: number, cam: Camera, hi: Set<Segment>, c: Colors) {
+export type Focus = Map<Segment, 'p' | 's'>;
+
+export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p: Pattern, u: number, cam: Camera, hi: Focus, c: Colors) {
   ctx.clearRect(0, 0, w, h);
   const pose = { ...NEUTRAL, ...patternPose(p, u) };
   const j = solve(pose, p.anchor);
@@ -47,68 +66,104 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
     ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(e.x, e.y); ctx.stroke();
   }
 
-  const limb = (a: V3, b: V3, r: number, seg?: Segment, round = true) => {
-    const pa = P(a), pb = P(b);
+  // ---- Figur: verjüngte, schattierte Körperteile mit Muskelbäuchen ----
+  const T = tones(c);
+  const roleOf = (seg?: Segment) => (seg ? hi.get(seg) : undefined);
+  const toneFor = (seg?: Segment): Tone => (roleOf(seg) === 'p' ? T.primary : roleOf(seg) === 's' ? T.secondary : T.body);
+  const lerp3 = (a2: V3, b2: V3, t: number): V3 => [a2[0] + (b2[0] - a2[0]) * t, a2[1] + (b2[1] - a2[1]) * t, a2[2] + (b2[2] - a2[2]) * t];
+  const LIGHT = [-0.55, -0.83];
+  const taper = (a2: V3, b2: V3, ra: number, rb: number, tone: Tone, bias = 0) => {
+    const pa = P(a2), pb = P(b2);
     items.push({
-      depth: (pa.depth + pb.depth) / 2,
+      depth: (pa.depth + pb.depth) / 2 + bias,
       draw: () => {
-        const hot = seg && hi.has(seg);
-        ctx.lineCap = round ? 'round' : 'butt';
-        ctx.strokeStyle = hot ? c.accent : c.bodyDark;
-        ctx.lineWidth = r * 2 * ((pa.s + pb.s) / 2) + 1.5;
-        ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
-        ctx.strokeStyle = hot ? c.accent : c.body;
-        ctx.lineWidth = r * 2 * ((pa.s + pb.s) / 2) - 1.5;
-        ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+        const dx = pb.x - pa.x, dy = pb.y - pa.y, len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        const sgn = nx * LIGHT[0] + ny * LIGHT[1] >= 0 ? 1 : -1;
+        const r1 = ra * pa.s, r2 = rb * pb.s, rm = (r1 + r2) / 2;
+        const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
+        const g = ctx.createLinearGradient(mx + nx * sgn * rm, my + ny * sgn * rm, mx - nx * sgn * rm, my - ny * sgn * rm);
+        g.addColorStop(0, tone.light); g.addColorStop(0.45, tone.mid); g.addColorStop(1, tone.dark);
+        ctx.fillStyle = g; ctx.strokeStyle = tone.edge; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(pa.x + nx * r1, pa.y + ny * r1);
+        ctx.lineTo(pb.x + nx * r2, pb.y + ny * r2);
+        ctx.lineTo(pb.x - nx * r2, pb.y - ny * r2);
+        ctx.lineTo(pa.x - nx * r1, pa.y - ny * r1);
+        ctx.closePath(); ctx.fill();
+        for (const [q, r] of [[pa, r1], [pb, r2]] as const) {
+          const rg = ctx.createRadialGradient(q.x - r * 0.3, q.y - r * 0.35, r * 0.1, q.x, q.y, r);
+          rg.addColorStop(0, tone.light); rg.addColorStop(0.6, tone.mid); rg.addColorStop(1, tone.dark);
+          ctx.fillStyle = rg;
+          ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.beginPath(); ctx.moveTo(pa.x + nx * r1, pa.y + ny * r1); ctx.lineTo(pb.x + nx * r2, pb.y + ny * r2);
+        ctx.moveTo(pa.x - nx * r1, pa.y - ny * r1); ctx.lineTo(pb.x - nx * r2, pb.y - ny * r2); ctx.stroke();
       },
     });
   };
-  const ball = (a: V3, r: number, seg?: Segment, fill?: string) => {
-    const pa = P(a);
-    items.push({ depth: pa.depth, draw: () => {
-      ctx.fillStyle = fill ?? (seg && hi.has(seg) ? c.accent : c.body);
-      ctx.strokeStyle = c.bodyDark; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(pa.x, pa.y, r * pa.s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  /** Körperteil mit Muskelbauch: Der Muskel wölbt sich über dem Knochen (nur wenn hervorgehoben) */
+  const part = (a2: V3, b2: V3, ra: number, rb: number, seg?: Segment, belly?: [number, number, number]) => {
+    taper(a2, b2, ra, rb, T.body);
+    if (seg && roleOf(seg) && belly) {
+      const [t0, t1, k] = belly;
+      const ra2 = ra + (rb - ra) * t0, rb2 = ra + (rb - ra) * t1;
+      taper(lerp3(a2, b2, t0), lerp3(a2, b2, t1), ra2 * k, rb2 * k, toneFor(seg), -0.01);
+    }
+  };
+  const sphere = (a2: V3, r: number, tone: Tone, bias = 0) => {
+    const pa = P(a2);
+    items.push({ depth: pa.depth + bias, draw: () => {
+      const rr = r * pa.s;
+      const rg = ctx.createRadialGradient(pa.x - rr * 0.3, pa.y - rr * 0.35, rr * 0.1, pa.x, pa.y, rr);
+      rg.addColorStop(0, tone.light); rg.addColorStop(0.6, tone.mid); rg.addColorStop(1, tone.dark);
+      ctx.fillStyle = rg; ctx.strokeStyle = tone.edge; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(pa.x, pa.y, rr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     } });
   };
 
-  // Rumpf als zwei Flächen (oben Brust/Rücken, unten Bauch/unterer Rücken)
+  // Rumpf: Fläche von vorn/hinten (Schultern ↔ Hüfte) und ein Körper mit Tiefe für die Seitenansicht
   const shMid = mid(j.shL, j.shR), hpMid = mid(j.hipL, j.hipR);
   const waist = mid(shMid, hpMid);
-  const wl = off(mid(j.shL, j.hipL), [0, 0, 0]), wr = off(mid(j.shR, j.hipR), [0, 0, 0]);
-  const quad = (a: V3, b: V3, c2: V3, d: V3, hot: boolean) => {
-    const pts = [P(a), P(b), P(c2), P(d)];
-    items.push({ depth: pts.reduce((s, q) => s + q.depth, 0) / 4, draw: () => {
-      ctx.fillStyle = hot ? c.accent : c.body; ctx.strokeStyle = c.bodyDark; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+  const wl = mid(j.shL, j.hipL), wr = mid(j.shR, j.hipR);
+  const quad = (a2: V3, b2: V3, c2: V3, d2: V3, tone: Tone) => {
+    const pts = [P(a2), P(b2), P(c2), P(d2)];
+    items.push({ depth: pts.reduce((s2, q) => s2 + q.depth, 0) / 4, draw: () => {
+      const top = (pts[0].y + pts[1].y) / 2, bot = (pts[2].y + pts[3].y) / 2;
+      const g = ctx.createLinearGradient(0, top, 0, bot);
+      g.addColorStop(0, tone.light); g.addColorStop(0.5, tone.mid); g.addColorStop(1, tone.dark);
+      ctx.fillStyle = g; ctx.strokeStyle = tone.edge; ctx.lineWidth = 1; ctx.lineJoin = 'round';
       ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (const q of pts.slice(1)) ctx.lineTo(q.x, q.y); ctx.closePath(); ctx.fill(); ctx.stroke();
     } });
   };
-  quad(j.shL, j.shR, wr, wl, hi.has('chest') || hi.has('upperBack'));
-  quad(wl, wr, j.hipR, j.hipL, hi.has('abs') || hi.has('lowerBack'));
-  // Rumpf mit Tiefe (von der Seite sieht man sonst nur eine Linie)
-  limb(waist, shMid, 0.125, hi.has('chest') ? 'chest' : 'upperBack');
-  limb(hpMid, waist, 0.115, hi.has('abs') ? 'abs' : 'lowerBack');
+  const upperSeg: Segment | undefined = roleOf('chest') ? 'chest' : roleOf('upperBack') ? 'upperBack' : undefined;
+  const lowerSeg: Segment | undefined = roleOf('abs') ? 'abs' : roleOf('lowerBack') ? 'lowerBack' : undefined;
+  quad(j.shL, j.shR, wr, wl, toneFor(upperSeg));
+  quad(wl, wr, j.hipR, j.hipL, toneFor(lowerSeg));
+  taper(hpMid, waist, 0.115, 0.1, toneFor(lowerSeg), -0.006);
+  taper(waist, shMid, 0.1, 0.13, toneFor(upperSeg), -0.006);
 
-  // Beine (Gesäß/Oberschenkel/Waden/Füße)
+  // Beine
   for (const side of ['L', 'R'] as const) {
-    const hip = j[`hip${side}` as 'hipL'], kn = j[`kn${side}` as 'knL'], an = j[`an${side}` as 'anL'], toe = j[`toe${side}` as 'toeL'];
-    limb(hip, kn, 0.078, 'thighs');
-    limb(kn, an, 0.056, 'calves');
-    limb(an, toe, 0.036);
-    ball(hip, 0.085, 'glutes');
-    ball(kn, 0.058);
+    const hip = j[`hip${side}` as 'hipL'], kn = j[`kn${side}` as 'knL'], an = j[`an${side}` as 'anL'], toe = j[`toe${side}` as 'toeL'], heel = j[`heel${side}` as 'heelL'];
+    part(hip, kn, 0.092, 0.064, 'thighs', [0.08, 0.95, 1.14]);
+    part(kn, an, 0.058, 0.038, 'calves', [0.04, 0.62, 1.26]);
+    taper(an, toe, 0.036, 0.028, T.body);
+    taper(an, heel, 0.036, 0.03, T.body);
+    sphere(hip, roleOf('glutes') ? 0.105 : 0.092, toneFor('glutes'), -0.01);
+    sphere(kn, 0.062, T.body, -0.004);
   }
   // Arme
   for (const side of ['L', 'R'] as const) {
     const sh = j[`sh${side}` as 'shL'], el = j[`el${side}` as 'elL'], wr2 = j[`wr${side}` as 'wrL'], hd = j[`hand${side}` as 'handL'];
-    limb(sh, el, 0.052, 'upperArms');
-    limb(el, wr2, 0.042, 'forearms');
-    limb(wr2, hd, 0.036);
-    ball(sh, 0.062, 'shoulders');
-    ball(el, 0.046);
+    part(sh, el, 0.056, 0.044, 'upperArms', [0.12, 0.92, 1.18]);
+    part(el, wr2, 0.046, 0.032, 'forearms', [0.06, 0.8, 1.16]);
+    taper(wr2, hd, 0.034, 0.026, T.body);
+    sphere(sh, roleOf('shoulders') ? 0.085 : 0.066, toneFor('shoulders'), -0.01);
+    sphere(el, 0.046, T.body, -0.004);
   }
-  limb(j.chest, j.neckTop, 0.042);
-  ball(j.head, 0.105, undefined);
+  taper(j.chest, j.neckTop, 0.048, 0.04, T.body);
+  sphere(j.head, 0.105, T.body, 0);
 
   // Hilfsmittel
   const H: PropHelpers = {

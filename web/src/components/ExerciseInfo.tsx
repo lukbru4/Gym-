@@ -4,7 +4,9 @@ import { MUSCLE_NAMES, musclesOf } from '../lib/muscles';
 import { animIdFor } from '../lib/animMap';
 import { PATTERNS } from '../lib/animations';
 import { keywordsOf } from '../lib/exerciseCatalog';
-import { ExerciseAnim, segmentsFor } from './ExerciseAnim';
+import { ExerciseAnim, focusFor } from './ExerciseAnim';
+import { BodyGraph } from './BodyGraph';
+import { focusOf } from './WorkoutMuscles';
 import type { Exercise } from '../lib/types';
 
 /** Zusatzhinweise je nach Geräteart im Namen */
@@ -40,11 +42,15 @@ export function ExerciseInfo({ ex, onClose }: { ex: Pick<Exercise, 'name' | 'typ
         <h2>{ex.name}</h2>
         <button className="icon-btn" type="button" aria-label="Schließen" id="info-close" onClick={onClose}>✕</button>
       </div>
-      <ExerciseAnim id={id} highlight={segmentsFor(muscles)} height={300} label={`Animation: ${ex.name}`} />
+      <ExerciseAnim id={id} highlight={focusFor(muscles)} height={300} label={`Animation: ${ex.name}`} />
       {id === 'generic' && <p className="muted small">Für diese Übung gibt es noch keine eigene Animation – gezeigt wird eine allgemeine Bewegung.</p>}
       {id !== 'generic' && PATTERNS[id].name !== ex.name && <p className="muted small">Bewegungsablauf: {p.name}. Varianten (Gerät, Griff) sehen ähnlich aus.</p>}
       {muscles.length > 0 && (
-        <p className="info-muscles">{muscles.map((m) => <span className="chip" key={m}>{MUSCLE_NAMES.get(m) ?? m}</span>)}</p>
+        <div className="card info-map">
+          <h3>Diese Muskeln arbeiten</h3>
+          <BodyGraph focus={focusOf([{ name: ex.name, muscles, type: ex.type }]).focus} labels />
+          <p className="info-muscles">{muscles.map((m, i) => <span className={`chip${i > 0 ? ' secondary' : ''}`} key={m}>{MUSCLE_NAMES.get(m) ?? m}{i === 0 ? ' (Hauptmuskel)' : ''}</span>)}</p>
+        </div>
       )}
       <div className="card">
         <h3>So geht’s</h3>

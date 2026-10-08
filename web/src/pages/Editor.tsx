@@ -6,6 +6,7 @@ import { useAsync } from '../app/useAsync';
 import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ExercisePicker } from '../components/ExercisePicker';
 import { ExerciseInfo } from '../components/ExerciseInfo';
+import { WorkoutMuscles } from '../components/WorkoutMuscles';
 import {
   blockFor,
   blocksSignature,
@@ -284,6 +285,7 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
           </label>
         </div>
       )}
+      <WorkoutMuscles exercises={state.blocks.map((b) => exerciseById(b.exercise_id)).filter((e): e is Exercise => Boolean(e))} title={live ? 'Heute trainierst du' : 'Diese Muskeln trainierst du'} />
       {state.blocks.map((b, bi) => (
         <BlockCard
           key={bi}

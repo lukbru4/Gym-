@@ -102,7 +102,7 @@ export function Body() {
             <span>Tippe auf einen Muskel</span>
           )}
         </div>
-        <BodyGraph levels={levels} onSelect={setSelected} />
+        <BodyGraph levels={levels} onSelect={setSelected} labels />
         <ul className="legend skin-scope" data-skin={cosmetics.equipped.skin} aria-label="Legende">
           <li><span className="swatch" style={{ background: 'var(--neon-bg)' }} />nicht trainiert</li>
           {LEVELS.map((l) => (

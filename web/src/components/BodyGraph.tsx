@@ -1,4 +1,5 @@
 // Körpergraph: Neon-Drahtgitter von vorne und hinten; trainierte Muskeln leuchten je nach Stufe.
+import { useLayoutEffect, useRef, useState } from 'react';
 import { BACK, BACK_LINES, BACK_NEUTRAL, EAR, FACE_FRONT, FRONT, FRONT_LINES, FRONT_NEUTRAL, HEAD_BACK, HEAD_PATH, OUTLINE } from '../lib/bodyShapes';
 import { FIGURE_BOTTOM, stretchPath } from '../lib/bodyScale';
 import { useCosmetics } from '../lib/cosmetics';
@@ -52,20 +53,45 @@ export const GlowFilter = () => (
   </defs>
 );
 
+/** Kurznamen für die Beschriftung auf dem Körper */
+const SHORT: Record<MuscleId, string> = {
+  brust: 'Brust', schultern: 'Schultern', bizeps: 'Bizeps', trizeps: 'Trizeps', bauch: 'Bauch', oberer_ruecken: 'Oberer Rücken', lat: 'Lat',
+  unterer_ruecken: 'Unt. Rücken', gesaess: 'Gesäß', quadrizeps: 'Quadrizeps', beinbeuger: 'Beinbeuger', waden: 'Waden',
+};
+export type Focus = Map<MuscleId, 'p' | 's'>;
+
 interface FigureProps {
   parts: Partial<Record<MuscleId, string[]>>;
   neutral: string[];
   lines: string[];
   levels: Map<MuscleId, MuscleLevel>;
+  focus?: Focus;
+  labels?: boolean;
   offsetX: number;
   /** Gesichtslinien (vorne) bzw. Hinterkopf (hinten) */
   face: string;
   onSelect?: (m: MuscleId) => void;
 }
 
-function Figure({ parts, neutral, lines, levels, offsetX, face, onSelect }: FigureProps) {
+function Figure({ parts, neutral, lines, levels, focus, labels, offsetX, face, onSelect }: FigureProps) {
+  const ref = useRef<SVGGElement>(null);
+  const [pos, setPos] = useState<Partial<Record<MuscleId, [number, number]>>>({});
+  // Beschriftung: Mitte der linken Muskelfläche messen (die rechte ist gespiegelt)
+  useLayoutEffect(() => {
+    if (!labels || !ref.current) return;
+    const next: Partial<Record<MuscleId, [number, number]>> = {};
+    for (const m of Object.keys(parts) as MuscleId[]) {
+      // mittige Muskeln (Brust, Bauch, Rücken, Gesäß) über beide Hälften, sonst die linke Fläche
+      const centered = ['brust', 'bauch', 'oberer_ruecken', 'unterer_ruecken', 'gesaess'].includes(m);
+      const el = ref.current.querySelector<SVGGraphicsElement>(centered ? `[data-muscle="${m}"]` : `[data-muscle="${m}"] path`);
+      if (!el) continue;
+      const b = el.getBBox();
+      next[m] = [b.x + b.width / 2, b.y + b.height / 2];
+    }
+    setPos(next);
+  }, [labels, parts]);
   return (
-    <g transform={`translate(${offsetX} 0)`}>
+    <g transform={`translate(${offsetX} 0)`} ref={ref}>
       <g className="body-base">
         <Both d={OUTLINE} />
         <path d={HEAD_PATH} transform={HEAD_T} />
@@ -76,9 +102,10 @@ function Figure({ parts, neutral, lines, levels, offsetX, face, onSelect }: Figu
         <Paths list={neutral} />
       </g>
       {(Object.entries(parts) as [MuscleId, string[]][]).map(([m, list]) => {
-        const r = levels.get(m)!;
-        const title = `${MUSCLE_NAMES.get(m)}: ${r.level ? `Stufe ${r.level}` : 'noch nicht trainiert'}`;
-        const cls = `muscle lv-${r.level}`;
+        const r = levels.get(m) ?? { level: 0, gain: null, exercises: [] };
+        const role = focus?.get(m);
+        const title = focus ? `${MUSCLE_NAMES.get(m)}${role === 'p' ? ': Hauptmuskel' : role === 's' ? ': Hilfsmuskel' : ''}` : `${MUSCLE_NAMES.get(m)}: ${r.level ? `Stufe ${r.level}` : 'noch nicht trainiert'}`;
+        const cls = focus ? `muscle focus-${role ?? 'off'}` : `muscle lv-${r.level}`;
         if (!onSelect) {
           return (
             <g key={m} className={`${cls} static`} data-muscle={m}>
@@ -106,12 +133,26 @@ function Figure({ parts, neutral, lines, levels, offsetX, face, onSelect }: Figu
         <Paths list={lines} />
         <path d={face} className="face-lines" transform={HEAD_T} />
       </g>
+      {labels && (
+        <g className="muscle-labels" aria-hidden="true">
+          {(Object.keys(pos) as MuscleId[]).map((m) => {
+            const role = focus?.get(m);
+            const lv = levels.get(m)?.level ?? 0;
+            const on = focus ? Boolean(role) : lv > 0;
+            return (
+              <text key={m} x={pos[m]![0]} y={pos[m]![1]} textAnchor="middle" dominantBaseline="middle" className={on ? 'on' : ''}>
+                {SHORT[m]}
+              </text>
+            );
+          })}
+        </g>
+      )}
     </g>
   );
 }
 
 /** skin: Shop-Look; ohne Angabe der eigene ausgerüstete Look */
-export function BodyGraph({ levels, onSelect, skin }: { levels: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void; skin?: string | null }) {
+export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = false }: { levels?: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void; skin?: string | null; /** Übungs-/Trainingsansicht: Hauptmuskel (p) und Hilfsmuskel (s) statt Kraft-Stufen */ focus?: Focus; labels?: boolean }) {
   const own = useCosmetics().equipped.skin;
   return (
     <div className="bodygraph-panel" data-skin={skin === undefined ? own : skin ?? undefined}>
@@ -119,11 +160,11 @@ export function BodyGraph({ levels, onSelect, skin }: { levels: Map<MuscleId, Mu
         className="bodygraph"
         viewBox={`0 -6 470 ${Math.ceil(FIGURE_BOTTOM) + 10}`}
         role="group"
-        aria-label="Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten"
+        aria-label={focus ? 'Körper: beanspruchte Muskeln, links von vorne, rechts von hinten' : 'Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten'}
       >
         <GlowFilter />
-        <Figure parts={FRONT} neutral={FRONT_NEUTRAL} lines={FRONT_LINES} levels={levels} offsetX={0} face={FACE_FRONT} onSelect={onSelect} />
-        <Figure parts={BACK} neutral={BACK_NEUTRAL} lines={BACK_LINES} levels={levels} offsetX={270} face={HEAD_BACK} onSelect={onSelect} />
+        <Figure parts={FRONT} neutral={FRONT_NEUTRAL} lines={FRONT_LINES} levels={levels} focus={focus} labels={labels} offsetX={0} face={FACE_FRONT} onSelect={onSelect} />
+        <Figure parts={BACK} neutral={BACK_NEUTRAL} lines={BACK_LINES} levels={levels} focus={focus} labels={labels} offsetX={270} face={HEAD_BACK} onSelect={onSelect} />
       </svg>
     </div>
   );

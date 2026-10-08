@@ -1706,3 +1706,27 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .info-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 6px; }
 .info-btn { margin-left: 6px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--accent); background: none; color: var(--accent); font-size: 0.7rem; cursor: pointer; vertical-align: middle; }
 .plan-ex { text-align: left; color: var(--text); text-decoration: underline dotted; }
+
+/* Körpergraph: klarere Unterscheidung + Beschriftung */
+.bodygraph .muscle, .bodygraph .body-neutral { fill: color-mix(in srgb, var(--text) 9%, transparent); stroke: color-mix(in srgb, var(--text) 32%, transparent); stroke-width: 1; }
+.bodygraph .muscle.lv-1 { fill: color-mix(in srgb, var(--glow-1) 36%, transparent); }
+.bodygraph .muscle.lv-2 { fill: color-mix(in srgb, var(--glow-2) 48%, transparent); }
+.bodygraph .muscle.lv-3 { fill: color-mix(in srgb, var(--glow-3) 62%, transparent); }
+.bodygraph .muscle.lv-4 { fill: color-mix(in srgb, var(--glow-4) 76%, transparent); }
+.bodygraph .muscle.lv-5 { fill: color-mix(in srgb, var(--glow-5) 90%, transparent); }
+.bodygraph .muscle.focus-p { fill: color-mix(in srgb, var(--accent) 88%, transparent); stroke: var(--accent); stroke-width: 1.8; filter: url(#vol) url(#neon-glow); }
+.bodygraph .muscle.focus-s { fill: color-mix(in srgb, #f5a524 70%, transparent); stroke: #f5a524; stroke-width: 1.5; filter: url(#vol); }
+.bodygraph .muscle.focus-off { fill: color-mix(in srgb, var(--text) 7%, transparent); }
+.bodygraph .muscle-labels text { font-size: 10.5px; font-weight: 700; fill: var(--text-secondary); stroke: var(--card, #111); stroke-width: 2.6px; paint-order: stroke; pointer-events: none; letter-spacing: 0.2px; }
+.bodygraph .muscle-labels text.on { fill: var(--text); }
+.muscle-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0 0; font-size: 0.85rem; }
+.muscle-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.muscle-legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.muscle-legend i.p { background: var(--accent); } .muscle-legend i.s { background: #f5a524; }
+.workout-muscles .bodygraph { max-width: 340px; }
+
+.chip.secondary { background: #f5a524; color: #1a1200; }
+.chips-row { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; }
+.workout-muscles > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.info-map .bodygraph { max-width: 320px; }
+.info-map h3, .workout-muscles > summary { margin-bottom: 10px; } .info-map .bodygraph-panel { margin-top: 6px; }
