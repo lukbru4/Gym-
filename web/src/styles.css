@@ -1717,12 +1717,12 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .bodygraph .muscle.focus-p { fill: color-mix(in srgb, var(--accent) 88%, transparent); stroke: var(--accent); stroke-width: 1.8; filter: url(#vol) url(#neon-glow); }
 .bodygraph .muscle.focus-s { fill: color-mix(in srgb, #f5a524 70%, transparent); stroke: #f5a524; stroke-width: 1.5; filter: url(#vol); }
 .bodygraph .muscle.focus-off { fill: color-mix(in srgb, var(--text) 7%, transparent); }
-.bodygraph .muscle-labels text { font-size: 10.5px; font-weight: 700; fill: var(--text-secondary); stroke: var(--card, #111); stroke-width: 2.6px; paint-order: stroke; pointer-events: none; letter-spacing: 0.2px; }
-.bodygraph .muscle-labels text.on { fill: var(--text); }
+.bodygraph .muscle-labels text { font-size: 10.5px; font-weight: 700; fill: #3a1412; stroke: rgba(255,240,236,0.9); stroke-width: 2.6px; paint-order: stroke; pointer-events: none; letter-spacing: 0.2px; }
+.bodygraph .muscle-labels text.on { fill: #ffffff; stroke: rgba(40,4,10,0.9); }
 .muscle-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 8px 0 0; font-size: 0.85rem; }
 .muscle-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .muscle-legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
-.muscle-legend i.p { background: var(--accent); } .muscle-legend i.s { background: #f5a524; }
+.muscle-legend i.p { background: #a3121f; } .muscle-legend i.s { background: #c26a12; }
 .workout-muscles .bodygraph { max-width: 340px; }
 
 .chip.secondary { background: #f5a524; color: #1a1200; }
@@ -1731,13 +1731,16 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .info-map .bodygraph { max-width: 320px; }
 .info-map h3, .workout-muscles > summary { margin-bottom: 10px; } .info-map .bodygraph-panel { margin-top: 6px; }
 
-/* Körpergraph: Muskeln wie auf einer Anatomietafel (Verlauf + Fasern) */
-:root { --mus-hi: #a8514f; --mus-mid: #7a3434; --mus-lo: #4d2020; --mus-edge: #d9a09b; }
-:root[data-theme="light"], :root[data-theme="light"] .bodygraph-panel { --mus-hi: #e49a92; --mus-mid: #c4655f; --mus-lo: #94403d; --mus-edge: #6b2a28; }
-@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --mus-hi: #e49a92; --mus-mid: #c4655f; --mus-lo: #94403d; --mus-edge: #6b2a28; } }
-.bodygraph .body-neutral, .bodygraph .muscle.lv-0, .bodygraph .muscle.focus-off { fill: url(#mus-base); stroke: var(--mus-edge); stroke-width: 0.9; }
-.bodygraph .muscle.focus-p { fill: url(#mus-p); stroke: #ffd2c8; stroke-width: 1.4; }
-.bodygraph .muscle.focus-s { fill: url(#mus-s); stroke: #ffe2a8; stroke-width: 1.3; }
+/* Körpergraph: untrainierte Muskeln hell, trainierte dunkel (je stärker, desto dunkler) */
+:root, :root[data-theme="light"], :root[data-theme="light"] .bodygraph-panel { --mus-hi: #f6d6d1; --mus-mid: #e3a7a0; --mus-lo: #b97670; --mus-edge: #5a2220; }
+.bodygraph .body-neutral, .bodygraph .muscle.lv-0, .bodygraph .muscle.focus-off { fill: url(#mus-base); stroke: var(--mus-edge); stroke-width: 0.9; filter: none; }
+.bodygraph .muscle.lv-1 { fill: #d9625f; stroke: var(--mus-edge); stroke-width: 1; filter: none; }
+.bodygraph .muscle.lv-2 { fill: #c0343a; stroke: var(--mus-edge); stroke-width: 1; filter: none; }
+.bodygraph .muscle.lv-3 { fill: #9c1d2b; stroke: var(--mus-edge); stroke-width: 1; filter: none; }
+.bodygraph .muscle.lv-4 { fill: #740f20; stroke: var(--mus-edge); stroke-width: 1; filter: none; }
+.bodygraph .muscle.lv-5 { fill: #4a0714; stroke: var(--mus-edge); stroke-width: 1; filter: none; }
+.bodygraph .muscle.focus-p { fill: url(#mus-p); stroke: var(--mus-edge); stroke-width: 1.2; filter: none; }
+.bodygraph .muscle.focus-s { fill: url(#mus-s); stroke: var(--mus-edge); stroke-width: 1.2; filter: none; }
 .bodygraph .muscle-fibers { fill: url(#fibers); stroke: none; pointer-events: none; opacity: 0.9; }
 .bodygraph .muscle-fibers path { fill: url(#fibers); stroke: none; }
 .bodygraph .muscle.lv-1, .bodygraph .muscle.lv-2, .bodygraph .muscle.lv-3, .bodygraph .muscle.lv-4, .bodygraph .muscle.lv-5 { fill-opacity: 1; }

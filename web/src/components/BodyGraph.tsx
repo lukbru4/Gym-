@@ -42,18 +42,18 @@ export const GlowFilter = () => (
       <stop offset="1" style={{ stopColor: 'var(--mus-lo)' }} />
     </linearGradient>
     <linearGradient id="mus-p" x1="0.15" y1="0" x2="0.85" y2="1">
-      <stop offset="0" stopColor="#ff8a6b" />
-      <stop offset="0.5" stopColor="#f0343c" />
-      <stop offset="1" stopColor="#a8101c" />
+      <stop offset="0" stopColor="#d8323c" />
+      <stop offset="0.5" stopColor="#a3121f" />
+      <stop offset="1" stopColor="#5a0710" />
     </linearGradient>
     <linearGradient id="mus-s" x1="0.15" y1="0" x2="0.85" y2="1">
-      <stop offset="0" stopColor="#ffd27a" />
-      <stop offset="0.55" stopColor="#f5a524" />
-      <stop offset="1" stopColor="#b8701a" />
+      <stop offset="0" stopColor="#d98a2c" />
+      <stop offset="0.55" stopColor="#a8560c" />
+      <stop offset="1" stopColor="#5e2f05" />
     </linearGradient>
     {/* Muskelfasern */}
     <pattern id="fibers" width="3.2" height="3.2" patternUnits="userSpaceOnUse" patternTransform="rotate(72)">
-      <line x1="0" y1="0" x2="0" y2="3.2" stroke="rgba(255,255,255,0.20)" strokeWidth="0.7" />
+      <line x1="0" y1="0" x2="0" y2="3.2" stroke="rgba(60,10,10,0.22)" strokeWidth="0.7" />
     </pattern>
     <filter id="vol" x="-8%" y="-8%" width="116%" height="116%" colorInterpolationFilters="sRGB">
       <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="bump" />
