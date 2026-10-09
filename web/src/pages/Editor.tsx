@@ -7,6 +7,7 @@ import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ExercisePicker } from '../components/ExercisePicker';
 import { ExerciseInfo } from '../components/ExerciseInfo';
 import { WorkoutMuscles } from '../components/WorkoutMuscles';
+import { suggestProgress, suggestionText } from '../lib/progression';
 import {
   blockFor,
   blocksSignature,
@@ -407,6 +408,15 @@ function BlockCard(props: {
   const cardio = ex.type === 'cardio';
   const uni = !cardio && isUnilateral(b);
   const labels = rowLabels(b.sets, cardio);
+  // Gewichtsvorschlag aus dem letzten Training (Doppelte Progression); Zielwiederholungen aus dem Plan
+  const targetReps = b.sets.find((r) => !r.warmup && r.target?.reps)?.target?.reps ?? null;
+  const suggestion = live && !cardio ? suggestProgress(props.prevSets, targetReps) : null;
+  const takeSuggestion = () => {
+    if (!suggestion) return;
+    update((st) => {
+      for (const r of st.blocks[bi].sets) if (!r.warmup && !r.done && !r.weight_kg) r.weight_kg = String(suggestion.weight);
+    });
+  };
   /** Zeile entfernen – einseitig immer das ganze Paar L+R */
   const removeRow = (st: EditorState, si: number) => {
     const sets = st.blocks[bi].sets;
@@ -485,6 +495,16 @@ function BlockCard(props: {
             ))}
           </select>
         </label>
+      )}
+      {live && !cardio && suggestion && (
+        <div className={`suggest suggest-${suggestion.action}`} id={`suggest-${bi}`}>
+          <p className="suggest-line">
+            <span className="muted small">Vorschlag heute</span> <strong>{suggestionText(suggestion)}</strong>
+            <span className="muted small"> · letztes Mal {suggestion.last}</span>
+          </p>
+          <p className="muted small">{suggestion.why}</p>
+          <button type="button" className="btn small-btn" data-action="take-suggestion" onClick={takeSuggestion}>Gewicht übernehmen</button>
+        </div>
       )}
       <div className={`set-table ${live ? 'live' : 'plain'}`}>
         <div className="set-row head">

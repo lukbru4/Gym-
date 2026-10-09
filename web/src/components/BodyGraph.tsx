@@ -35,6 +35,26 @@ export const GlowFilter = () => (
       <stop offset="1" style={{ stopColor: 'var(--neon-bg)' }} />
     </linearGradient>
     {/* Plastische Wirkung: weiches Licht von links oben macht aus den flachen Flächen gewölbte Muskeln */}
+    {/* Muskelfarbe wie auf einer Anatomietafel: Verlauf von hell nach dunkel gibt den Muskeln Rundung */}
+    <linearGradient id="mus-base" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" style={{ stopColor: 'var(--mus-hi)' }} />
+      <stop offset="0.55" style={{ stopColor: 'var(--mus-mid)' }} />
+      <stop offset="1" style={{ stopColor: 'var(--mus-lo)' }} />
+    </linearGradient>
+    <linearGradient id="mus-p" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stopColor="#ff8a6b" />
+      <stop offset="0.5" stopColor="#f0343c" />
+      <stop offset="1" stopColor="#a8101c" />
+    </linearGradient>
+    <linearGradient id="mus-s" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stopColor="#ffd27a" />
+      <stop offset="0.55" stopColor="#f5a524" />
+      <stop offset="1" stopColor="#b8701a" />
+    </linearGradient>
+    {/* Muskelfasern */}
+    <pattern id="fibers" width="3.2" height="3.2" patternUnits="userSpaceOnUse" patternTransform="rotate(72)">
+      <line x1="0" y1="0" x2="0" y2="3.2" stroke="rgba(255,255,255,0.20)" strokeWidth="0.7" />
+    </pattern>
     <filter id="vol" x="-8%" y="-8%" width="116%" height="116%" colorInterpolationFilters="sRGB">
       <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="bump" />
       <feSpecularLighting in="bump" surfaceScale="4" specularConstant="0.6" specularExponent="14" lightingColor="#f3e9e9" result="spec">
@@ -129,6 +149,14 @@ function Figure({ parts, neutral, lines, levels, focus, labels, offsetX, face, o
           </g>
         );
       })}
+      <g className="muscle-fibers" aria-hidden="true">
+        {(Object.entries(parts) as [MuscleId, string[]][]).map(([m, list]) => (
+          <g key={m}>
+            <Paths list={list} />
+          </g>
+        ))}
+        <Paths list={neutral} />
+      </g>
       <g className="body-lines">
         <Paths list={lines} />
         <path d={face} className="face-lines" transform={HEAD_T} />

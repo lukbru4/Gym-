@@ -118,6 +118,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Trainingsplan statt „Fragen“: nach dem ersten Anmelden direkt dorthin; Antworten im Konto (DB 49); Zielgewicht-Frage; neuer Plan mit Sätzen/Wiederholungsbereichen/Pausen je Ziel, Wochenvolumen, Maschinen-Varianten, Dauer-Anpassung, Progression/Entlastung
 - [x] 3D-Animationen: eigene Figur (ohne fremde Modelle) mit 57 Bewegungsmustern, drehbar, Muskel hervorgehoben, Hinweise zu Ausführung und Fehlern; Übungsseite über ▶ in Auswahl, Training und Plan; Katalog 317 Übungen inkl. Sportarten (DB 50)
 - [x] Muskeln sichtbar: Körpergraph mit Namen und klaren Farben, „Heute trainierst du“ im Training (Haupt-/Hilfsmuskeln), Muskelkarte auf der Übungsseite, schattierte Figur mit leuchtenden Muskelbäuchen
+- [x] Schritt 74: Gewichtsvorschläge im Training (Doppelte Progression: alle Sätze im Zielbereich → nächstes Mal mehr Gewicht), Muskeltextur (Verlauf + Fasern) im Körpergraph
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

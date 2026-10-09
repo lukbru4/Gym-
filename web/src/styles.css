@@ -1730,3 +1730,19 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .workout-muscles > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
 .info-map .bodygraph { max-width: 320px; }
 .info-map h3, .workout-muscles > summary { margin-bottom: 10px; } .info-map .bodygraph-panel { margin-top: 6px; }
+
+/* Körpergraph: Muskeln wie auf einer Anatomietafel (Verlauf + Fasern) */
+:root { --mus-hi: #a8514f; --mus-mid: #7a3434; --mus-lo: #4d2020; --mus-edge: #d9a09b; }
+:root[data-theme="light"], :root[data-theme="light"] .bodygraph-panel { --mus-hi: #e49a92; --mus-mid: #c4655f; --mus-lo: #94403d; --mus-edge: #6b2a28; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --mus-hi: #e49a92; --mus-mid: #c4655f; --mus-lo: #94403d; --mus-edge: #6b2a28; } }
+.bodygraph .body-neutral, .bodygraph .muscle.lv-0, .bodygraph .muscle.focus-off { fill: url(#mus-base); stroke: var(--mus-edge); stroke-width: 0.9; }
+.bodygraph .muscle.focus-p { fill: url(#mus-p); stroke: #ffd2c8; stroke-width: 1.4; }
+.bodygraph .muscle.focus-s { fill: url(#mus-s); stroke: #ffe2a8; stroke-width: 1.3; }
+.bodygraph .muscle-fibers { fill: url(#fibers); stroke: none; pointer-events: none; opacity: 0.9; }
+.bodygraph .muscle-fibers path { fill: url(#fibers); stroke: none; }
+.bodygraph .muscle.lv-1, .bodygraph .muscle.lv-2, .bodygraph .muscle.lv-3, .bodygraph .muscle.lv-4, .bodygraph .muscle.lv-5 { fill-opacity: 1; }
+
+.suggest { margin: 8px 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+.suggest p { margin: 0 0 4px; }
+.suggest-up { border-color: #4fae7b; background: color-mix(in srgb, #4fae7b 14%, transparent); }
+.suggest-down { border-color: #f5a524; background: color-mix(in srgb, #f5a524 14%, transparent); }
