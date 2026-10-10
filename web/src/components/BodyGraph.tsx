@@ -26,6 +26,7 @@ const NO_LABEL: Record<'front' | 'back', MuscleId[]> = { front: ['trizeps', 'obe
 /** Der Körper wird in der Breite leicht gestreckt: kräftigerer, muskulöserer Eindruck */
 const BULK = 1.07;
 const CX = { front: 362, back: 1086 };
+const SHOW_LABELS = false;
 const MUSCLE_ORDER = Object.keys(BODY_MAP) as MuscleId[];
 const USED = (side: 'front' | 'back') => new Set(MUSCLE_ORDER.flatMap((m) => BODY_MAP[m][side] ?? []));
 
@@ -148,7 +149,8 @@ function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) 
           </g>
         );
       })}
-      {labels && (
+      {/* Beschriftung auf dem Körper bewusst aus: die Figur zeigt die Muskeln ohne Schrift */}
+      {SHOW_LABELS && labels && (
         <g className="muscle-labels" aria-hidden="true">
           {(Object.keys(pos) as MuscleId[]).map((m) => {
             const role = focus?.get(m);
@@ -181,10 +183,22 @@ export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = 
         <defs>
           {/* Muskelrot mit Verlauf: jede Muskelfläche wirkt gewölbt */}
           <linearGradient id="mr-strong" x1="0.1" y1="0" x2="0.9" y2="1">
-            <stop offset="0" stopColor="#d2705a" /><stop offset="0.5" stopColor="#a8402f" /><stop offset="1" stopColor="#7a241b" />
+            <stop offset="0" stopColor="#d4533d" /><stop offset="0.5" stopColor="#a52a1c" /><stop offset="1" stopColor="#6e170e" />
           </linearGradient>
-          <linearGradient id="mr-soft" x1="0.1" y1="0" x2="0.9" y2="1">
-            <stop offset="0" stopColor="#ebb4a6" /><stop offset="1" stopColor="#c9806e" />
+          <linearGradient id="mr-l1" x1="0.1" y1="0" x2="0.9" y2="1">
+            <stop offset="0" stopColor="#f0b0a2" /><stop offset="1" stopColor="#d98572" />
+          </linearGradient>
+          <linearGradient id="mr-l2" x1="0.1" y1="0" x2="0.9" y2="1">
+            <stop offset="0" stopColor="#e58a78" /><stop offset="1" stopColor="#c0503d" />
+          </linearGradient>
+          <linearGradient id="mr-l3" x1="0.1" y1="0" x2="0.9" y2="1">
+            <stop offset="0" stopColor="#d4533d" /><stop offset="1" stopColor="#a52a1c" />
+          </linearGradient>
+          <linearGradient id="mr-l4" x1="0.1" y1="0" x2="0.9" y2="1">
+            <stop offset="0" stopColor="#b53a28" /><stop offset="1" stopColor="#841c10" />
+          </linearGradient>
+          <linearGradient id="mr-l5" x1="0.1" y1="0" x2="0.9" y2="1">
+            <stop offset="0" stopColor="#8e2418" /><stop offset="1" stopColor="#5a0f08" />
           </linearGradient>
           <linearGradient id="mr-white" x1="0.1" y1="0" x2="0.9" y2="1">
             <stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#ece6e1" />

@@ -1004,8 +1004,8 @@ form.assign { padding: 10px 0; border-top: 1px solid var(--border); }
 .bodygraph .muscle.lv-4 { fill: color-mix(in srgb, var(--glow-4) 34%, transparent); stroke: var(--glow-4); stroke-width: 1.7; filter: url(#vol) url(#neon-glow); }
 .bodygraph .muscle.lv-5 { fill: color-mix(in srgb, var(--glow-5) 42%, transparent); stroke: var(--glow-5); stroke-width: 1.8; filter: url(#vol) url(#neon-glow); }
 .bodygraph .muscle:hover, .bodygraph .muscle:focus-visible { stroke: #ffffff; stroke-width: 2; }
-.radar .radar-grid { fill: none; stroke: var(--neon-line); stroke-width: 1; }
-.radar .radar-shape { fill: color-mix(in srgb, var(--neon) 22%, transparent); stroke: var(--neon); stroke-width: 2.5; stroke-linejoin: round; filter: url(#vol) url(#neon-glow); }
+.radar .radar-grid { fill: none; stroke: color-mix(in srgb, var(--neon) 45%, var(--neon-bg)); stroke-width: 1.2; }
+.radar .radar-shape { fill: color-mix(in srgb, var(--neon) 60%, transparent); stroke: var(--neon); stroke-width: 3; stroke-linejoin: round; filter: url(#vol) url(#neon-glow); }
 .radar .radar-dots { fill: var(--glow-5); }
 .radar .radar-labels { font-size: 19px; font-weight: 600; fill: #8f96a0; }
 .radar .radar-labels .on { fill: var(--glow-5); }
@@ -1833,3 +1833,23 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .ex-thumb-wrap:not(.fig) { background: color-mix(in srgb, var(--text) 6%, transparent); }
 .picker-list.cards .ex-thumb-wrap .ex-thumb { width: 100%; margin: 0; }
 .anim-canvas { background: #ffffff; border-radius: 14px; }
+
+/* Stufen deutlich unterscheidbar: heller = weniger, dunkler = mehr */
+.bodygraph.anat .muscle.lv-1 { fill: url(#mr-l1); stroke: #a8665a; }
+.bodygraph.anat .muscle.lv-2 { fill: url(#mr-l2); stroke: #a8665a; }
+.bodygraph.anat .muscle.lv-3 { fill: url(#mr-l3); stroke: #7a241b; }
+.bodygraph.anat .muscle.lv-4 { fill: url(#mr-l4); stroke: #5a150f; }
+.bodygraph.anat .muscle.lv-5 { fill: url(#mr-l5); stroke: #3d0c07; }
+.bodygraph.anat .muscle.focus-p { fill: url(#mr-l3); stroke: #7a241b; }
+.bodygraph.anat .muscle.focus-s { fill: url(#mr-l1); stroke: #a8665a; }
+.legend li:nth-child(1) .swatch { background: #ffffff !important; border-color: #bcaba0; }
+.legend li:nth-child(2) .swatch { background: #e49885 !important; } .legend li:nth-child(3) .swatch { background: #d06c57 !important; }
+.legend li:nth-child(4) .swatch { background: #b9402e !important; } .legend li:nth-child(5) .swatch { background: #981f13 !important; }
+.legend li:nth-child(6) .swatch { background: #6e170e !important; }
+.muscle-legend i.p { background: #b9402e; } .muscle-legend i.s { background: #e49885; }
+/* Muskel-Radar auf weißem Grund: dunkle Schrift, kräftige Fläche */
+.bodygraph-panel .radar .radar-labels { fill: #5d4a43; }
+.bodygraph-panel .radar .radar-labels .on { fill: #a52a1c; }
+.bodygraph-panel .radar .radar-grid { stroke: #cdbdb4; }
+.bodygraph-panel .radar .radar-shape { fill: rgba(181, 52, 36, 0.62); stroke: #8e2418; filter: none; }
+.bodygraph-panel .radar .radar-dots { fill: #8e2418; }

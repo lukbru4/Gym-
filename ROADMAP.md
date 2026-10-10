@@ -125,6 +125,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 78: Figur breiter/muskulöser, Muskelgruppen-Kacheln mit herangezoomtem Ausschnitt (nur eine Gruppe gleichzeitig, zuletzt gewählte gilt), Geräte-Chips (Maschine, Kabelturm, …) ganz oben statt Kategorie-Zeile, „Zurücksetzen“/Filter-Zeile entfernt
 - [x] Schritt 79: Körperfigur im Lehrbuch-Look (weißer Hintergrund, nicht beanspruchte Muskeln weiß, beanspruchte in Muskelrot mit Verlauf), auch in den Muskel-Kacheln
 - [x] Schritt 80: Übungskarten zeigen die Anatomie-Figur mit den beanspruchten Muskeln, Animation weiß/Muskelrot, Maschinen und Kabelzug zuerst in der Liste, Muskelgruppen-Filter nur nach Hauptmuskel
+- [x] Schritt 81: Beschriftung auf der Körperfigur entfernt, kräftigere Muskelfarben (Stufen 1–5 klar unterscheidbar), Muskel-Radar mit mehr Deckkraft auf weißem Grund, Legende angepasst
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
