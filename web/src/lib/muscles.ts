@@ -1,5 +1,5 @@
 // Muskelgruppen, Zuordnung der Übungen, Kraft-Stufe für den Körpergraphen und Übungs-Kategorien.
-import { CATALOG_MUSCLES, keywordsOf } from './exerciseCatalog';
+import { CATALOG_MUSCLES, keywordsOf, popularityOf, popularRank } from './exerciseCatalog';
 import { addDays, estimate1RM, isWorkingSet } from './stats';
 import type { DatedSet, Exercise, ExerciseMap, ISODate, MuscleId } from './types';
 
@@ -124,7 +124,7 @@ export function filterExercises(
   { query = '', category = 'alle', type = 'alle', muscles = [] }: { query?: string; category?: CategoryId; type?: TypeFilter; muscles?: MuscleId[] } = {},
 ): Exercise[] {
   const words = normalize(query).split(/\s+/).filter(Boolean);
-  return exercises.filter((ex) => {
+  const hits = exercises.filter((ex) => {
     if (category !== 'alle' && !exerciseCategories(ex).has(category)) return false;
     if (type !== 'alle' && ex.type !== type) return false;
     if (muscles.length && !musclesOf(ex).some((m) => muscles.includes(m))) return false;
@@ -132,4 +132,9 @@ export function filterExercises(
     const hay = normalize([ex.name, keywordsOf(ex.name), ...musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m)].join(' '));
     return words.every((w) => hay.includes(w));
   });
+  // Beliebte Übungen zuerst (Klassiker, dann häufige), danach der Rest nach Namen; bei gleicher Stufe bleibt die Katalog-Reihenfolge
+  return hits
+    .map((ex, i) => ({ ex, i, pop: popularityOf(ex.name) }))
+    .sort((a, b) => a.pop - b.pop || (a.pop < 3 ? popularRank(a.ex.name) - popularRank(b.ex.name) || a.i - b.i : a.ex.name.localeCompare(b.ex.name, 'de')))
+    .map((x) => x.ex);
 }

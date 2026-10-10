@@ -52,7 +52,7 @@ test('Übungsauswahl: Kategorien und Suche', async () => {
   ];
   const ids = (o) => filterExercises(list, o).map((e) => e.id);
   assert.deepEqual([...exerciseCategories(list[1])].sort(), ['arme', 'brust']);
-  assert.deepEqual(ids({}), [1, 2, 3, 4, 5]);
+  assert.deepEqual(ids({}), [1, 2, 5, 3, 4], 'Beliebte zuerst (Katalog-Klassiker), eigene Übungen danach');
   assert.deepEqual(ids({ category: 'brust' }), [1, 2]);
   assert.deepEqual(ids({ category: 'beine' }), [4]);
   assert.deepEqual(ids({ category: 'eigene' }), [4]);

@@ -18,7 +18,7 @@ describe('Übungskatalog', () => {
       if (c.type === 'strength') expect(c.muscles.length, c.name).toBeGreaterThan(0);
       for (const m of c.muscles) expect(ids.has(m), `${c.name}: ${m}`).toBe(true);
     }
-    expect(CATALOG.length).toBeGreaterThanOrEqual(300);
+    expect(CATALOG.length).toBeGreaterThanOrEqual(1000);
   });
   test('schema.sql enthält genau die Übungen des Katalogs (mit gleichen Muskeln)', () => {
     const block = sql.slice(sql.indexOf('insert into public.exercises (user_id, name, type, muscles) values'));
@@ -46,7 +46,7 @@ describe('Übungskatalog', () => {
   test('Lokale Daten aus Version 2 bekommen die neuen Übungen, eigene bleiben, nichts doppelt', () => {
     const old = { version: 2, nextId: 40, exercises: [{ id: 1, name: 'Bankdrücken', type: 'strength' as const, user_id: null, muscles: ['brust' as const] }, { id: 39, name: 'Arnold Press', type: 'strength' as const, user_id: 'local', muscles: [] }], workouts: [], sets: [], body_weights: [], templates: [] };
     const m = migrate(old as never);
-    expect(m.version).toBe(3);
+    expect(m.version).toBe(4);
     expect(m.exercises.filter((e) => e.name.toLowerCase() === 'arnold press').length).toBe(1);
     expect(m.exercises.filter((e) => e.name === 'Bankdrücken').length).toBe(1);
     expect(m.exercises.length).toBe(CATALOG.length + 1 - 1 + 0); // alle Katalog-Übungen + (eigene Arnold Press ersetzt den Katalogeintrag)

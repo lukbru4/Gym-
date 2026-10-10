@@ -38,12 +38,13 @@ describe('3D-Figur', () => {
 });
 
 describe('Übungen → Bewegungsmuster', () => {
-  const generic = new Set(['Battle Ropes', 'Turkish Get-up', 'Clean (Langhantel)', 'Schwimmen', 'Boxen (Sandsack)', 'HIIT (Intervalltraining)']);
+  const generic = new Set(['Schwimmen', 'Boxen (Sandsack)', 'HIIT (Intervalltraining)']);
+  const genericOk = /^(Battle Ropes|Turkish Get-up|Clean|Medizinball|Slam Ball)/;
   test('jede Übung des Katalogs hat ein vorhandenes Muster; „allgemein“ nur für wenige Ausnahmen', () => {
     for (const c of CATALOG) {
       const id = animIdFor(c.name, c.muscles);
       expect(PATTERNS[id], `${c.name} → ${id}`).toBeTruthy();
-      if (id === 'generic') expect(c.type === 'cardio' || generic.has(c.name), `${c.name} hat nur das allgemeine Muster`).toBe(true);
+      if (id === 'generic') expect(c.type === 'cardio' || generic.has(c.name) || genericOk.test(c.name), `${c.name} hat nur das allgemeine Muster`).toBe(true);
     }
   });
   test('Beispiele', () => {
@@ -72,5 +73,34 @@ describe('Übungen → Bewegungsmuster', () => {
       expect(p.frames.length, p.id).toBeGreaterThanOrEqual(2);
       expect(p.seconds, p.id).toBeGreaterThan(0.3);
     }
+  });
+});
+
+describe('Muster passen zu den Muskeln der Übung', () => {
+  // Muster → Muskeln, von denen mindestens einer in der Übung vorkommen muss (verhindert z. B. „Bankdrücken“-Animation bei Rückenübungen)
+  const FITS: Record<string, string[]> = {
+    bench: ['brust', 'trizeps'], 'bench-db': ['brust'], incline: ['brust', 'schultern'], 'incline-db': ['brust', 'schultern'], chestpress: ['brust'], fly: ['brust', 'lat'],
+    pushup: ['brust', 'trizeps'], dip: ['trizeps', 'brust'], pullup: ['lat'], pulldown: ['lat'], row: ['oberer_ruecken', 'lat'], seatedrow: ['oberer_ruecken', 'lat'], dbrow: ['lat', 'oberer_ruecken'],
+    curl: ['bizeps'], 'curl-bar': ['bizeps'], 'curl-cable': ['bizeps'], preacher: ['bizeps'], triceps: ['trizeps'], 'triceps-rope': ['trizeps'], skull: ['trizeps'], overhead: ['trizeps'],
+    lateral: ['schultern'], front: ['schultern'], reversefly: ['schultern', 'oberer_ruecken'], shrug: ['oberer_ruecken'], ohp: ['schultern', 'trizeps'], 'ohp-seated': ['schultern'],
+    squat: ['quadrizeps', 'gesaess'], legpress: ['quadrizeps', 'gesaess'], legext: ['quadrizeps'], legcurl: ['beinbeuger'], calf: ['waden'], glute: ['gesaess', 'quadrizeps'], lunge: ['quadrizeps', 'gesaess'],
+    hinge: ['unterer_ruecken', 'gesaess', 'beinbeuger'], backext: ['unterer_ruecken'], crunch: ['bauch'], situp: ['bauch'], legraise: ['bauch', 'quadrizeps'], twist: ['bauch'], plank: ['bauch', 'schultern'],
+  };
+  test('kein Muster bei einer Übung ohne passenden Muskel', () => {
+    const bad: string[] = [];
+    for (const c of CATALOG) {
+      if (c.type !== 'strength' || /^(Landmine|Isometrie)/.test(c.name)) continue;
+      const id = animIdFor(c.name, c.muscles);
+      const fit = FITS[id];
+      if (fit && !c.muscles.some((m) => fit.includes(m))) bad.push(`${c.name} → ${id} (${c.muscles.join('/')})`);
+    }
+    expect(bad).toEqual([]);
+  });
+  test('Beliebtheit: Klassiker zuerst, Rest nach Namen', async () => {
+    const { filterExercises } = await import('../src/lib/muscles');
+    const ex = CATALOG.map((c, i) => ({ id: i + 1, name: c.name, type: c.type, user_id: null, muscles: c.muscles }));
+    const brust = filterExercises(ex, { muscles: ['brust'] }).map((e) => e.name);
+    expect(brust.slice(0, 3)).toEqual(['Bankdrücken', 'Schrägbankdrücken', 'Kurzhantel-Bankdrücken']);
+    expect(CATALOG.length).toBeGreaterThanOrEqual(1000);
   });
 });

@@ -6,7 +6,7 @@ import type { Exercise, ExerciseType, Template, User } from '../lib/types';
 import type { Backend, LocalData } from './backend';
 
 export const STORAGE_KEY = 'gym-tracker-data';
-const VERSION = 3;
+const VERSION = 4;
 const LOCAL_USER: User = Object.freeze({ id: 'local', email: 'Lokal' });
 
 // Gleiche Standardübungen wie in supabase/schema.sql (beide kommen aus lib/exerciseCatalog.ts)
@@ -42,7 +42,7 @@ export function migrate(data: LocalData): LocalData {
   data.templates ??= [];
   for (const e of data.exercises) e.muscles ??= e.user_id ? [] : DEFAULT_MUSCLES[e.name] || [];
   for (const s of data.sets) s.is_warmup ??= false;
-  // Version 3: neue Standardübungen aus dem Katalog ergänzen (nicht, wenn es den Namen schon gibt)
+  // Ab Version 3 (und 4): neue Standardübungen aus dem Katalog ergänzen (nicht, wenn es den Namen schon gibt)
   const have = new Set(data.exercises.map((e) => e.name.toLowerCase()));
   for (const c of CATALOG) {
     if (have.has(c.name.toLowerCase())) continue;
