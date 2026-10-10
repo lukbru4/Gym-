@@ -27,8 +27,8 @@ export function WorkoutMuscles({ exercises, title = 'Heute trainierst du' }: { e
       <summary><strong>{title}</strong> <span className="muted small">{list.map(([m]) => MUSCLE_NAMES.get(m)).slice(0, 4).join(', ')}{list.length > 4 ? ' …' : ''}</span></summary>
       <BodyGraph focus={focus} labels />
       <div className="muscle-legend" aria-label="Legende">
-        <span><i className="p" />Hauptmuskel</span>
-        <span><i className="s" />Hilfsmuskel</span>
+        <span><i className="p" />Primär</span>
+        <span><i className="s" />Sekundär</span>
       </div>
       <ul className="chips-row" id="workout-muscle-list">
         {list.map(([m, role]) => (

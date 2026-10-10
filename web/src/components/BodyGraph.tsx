@@ -132,7 +132,7 @@ function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) 
       {muscles.filter((m) => !simple || focus?.has(m)).map((m) => {
         const r = levels.get(m) ?? { level: 0, gain: null, exercises: [] };
         const role = focus?.get(m);
-        const title = focus ? `${MUSCLE_NAMES.get(m)}${role === 'p' ? ': Hauptmuskel' : role === 's' ? ': Hilfsmuskel' : ''}` : `${MUSCLE_NAMES.get(m)}: ${r.level ? `Stufe ${r.level}` : 'noch nicht trainiert'}`;
+        const title = focus ? `${MUSCLE_NAMES.get(m)}${role === 'p' ? ': Primärer Muskel' : role === 's' ? ': Sekundärer Muskel' : ''}` : `${MUSCLE_NAMES.get(m)}: ${r.level ? `Stufe ${r.level}` : 'noch nicht trainiert'}`;
         const cls = focus ? `muscle focus-${role ?? 'off'}` : `muscle lv-${r.level}`;
         const paths = BODY_MAP[m][side]!.map((slug) => (data[slug] ? <g key={slug} data-slug={slug}><PartPaths part={data[slug]} /></g> : null));
         if (!onSelect) {

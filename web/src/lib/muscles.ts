@@ -143,6 +143,13 @@ const EQUIPMENT_TEST: Record<Exclude<EquipmentId, 'cardio' | 'eigene'>, RegExp> 
   kettlebell: /kettlebell/,
   band: /widerstandsband|\bband\b/,
 };
+/** Gerät einer Übung für die Anzeige („Ausrüstung“) */
+export const equipmentOf = (ex: Pick<Exercise, 'name' | 'type'>): string => {
+  if (ex.type === 'cardio') return 'Cardio-Gerät oder Strecke';
+  const probe = { ...ex, id: 0, user_id: null } as Exercise;
+  const hit = (['maschine', 'kabel', 'smith', 'kettlebell', 'band', 'kurzhantel', 'langhantel', 'koerpergewicht'] as EquipmentId[]).find((id) => matchesEquipment(probe, id));
+  return hit ? EQUIPMENT.find(([id]) => id === hit)![1] : 'Körpergewicht';
+};
 export const matchesEquipment = (ex: Exercise, id: EquipmentId): boolean => {
   if (id === 'cardio') return ex.type === 'cardio';
   if (id === 'eigene') return Boolean(ex.user_id);
