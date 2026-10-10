@@ -47,7 +47,7 @@ export function ExerciseInfo({ ex, onClose }: { ex: Pick<Exercise, 'name' | 'typ
       {id !== 'generic' && PATTERNS[id].name !== ex.name && <p className="muted small">Bewegungsablauf: {p.name}. Varianten (Gerät, Griff) sehen ähnlich aus.</p>}
       {muscles.length > 0 && (
         <div className="card info-map">
-          <h3>Diese Muskeln arbeiten</h3>
+          <h3>Zielmuskeln</h3>
           <BodyGraph focus={focusOf([{ name: ex.name, muscles, type: ex.type }]).focus} labels />
           <p className="info-muscles">{muscles.map((m, i) => <span className={`chip${i > 0 ? ' secondary' : ''}`} key={m}>{MUSCLE_NAMES.get(m) ?? m}{i === 0 ? ' (Hauptmuskel)' : ''}</span>)}</p>
         </div>

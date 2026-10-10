@@ -1,11 +1,13 @@
 // Übungsauswahl als eigene Vollbild-Seite: Suche + Kategorien (Brust, Rücken, …).
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
-import { CATEGORIES, MUSCLES, MUSCLE_NAMES, filterExercises, musclesOf, type CategoryId, type TypeFilter } from '../lib/muscles';
+import { CATEGORIES, MUSCLE_NAMES, filterExercises, musclesOf, type CategoryId, type TypeFilter } from '../lib/muscles';
 import type { MuscleId } from '../lib/types';
 import { keywordsOf } from '../lib/exerciseCatalog';
 import type { Exercise } from '../lib/types';
 import { ExerciseInfo } from './ExerciseInfo';
+import { MuscleStrip } from './MuscleStrip';
+import { ExerciseThumb } from './ExerciseThumb';
 
 export function ExercisePicker(props: {
   added: Set<number>;
@@ -73,6 +75,7 @@ export function ExercisePicker(props: {
           </button>
         ))}
       </div>
+      <MuscleStrip selected={muscles} onToggle={toggleMuscle} />
       <div className="picker-filter">
         <button type="button" className="btn small-btn" id="filter-toggle" aria-expanded={filterOpen} onClick={() => setFilterOpen((o) => !o)}>
           Filter{activeFilters ? ` (${activeFilters})` : ''} {filterOpen ? '▴' : '▾'}
@@ -88,19 +91,14 @@ export function ExercisePicker(props: {
               <button key={id} type="button" className="picker-cat" data-type={id} aria-selected={type === id} onClick={() => setType(id)}>{label}</button>
             ))}
           </div>
-          <p className="muted small">Muskelgruppen (mehrere möglich)</p>
-          <div className="picker-cats wrap" role="group" aria-label="Muskelgruppen">
-            {MUSCLES.map(([id, label]) => (
-              <button key={id} type="button" className="picker-cat" data-muscle={id} aria-selected={muscles.includes(id)} aria-pressed={muscles.includes(id)} onClick={() => toggleMuscle(id)}>{label}</button>
-            ))}
-          </div>
         </div>
       )}
       {info && <ExerciseInfo ex={info} onClose={() => setInfo(null)} />}
-      <ul className="picker-list">
+      <ul className="picker-list cards">
         {found.map((ex) => (
           <li key={ex.id}>
             <button type="button" className="picker-item" data-id={ex.id} onClick={() => props.onPick(ex)}>
+              <ExerciseThumb name={ex.name} muscles={musclesOf(ex)} />
               <span className="picker-name">
                 {ex.name}
                 {ex.user_id && <span className="muted"> ★</span>}

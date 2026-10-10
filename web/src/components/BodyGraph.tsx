@@ -1,32 +1,30 @@
-// Körpergraph: Neon-Drahtgitter von vorne und hinten; trainierte Muskeln leuchten je nach Stufe.
+// Körpergraph: Anatomie-Zeichnung (hellgrauer Körper) von vorne und hinten; beanspruchte/trainierte Muskeln sind rot.
+// Die Muskelflächen stammen aus einem MIT-lizenzierten Anatomie-Datensatz (siehe lib/anatomy.ts und THIRD_PARTY.md).
 import { useLayoutEffect, useRef, useState } from 'react';
-import { BACK, BACK_LINES, BACK_NEUTRAL, EAR, FACE_FRONT, FRONT, FRONT_LINES, FRONT_NEUTRAL, HEAD_BACK, HEAD_PATH, OUTLINE } from '../lib/bodyShapes';
-import { FIGURE_BOTTOM, stretchPath } from '../lib/bodyScale';
+import { ANATOMY, type AnatomyPart } from '../lib/anatomy';
 import { useCosmetics } from '../lib/cosmetics';
 import { MUSCLE_NAMES, type MuscleLevel } from '../lib/muscles';
 import type { MuscleId } from '../lib/types';
 
-const MIRROR = 'matrix(-1 0 0 1 200 0)';
-
-/** Pfad links + gespiegelt rechts */
-const Both = ({ d }: { d: string }) => {
-  const e = stretchPath(d); // Beine verlängert
-  return (
-    <>
-      <path d={e} />
-      <path d={e} transform={MIRROR} />
-    </>
-  );
+/** Welche Flächen der Zeichnung zu welcher unserer Muskelgruppen gehören (vorne/hinten) */
+export const BODY_MAP: Record<MuscleId, { front?: string[]; back?: string[] }> = {
+  brust: { front: ['chest'] },
+  schultern: { front: ['deltoids'], back: ['deltoids'] },
+  bizeps: { front: ['biceps'] },
+  trizeps: { front: ['triceps'], back: ['triceps'] },
+  bauch: { front: ['abs', 'obliques'] },
+  oberer_ruecken: { front: ['trapezius'], back: ['trapezius'] },
+  lat: { back: ['upper-back'] },
+  unterer_ruecken: { back: ['lower-back'] },
+  gesaess: { back: ['gluteal'] },
+  quadrizeps: { front: ['quadriceps', 'adductors'] },
+  beinbeuger: { back: ['hamstring'] },
+  waden: { front: ['calves', 'tibialis'], back: ['calves'] },
 };
-/** Größerer Kopf: vom Hals (y ≈ 64) aus vergrößern */
-const HEAD_T = 'translate(100 64) scale(1.24) translate(-100 -64)';
-const Paths = ({ list }: { list: string[] }) => (
-  <>
-    {list.map((d, i) => (
-      <Both key={i} d={d} />
-    ))}
-  </>
-);
+/** Auf dem Körper nicht beschriften (Platz/Überschneidung) */
+const NO_LABEL: Record<'front' | 'back', MuscleId[]> = { front: ['trizeps', 'oberer_ruecken'], back: [] };
+const MUSCLE_ORDER = Object.keys(BODY_MAP) as MuscleId[];
+const USED = (side: 'front' | 'back') => new Set(MUSCLE_ORDER.flatMap((m) => BODY_MAP[m][side] ?? []));
 
 export const GlowFilter = () => (
   <defs>
@@ -75,92 +73,78 @@ export const GlowFilter = () => (
 
 /** Kurznamen für die Beschriftung auf dem Körper */
 const SHORT: Record<MuscleId, string> = {
-  brust: 'Brust', schultern: 'Schultern', bizeps: 'Bizeps', trizeps: 'Trizeps', bauch: 'Bauch', oberer_ruecken: 'Oberer Rücken', lat: 'Lat',
+  brust: 'Brust', schultern: 'Schultern', bizeps: 'Bizeps', trizeps: 'Trizeps', bauch: 'Bauch', oberer_ruecken: 'Nacken', lat: 'Lat',
   unterer_ruecken: 'Unt. Rücken', gesaess: 'Gesäß', quadrizeps: 'Quadrizeps', beinbeuger: 'Beinbeuger', waden: 'Waden',
 };
 export type Focus = Map<MuscleId, 'p' | 's'>;
 
+const PartPaths = ({ part }: { part: AnatomyPart }) => (
+  <>
+    {(part.c ?? []).map((d, i) => <path key={`c${i}`} d={d} className="c" />)}
+    {(part.l ?? []).map((d, i) => <path key={`l${i}`} d={d} className="l" />)}
+    {(part.r ?? []).map((d, i) => <path key={`r${i}`} d={d} className="r" />)}
+  </>
+);
+
 interface FigureProps {
-  parts: Partial<Record<MuscleId, string[]>>;
-  neutral: string[];
-  lines: string[];
+  side: 'front' | 'back';
+  /** nur Umriss + hervorgehobene Muskeln zeichnen (kleine Vorschau) */
+  simple?: boolean;
   levels: Map<MuscleId, MuscleLevel>;
   focus?: Focus;
   labels?: boolean;
-  offsetX: number;
-  /** Gesichtslinien (vorne) bzw. Hinterkopf (hinten) */
-  face: string;
   onSelect?: (m: MuscleId) => void;
 }
 
-function Figure({ parts, neutral, lines, levels, focus, labels, offsetX, face, onSelect }: FigureProps) {
+function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) {
   const ref = useRef<SVGGElement>(null);
   const [pos, setPos] = useState<Partial<Record<MuscleId, [number, number]>>>({});
-  // Beschriftung: Mitte der linken Muskelfläche messen (die rechte ist gespiegelt)
+  const data = ANATOMY[side];
+  const muscles = MUSCLE_ORDER.filter((m) => BODY_MAP[m][side]);
+  const used = USED(side);
+  // Beschriftung: Mitte der linken Fläche messen; mittige Muskeln über die ganze Gruppe
   useLayoutEffect(() => {
     if (!labels || !ref.current) return;
     const next: Partial<Record<MuscleId, [number, number]>> = {};
-    for (const m of Object.keys(parts) as MuscleId[]) {
-      // mittige Muskeln (Brust, Bauch, Rücken, Gesäß) über beide Hälften, sonst die linke Fläche
-      const centered = ['brust', 'bauch', 'oberer_ruecken', 'unterer_ruecken', 'gesaess'].includes(m);
-      const el = ref.current.querySelector<SVGGraphicsElement>(centered ? `[data-muscle="${m}"]` : `[data-muscle="${m}"] path`);
+    for (const m of muscles.filter((x) => !NO_LABEL[side].includes(x) && (!focus || focus.has(x)))) {
+      const centered = ['brust', 'bauch', 'oberer_ruecken', 'unterer_ruecken', 'gesaess', 'lat'].includes(m);
+      const g = ref.current.querySelector<SVGGraphicsElement>(`[data-muscle="${m}"]`);
+      const el = centered ? g : g?.querySelector<SVGGraphicsElement>('path.l, path.c') ?? g;
       if (!el) continue;
       const b = el.getBBox();
       next[m] = [b.x + b.width / 2, b.y + b.height / 2];
     }
     setPos(next);
-  }, [labels, parts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [labels, side, focus]);
   return (
-    <g transform={`translate(${offsetX} 0)`} ref={ref}>
-      <g className="body-base">
-        <Both d={OUTLINE} />
-        <path d={HEAD_PATH} transform={HEAD_T} />
-        <path d={EAR} transform={HEAD_T} />
-        <path d={EAR} transform={`${HEAD_T} ${MIRROR}`} />
-      </g>
-      <g className="body-neutral">
-        <Paths list={neutral} />
-      </g>
-      {(Object.entries(parts) as [MuscleId, string[]][]).map(([m, list]) => {
+    <g ref={ref} data-side={side}>
+      <path d={ANATOMY.outline[side]} className="body-outline" />
+      {!simple && <g className="body-neutral">
+        {Object.entries(data).filter(([slug]) => !used.has(slug)).map(([slug, part]) => (
+          <g key={slug} data-slug={slug}><PartPaths part={part} /></g>
+        ))}
+      </g>}
+      {muscles.filter((m) => !simple || focus?.has(m)).map((m) => {
         const r = levels.get(m) ?? { level: 0, gain: null, exercises: [] };
         const role = focus?.get(m);
         const title = focus ? `${MUSCLE_NAMES.get(m)}${role === 'p' ? ': Hauptmuskel' : role === 's' ? ': Hilfsmuskel' : ''}` : `${MUSCLE_NAMES.get(m)}: ${r.level ? `Stufe ${r.level}` : 'noch nicht trainiert'}`;
         const cls = focus ? `muscle focus-${role ?? 'off'}` : `muscle lv-${r.level}`;
+        const paths = BODY_MAP[m][side]!.map((slug) => (data[slug] ? <g key={slug} data-slug={slug}><PartPaths part={data[slug]} /></g> : null));
         if (!onSelect) {
           return (
             <g key={m} className={`${cls} static`} data-muscle={m}>
-              <Paths list={list} />
+              {paths}
             </g>
           );
         }
         return (
-          <g
-            key={m}
-            className={cls}
-            data-muscle={m}
-            tabIndex={0}
-            role="img"
-            aria-label={title}
-            onClick={() => onSelect(m)}
-            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(m)}
-          >
+          <g key={m} className={cls} data-muscle={m} tabIndex={0} role="img" aria-label={title} onClick={() => onSelect(m)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(m)}>
             <title>{title}</title>
-            <Paths list={list} />
+            {paths}
           </g>
         );
       })}
-      <g className="muscle-fibers" aria-hidden="true">
-        {(Object.entries(parts) as [MuscleId, string[]][]).map(([m, list]) => (
-          <g key={m}>
-            <Paths list={list} />
-          </g>
-        ))}
-        <Paths list={neutral} />
-      </g>
-      <g className="body-lines">
-        <Paths list={lines} />
-        <path d={face} className="face-lines" transform={HEAD_T} />
-      </g>
       {labels && (
         <g className="muscle-labels" aria-hidden="true">
           {(Object.keys(pos) as MuscleId[]).map((m) => {
@@ -180,21 +164,19 @@ function Figure({ parts, neutral, lines, levels, focus, labels, offsetX, face, o
 }
 
 /** skin: Shop-Look; ohne Angabe der eigene ausgerüstete Look */
-export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = false }: { levels?: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void; skin?: string | null; /** Übungs-/Trainingsansicht: Hauptmuskel (p) und Hilfsmuskel (s) statt Kraft-Stufen */ focus?: Focus; labels?: boolean }) {
+export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = false, view = 'both', simple = false }: { levels?: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void; skin?: string | null; /** Übungs-/Trainingsansicht: Hauptmuskel (p) und Hilfsmuskel (s) statt Kraft-Stufen */ focus?: Focus; labels?: boolean; /** nur von vorne oder nur von hinten */ view?: 'both' | 'front' | 'back'; simple?: boolean }) {
   const own = useCosmetics().equipped.skin;
   return (
     <div className="bodygraph-panel" data-skin={skin === undefined ? own : skin ?? undefined}>
       <svg
-        className="bodygraph"
-        viewBox={`0 -6 470 ${Math.ceil(FIGURE_BOTTOM) + 10}`}
+        className={`bodygraph anat${view !== 'both' ? ' single' : ''}${simple ? ' mini' : ''}`}
+        viewBox={view === 'front' ? '0 0 724 1448' : view === 'back' ? '724 0 724 1448' : '0 0 1448 1448'}
         role="group"
         aria-label={focus ? 'Körper: beanspruchte Muskeln, links von vorne, rechts von hinten' : 'Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten'}
       >
-        <GlowFilter />
-        <Figure parts={FRONT} neutral={FRONT_NEUTRAL} lines={FRONT_LINES} levels={levels} focus={focus} labels={labels} offsetX={0} face={FACE_FRONT} onSelect={onSelect} />
-        <Figure parts={BACK} neutral={BACK_NEUTRAL} lines={BACK_LINES} levels={levels} focus={focus} labels={labels} offsetX={270} face={HEAD_BACK} onSelect={onSelect} />
+        {view !== 'back' && <Figure side="front" simple={simple} levels={levels} focus={focus} labels={labels} onSelect={onSelect} />}
+        {view !== 'front' && <Figure side="back" simple={simple} levels={levels} focus={focus} labels={labels} onSelect={onSelect} />}
       </svg>
     </div>
   );
 }
-

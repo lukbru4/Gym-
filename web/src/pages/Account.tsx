@@ -312,6 +312,7 @@ export function Account() {
       <div className="card" id="legal">
         <h3>Rechtliches</h3>
         <LegalLinks />
+        <p className="muted small">Die Körper-Zeichnung stammt aus dem Open-Source-Paket „react-muscle-highlighter“ (MIT-Lizenz, © My Muscle Contributors; abgeleitet von „react-native-body-highlighter“, © 2022 ELABBASSI Hicham). Lizenztexte: THIRD_PARTY.md im Quellcode.</p>
       </div>
     </>
   );

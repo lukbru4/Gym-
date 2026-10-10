@@ -121,6 +121,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 74: Gewichtsvorschläge im Training (Doppelte Progression: alle Sätze im Zielbereich → nächstes Mal mehr Gewicht), Muskeltextur (Verlauf + Fasern) im Körpergraph
 - [x] Schritt 75: Körpergraph-Farben umgekehrt (untrainiert hell, trainiert dunkel; Beschriftung angepasst)
 - [x] Schritt 76: Übungskatalog auf 1.118 Übungen (Varianten nach Gerät/Griff/Haltung, mehr Cardio und Sport), beliebte Übungen zuerst, Bewegungsmuster-Zuordnung korrigiert (z. B. Reverse Butterfly, Kettlebell-Varianten, Schrägbank), Test „Muster passt zum Muskel“. Datenbank-Version 51 (neues SQL nötig)
+- [x] Schritt 77: neue Körperfigur (Anatomie-Zeichnung hellgrau, Muskeln rot; MIT-Datensatz, THIRD_PARTY.md), Muskelgruppen-Leiste mit Mini-Figuren und Übungskarten mit Standbild in der Übungsauswahl, „Zielmuskeln“ im Detail
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

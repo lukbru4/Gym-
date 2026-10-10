@@ -7,7 +7,7 @@ const css = (name: string, fallback: string) => {
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return v || fallback;
 };
-const readColors = (): Colors => ({
+export const readColors = (): Colors => ({
   body: '#a9b0bd', bodyDark: '#4b5160', accent: css('--accent', '#e8222f'), accent2: '#f5a524', prop: '#d7dae0', propDark: '#7a8090', floor: 'rgba(160,165,175,0.18)', text: css('--text', '#fff'),
 });
 
