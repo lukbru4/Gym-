@@ -129,6 +129,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 82: Animation mit Kabelturm (Rahmen, Umlenkrolle, Gewichtsblock) und Maschinen (Gewichtsblock, Hebel); Karten im hellen Design lesbar (Kartenfarbe aus dem Theme)
 - [x] Schritt 83: Übungsseite wie eine Fitness-Bibliothek: Reiter Über/Statistiken/Verlauf, „Wie protokollieren?“, Trainierte Muskeln mit Primär/Sekundär, Ausrüstung, nummerierte Anleitungen
 - [x] Schritt 84: Übungsfotos – Bildplätze in der App (Training, Karten, Detail; Start-/Endbild im Wechsel, sonst Animation), Bild-Aufträge für die 100 beliebtesten Übungen in docs/bild-auftraege.md
+- [x] Schritt 85: Animationsfigur kräftiger (breitere Schultern, dickere Arme/Beine, kurze dunkle Haare, dunkle Shorts, graue Haut, hellgrauer Grund); Animation zeichnet nur noch, wenn sichtbar (spart Akku)
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

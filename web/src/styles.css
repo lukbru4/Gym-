@@ -1689,7 +1689,7 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 
 /* Übungs-Animation */
 .anim { display: flex; flex-direction: column; gap: 6px; }
-.anim-canvas { width: 100%; border-radius: 14px; background: #ffffff; touch-action: none; cursor: grab; }
+.anim-canvas { width: 100%; border-radius: 14px; background: #e3e3e7; touch-action: none; cursor: grab; }
 .anim-ctrl { display: flex; align-items: center; gap: 8px; }
 .anim-ctrl .muted { margin-left: auto; }
 .anim-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
@@ -1700,7 +1700,7 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .picker-list li { position: relative; }
 .picker-info { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border, rgba(255,255,255,0.15)); background: var(--bg-card, rgba(255,255,255,0.05)); color: var(--accent); font-size: 0.85rem; cursor: pointer; }
 .picker-item { padding-right: 56px; }
-.ex-info .anim-canvas { background: #ffffff; }
+.ex-info .anim-canvas { background: #e3e3e7; }
 .info-muscles { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .chip { padding: 4px 10px; border-radius: 999px; background: var(--accent); color: var(--accent-text, #fff); font-size: 0.82rem; }
 .info-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 6px; }

@@ -147,13 +147,13 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
   quad(j.shL, j.shR, wr, wl, toneFor(upperSeg));
   quad(wl, wr, j.hipR, j.hipL, toneFor(lowerSeg));
   taper(hpMid, waist, 0.115, 0.1, toneFor(lowerSeg), -0.006);
-  taper(waist, shMid, 0.1, 0.13, toneFor(upperSeg), -0.006);
+  taper(waist, shMid, 0.11, 0.15, toneFor(upperSeg), -0.006);
 
   // Beine
   for (const side of ['L', 'R'] as const) {
     const hip = j[`hip${side}` as 'hipL'], kn = j[`kn${side}` as 'knL'], an = j[`an${side}` as 'anL'], toe = j[`toe${side}` as 'toeL'], heel = j[`heel${side}` as 'heelL'];
-    part(hip, kn, 0.092, 0.064, 'thighs', [0.08, 0.95, 1.14]);
-    part(kn, an, 0.058, 0.038, 'calves', [0.04, 0.62, 1.26]);
+    part(hip, kn, 0.112, 0.074, 'thighs', [0.08, 0.95, 1.14]);
+    part(kn, an, 0.066, 0.042, 'calves', [0.04, 0.62, 1.26]);
     taper(an, toe, 0.036, 0.028, T.body);
     taper(an, heel, 0.036, 0.03, T.body);
     sphere(hip, roleOf('glutes') ? 0.105 : 0.092, toneFor('glutes'), -0.01);
@@ -162,14 +162,22 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
   // Arme
   for (const side of ['L', 'R'] as const) {
     const sh = j[`sh${side}` as 'shL'], el = j[`el${side}` as 'elL'], wr2 = j[`wr${side}` as 'wrL'], hd = j[`hand${side}` as 'handL'];
-    part(sh, el, 0.056, 0.044, 'upperArms', [0.12, 0.92, 1.18]);
-    part(el, wr2, 0.046, 0.032, 'forearms', [0.06, 0.8, 1.16]);
+    part(sh, el, 0.07, 0.054, 'upperArms', [0.12, 0.92, 1.18]);
+    part(el, wr2, 0.054, 0.036, 'forearms', [0.06, 0.8, 1.16]);
     taper(wr2, hd, 0.034, 0.026, T.body);
-    sphere(sh, roleOf('shoulders') ? 0.085 : 0.066, toneFor('shoulders'), -0.01);
+    sphere(sh, roleOf('shoulders') ? 0.1 : 0.082, toneFor('shoulders'), -0.01);
     sphere(el, 0.046, T.body, -0.004);
   }
-  taper(j.chest, j.neckTop, 0.048, 0.04, T.body);
+  taper(j.chest, j.neckTop, 0.06, 0.05, T.body);
   sphere(j.head, 0.105, T.body, 0);
+  // kurze dunkle Haare und dunkle Shorts
+  const HAIR = toneOf('#3b2a22'), SHORTS = toneOf('#2a2d34');
+  sphere([j.head[0], j.head[1] + 0.045, j.head[2] - 0.012], 0.1, HAIR, -0.004);
+  for (const side of ['L', 'R'] as const) {
+    const hip = j[`hip${side}` as 'hipL'], kn = j[`kn${side}` as 'knL'];
+    taper(hip, lerp3(hip, kn, 0.46), 0.122, 0.104, SHORTS, -0.012);
+  }
+  taper(hpMid, waist, 0.125, 0.11, SHORTS, -0.012);
 
   // Hilfsmittel
   const H: PropHelpers = {

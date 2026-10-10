@@ -4,7 +4,7 @@ import { frameOf, drawScene, type Colors, type Focus } from '../lib/drawFigure';
 import { PATTERNS, type Segment } from '../lib/animations';
 
 export const readColors = (): Colors => ({
-  body: '#f3eeea', bodyDark: '#a2948b', accent: '#a8402f', accent2: '#d99a8a', prop: '#c9ced8', propDark: '#7a8090', floor: 'rgba(120,110,105,0.16)', text: '#2a1d1a',
+  body: '#aeb4be', bodyDark: '#5d6370', accent: '#d9332a', accent2: '#ec8a7c', prop: '#d3d6dd', propDark: '#4a4f5c', floor: 'rgba(90,94,104,0.18)', text: '#1c2230',
 });
 
 export function ExerciseAnim({ id, highlight, height = 300, autoplay = true, label, fixedU, compact = false }: { id: string; highlight?: { primary: Segment[]; secondary: Segment[] }; height?: number; autoplay?: boolean; label?: string; /** Standbild (0 = Start, 0,5 = Endstellung) */ fixedU?: number; compact?: boolean }) {
@@ -15,6 +15,7 @@ export function ExerciseAnim({ id, highlight, height = 300, autoplay = true, lab
   const az = useRef(pattern.azimuth);
   const el = useRef(14);
   const u = useRef(fixedU ?? 0);
+  const dirty = useRef(true);
   const frame = useMemo(() => frameOf(pattern), [pattern]);
   const key = highlight ? `${highlight.primary.join(',')}|${highlight.secondary.join(',')}` : '';
   const hi = useMemo<Focus>(() => {
@@ -33,12 +34,19 @@ export function ExerciseAnim({ id, highlight, height = 300, autoplay = true, lab
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    dirty.current = true;
     let raf = 0;
     let last = performance.now();
     const colors = readColors();
+    // Nur zeichnen, solange die Fläche sichtbar ist; im Standbild nur bei Änderung (spart Akku und Rechenzeit)
+    let visible = true;
+    const io = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver((es) => { visible = es.some((e) => e.isIntersecting); dirty.current = true; }) : null;
+    io?.observe(canvas);
     const render = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
+      if (!visible || (!playing && !dirty.current)) { raf = requestAnimationFrame(render); return; }
+      dirty.current = false;
       if (playing) u.current = (u.current + (dt * speed) / pattern.seconds) % 1;
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -51,7 +59,7 @@ export function ExerciseAnim({ id, highlight, height = 300, autoplay = true, lab
       raf = requestAnimationFrame(render);
     };
     raf = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(raf);
+    return () => { cancelAnimationFrame(raf); io?.disconnect(); };
   }, [pattern, playing, speed, frame, hi]);
 
   // Ziehen = drehen und kippen
@@ -62,6 +70,7 @@ export function ExerciseAnim({ id, highlight, height = 300, autoplay = true, lab
   };
   const onMove = (e: React.PointerEvent) => {
     if (!drag.current) return;
+    dirty.current = true;
     az.current += (e.clientX - drag.current.x) * 0.6;
     el.current = Math.max(-10, Math.min(60, el.current + (e.clientY - drag.current.y) * 0.3));
     drag.current = { x: e.clientX, y: e.clientY };
@@ -70,7 +79,7 @@ export function ExerciseAnim({ id, highlight, height = 300, autoplay = true, lab
 
   return (
     <div className="anim" data-anim={pattern.id}>
-      <canvas ref={ref} className="anim-canvas" style={{ height }} role="img" aria-label={label ?? pattern.name} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={() => { az.current = pattern.azimuth; el.current = 14; }} />
+      <canvas ref={ref} className="anim-canvas" style={{ height }} role="img" aria-label={label ?? pattern.name} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={() => { az.current = pattern.azimuth; el.current = 14; dirty.current = true; }} />
       {!compact && <div className="anim-ctrl">
         <button type="button" className="btn small-btn" data-anim-play onClick={() => setPlaying((p) => !p)} aria-label={playing ? 'Pause' : 'Abspielen'}>{playing ? '❚❚' : '▶'}</button>
         <button type="button" className="btn small-btn" data-anim-speed onClick={() => setSpeed((s) => (s === 1 ? 0.5 : s === 0.5 ? 1.5 : 1))}>{speed === 1 ? '1×' : speed === 0.5 ? '0,5×' : '1,5×'}</button>
