@@ -177,6 +177,18 @@ export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = 
         role="group"
         aria-label={focus ? 'Körper: beanspruchte Muskeln, links von vorne, rechts von hinten' : 'Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten'}
       >
+        <defs>
+          {/* Muskelrot mit Verlauf: jede Muskelfläche wirkt gewölbt */}
+          <linearGradient id="mr-strong" x1="0.1" y1="0" x2="0.9" y2="1">
+            <stop offset="0" stopColor="#d2705a" /><stop offset="0.5" stopColor="#a8402f" /><stop offset="1" stopColor="#7a241b" />
+          </linearGradient>
+          <linearGradient id="mr-soft" x1="0.1" y1="0" x2="0.9" y2="1">
+            <stop offset="0" stopColor="#ebb4a6" /><stop offset="1" stopColor="#c9806e" />
+          </linearGradient>
+          <linearGradient id="mr-white" x1="0.1" y1="0" x2="0.9" y2="1">
+            <stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#ece6e1" />
+          </linearGradient>
+        </defs>
         {view !== 'back' && <Figure side="front" simple={simple} levels={levels} focus={focus} labels={labels} onSelect={onSelect} />}
         {view !== 'front' && <Figure side="back" simple={simple} levels={levels} focus={focus} labels={labels} onSelect={onSelect} />}
       </svg>
