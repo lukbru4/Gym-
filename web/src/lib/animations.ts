@@ -11,7 +11,8 @@ export type Prop =
   | { kind: 'kettlebell' }
   | { kind: 'bench'; angle?: number }                 // Winkel der Rückenlehne (0 = flach)
   | { kind: 'seat'; back?: number }                    // Sitz mit Lehne (Maschine)
-  | { kind: 'cable'; from: V3 }                        // Kabelzug von der Rolle zu den Händen
+  | { kind: 'cable'; from: V3 }                        // Kabelzug von der Rolle zu den Händen (mit Kabelturm samt Gewichtsblock)
+  | { kind: 'stack'; dz?: number; lever?: boolean }    // Gewichtsblock mit Rahmen hinter dem Sitz (Maschine); lever = Druckhebel zu den Händen
   | { kind: 'bar'; y: number }
   | { kind: 'dipbars'; y: number }
   | { kind: 'pullbar' }                                // Zugstange am Kabel (Latziehen)                         // feste Stange (Klimmzug)
@@ -96,14 +97,14 @@ def({
   mistakes: ['Das Becken hebt sich unten ab (Rücken rundet).', 'Knie komplett durchgedrückt.', 'Zu wenig Tiefe.'],
 });
 def({
-  id: 'legext', name: 'Beinstrecker', seconds: 2.8, azimuth: 85, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 8 }],
+  id: 'legext', name: 'Beinstrecker', seconds: 2.8, azimuth: 85, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 8 }, { kind: 'stack' }],
   base: { trunk: -8, ...arms(10, 0, 40, 0), hipL: 80, hipR: 80 },
   frames: [F({ kneeL: 95, kneeR: 95 }), F({ kneeL: 4, kneeR: 4 })],
   cues: ['Kniegelenk auf Höhe der Drehachse der Maschine.', 'Oben kurz anspannen.', 'Langsam senken.'],
   mistakes: ['Schwung statt Muskelkraft.', 'Das Gesäß hebt vom Sitz ab.'],
 });
 def({
-  id: 'legcurl', name: 'Beinbeuger', seconds: 2.8, azimuth: 80, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'bench' }],
+  id: 'legcurl', name: 'Beinbeuger', seconds: 2.8, azimuth: 80, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'bench' }, { kind: 'stack', dz: 0.25 }],
   base: { trunk: 90, hipL: 0, hipR: 0, ...arms(70, 0, 95, 0) },
   frames: [F({ hipL: -92, hipR: -92, kneeL: 0, kneeR: 0 }), F({ hipL: -92, hipR: -92, kneeL: 115, kneeR: 115 })],
   cues: ['Hüfte bleibt auf der Auflage.', 'Fersen zum Gesäß ziehen.', 'Langsam wieder strecken.'],
@@ -158,7 +159,7 @@ def({
   mistakes: ['Zu tiefes Absenken (Schulter überdehnt).', 'Die Ellbogen strecken oder beugen sich ständig.'],
 });
 def({
-  id: 'chestpress', name: 'Brustpresse (Maschine)', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.42 }, props: [{ kind: 'seat', back: 0 }],
+  id: 'chestpress', name: 'Brustpresse (Maschine)', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.42 }, props: [{ kind: 'seat', back: 0 }, { kind: 'stack', lever: true }],
   base: { trunk: -2, ...legs(85, 85) },
   frames: [F({ ...arms(72, 45, 92, 5) }), F({ ...arms(88, 3, 90, 0) })],
   cues: ['Sitzhöhe so, dass die Griffe auf Brusthöhe sind.', 'Rücken fest an der Lehne.', 'Nach vorn drücken, Arme nicht komplett durchstrecken.'],
@@ -185,7 +186,7 @@ def({
   mistakes: ['Starkes Hohlkreuz.', 'Die Ellbogen zeigen zu weit nach vorn oder hinten.'],
 });
 def({
-  id: 'ohp-seated', name: 'Schulterdrücken (sitzend / Maschine)', seconds: 3, azimuth: 55, anchor: { on: 'surface', y: 0.42 }, props: [{ kind: 'seat', back: 0 }, { kind: 'dumbbells' }],
+  id: 'ohp-seated', name: 'Schulterdrücken (sitzend / Maschine)', seconds: 3, azimuth: 55, anchor: { on: 'surface', y: 0.42 }, props: [{ kind: 'seat', back: 0 }, { kind: 'stack' }, { kind: 'dumbbells' }],
   base: { trunk: 0, ...legs(88, 88) },
   frames: [F({ ...arms(110, 70, 160, 25) }), F({ ...arms(172, 12, 176, 8) })],
   cues: ['Rücken an der Lehne, Rumpf fest.', 'Unterarme bleiben senkrecht.', 'Oben nicht die Schultern hochziehen.'],
@@ -243,7 +244,7 @@ def({
   mistakes: ['Der Oberkörper dreht auf.', 'Zu viel Schwung.'],
 });
 def({
-  id: 'pulldown', name: 'Latziehen', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 0 }, { kind: 'pullbar' }],
+  id: 'pulldown', name: 'Latziehen', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 0 }, { kind: 'stack', dz: -0.3 }, { kind: 'pullbar' }],
   base: { ...legs(88, 88), trunk: -8 },
   frames: [F({ ...arms(172, 25, 176, 20) }), F({ ...arms(55, 70, 170, 35), trunk: -14 })],
   cues: ['Leicht zurücklehnen, Brust raus.', 'Stange zur oberen Brust ziehen, nicht in den Nacken.', 'Schulterblätter nach unten-hinten ziehen.', 'Arme oben nicht komplett durchhängen lassen.'],
