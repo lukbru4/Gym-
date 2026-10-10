@@ -172,6 +172,7 @@ export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = 
   return (
     <div className="bodygraph-panel" data-skin={skin === undefined ? own : skin ?? undefined}>
       <svg
+        preserveAspectRatio={box ? 'xMidYMid slice' : undefined}
         className={`bodygraph anat${view !== 'both' ? ' single' : ''}${simple ? ' mini' : ''}`}
         viewBox={box ? box.join(' ') : view === 'front' ? '0 0 724 1448' : view === 'back' ? '724 0 724 1448' : '0 0 1448 1448'}
         role="group"

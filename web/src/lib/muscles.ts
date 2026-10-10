@@ -116,7 +116,7 @@ export function exerciseCategories(ex: Exercise): Set<CategoryId> {
 /** Kleinschreibung ohne Akzente/Umlaut-Punkte: „drucken“ findet „Drücken“ */
 const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
 
-/** Filtert nach Kategorie, Art (Kraft/Cardio), gewählten Muskelgruppen (mindestens eine muss passen) und Suchtext. Jedes Suchwort muss im Namen oder in einem Muskelnamen vorkommen. */
+/** Filtert nach Kategorie, Art (Kraft/Cardio), gewählten Muskelgruppen (der Hauptmuskel der Übung muss dazugehören) und Suchtext. Jedes Suchwort muss im Namen oder in einem Muskelnamen vorkommen. */
 export type TypeFilter = 'alle' | 'strength' | 'cardio';
 
 // Geräte-Schnellauswahl ganz oben in der Übungsauswahl (nur eine gleichzeitig)
@@ -158,7 +158,8 @@ export function filterExercises(
   const hits = exercises.filter((ex) => {
     if (category !== 'alle' && !exerciseCategories(ex).has(category)) return false;
     if (type !== 'alle' && ex.type !== type) return false;
-    if (muscles.length && !musclesOf(ex).some((m) => muscles.includes(m))) return false;
+    // Muskelgruppe = Hauptmuskel der Übung (der erste), nicht die Hilfsmuskeln
+    if (muscles.length && !muscles.includes(musclesOf(ex)[0])) return false;
     if (equipment && !matchesEquipment(ex, equipment)) return false;
     if (!words.length) return true;
     const hay = normalize([ex.name, keywordsOf(ex.name), ...musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m)].join(' '));

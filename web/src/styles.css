@@ -1689,7 +1689,7 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 
 /* Übungs-Animation */
 .anim { display: flex; flex-direction: column; gap: 6px; }
-.anim-canvas { width: 100%; border-radius: 14px; background: var(--card-2, rgba(255,255,255,0.03)); touch-action: none; cursor: grab; }
+.anim-canvas { width: 100%; border-radius: 14px; background: #ffffff; touch-action: none; cursor: grab; }
 .anim-ctrl { display: flex; align-items: center; gap: 8px; }
 .anim-ctrl .muted { margin-left: auto; }
 .anim-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
@@ -1700,7 +1700,7 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .picker-list li { position: relative; }
 .picker-info { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border, rgba(255,255,255,0.15)); background: var(--bg-card, rgba(255,255,255,0.05)); color: var(--accent); font-size: 0.85rem; cursor: pointer; }
 .picker-item { padding-right: 56px; }
-.ex-info .anim-canvas { background: rgba(255,255,255,0.04); }
+.ex-info .anim-canvas { background: #ffffff; }
 .info-muscles { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .chip { padding: 4px 10px; border-radius: 999px; background: var(--accent); color: var(--accent-text, #fff); font-size: 0.82rem; }
 .info-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 6px; }
@@ -1826,3 +1826,10 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .muscle-tile { background: #ffffff; border-color: #e3dcd6; color: #2a1d1a; }
 .muscle-tile.on { border-color: var(--accent); }
 .muscle-legend i.p { background: #a8402f; } .muscle-legend i.s { background: #d99a8a; }
+.ex-thumb-wrap { display: block; width: calc(100% + 20px); margin: 0 -10px 6px; background: #ffffff; overflow: hidden; }
+.ex-thumb-wrap .ex-thumb { margin: 0; width: 100%; }
+.ex-thumb-wrap.fig .bodygraph-panel { background: none; border: 0; padding: 0; margin: 0; height: 100%; }
+.ex-thumb-wrap.fig .bodygraph { width: 100%; height: 100%; max-width: none; }
+.ex-thumb-wrap:not(.fig) { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.picker-list.cards .ex-thumb-wrap .ex-thumb { width: 100%; margin: 0; }
+.anim-canvas { background: #ffffff; border-radius: 14px; }

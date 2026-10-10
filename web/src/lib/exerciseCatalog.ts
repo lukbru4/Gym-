@@ -1172,6 +1172,10 @@ export const CATALOG_MUSCLES: Record<string, MuscleId[]> = Object.fromEntries(CA
 
 /** Beliebte Übungen zuerst: Stufe 1 = Klassiker, Stufe 2 = häufig. Die Reihenfolge in den Listen ist die Anzeige-Reihenfolge. */
 const POP1 = [
+  // Maschinen und Kabelzug zuerst (werden am häufigsten genutzt), dann Klassiker mit Hanteln und Körpergewicht
+  'Brustpresse (Maschine)', 'Butterfly', 'Latziehen', 'Kabelrudern', 'Beinpresse', 'Beinstrecker', 'Beinbeuger', 'Trizepsdrücken am Kabel', 'Cable Crossover (Kabelzug)',
+  'Schulterdrücken (Maschine)', 'Seitheben (Maschine)', 'Seitheben (Kabel)', 'Face Pulls', 'Bizepscurls (Kabel)', 'Scott-Curls (Maschine)', 'Wadenheben',
+  'Reverse Butterfly (Maschine)', 'Rudern (Maschine, Brustpolster)', 'Bauchmaschine', 'Cable Crunches (Kabel)', 'Abduktoren (Maschine)', 'Adduktoren (Maschine)',
   'Bankdrücken', 'Schrägbankdrücken', 'Kurzhantel-Bankdrücken', 'Liegestütze', 'Butterfly', 'Dips', 'Kniebeuge', 'Beinpresse', 'Ausfallschritte',
   'Kreuzheben', 'Rumänisches Kreuzheben', 'Klimmzüge', 'Latziehen', 'Langhantelrudern', 'Kabelrudern', 'Kurzhantelrudern (einarmig)', 'Schulterdrücken',
   'Schulterdrücken (Kurzhantel)', 'Seitheben', 'Face Pulls', 'Bizepscurls', 'Hammercurls', 'Trizepsdrücken am Kabel', 'French Press', 'Beinstrecker',
@@ -1188,14 +1192,15 @@ const POP2 = [
   'Cable Crunches (Kabel)', 'Sit-ups', 'Russian Twists', 'Ab Wheel Rollout', 'Seitstütz', 'Bauchmaschine', 'Kettlebell Swing', 'Burpees', 'Farmers Walk', 'Mountain Climbers',
   'Spinning', 'Radfahren (draußen)', 'Stepper', 'Joggen (Intervall)', 'Sprints', 'Yoga', 'Pilates', 'Fußball', 'Tennis', 'Boxen (Sandsack)', 'HIIT (Intervalltraining)',
 ];
-const POP_RANK = new Map<string, number>();
-[...POP1, ...POP2].forEach((n, i) => POP_RANK.set(n.toLowerCase(), i));
+const POP_ALL = [...new Set([...POP1, ...POP2].map((n) => n.toLowerCase()))];
+const POP1_COUNT = new Set(POP1.map((n) => n.toLowerCase())).size;
+const POP_RANK = new Map<string, number>(POP_ALL.map((n, i) => [n, i]));
 
 /** Beliebtheit: 1 = Klassiker, 2 = häufig, 3 = Rest des Katalogs; eigene Übungen zählen als „häufig“ (2). */
 export const popularityOf = (name: string): 1 | 2 | 3 => {
   const key = name.toLowerCase();
   const r = POP_RANK.get(key);
-  if (r !== undefined) return r < POP1.length ? 1 : 2;
+  if (r !== undefined) return r < POP1_COUNT ? 1 : 2;
   return KEYWORDS.has(key) ? 3 : 2;
 };
 /** Platz innerhalb der Beliebten (klein = weiter oben); für den Rest gilt die Reihenfolge nach Namen. */

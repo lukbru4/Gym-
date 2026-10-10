@@ -3,12 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { frameOf, drawScene, type Colors, type Focus } from '../lib/drawFigure';
 import { PATTERNS, type Segment } from '../lib/animations';
 
-const css = (name: string, fallback: string) => {
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return v || fallback;
-};
 export const readColors = (): Colors => ({
-  body: '#a9b0bd', bodyDark: '#4b5160', accent: css('--accent', '#e8222f'), accent2: '#f5a524', prop: '#d7dae0', propDark: '#7a8090', floor: 'rgba(160,165,175,0.18)', text: css('--text', '#fff'),
+  body: '#f3eeea', bodyDark: '#a2948b', accent: '#a8402f', accent2: '#d99a8a', prop: '#c9ced8', propDark: '#7a8090', floor: 'rgba(120,110,105,0.16)', text: '#2a1d1a',
 });
 
 export function ExerciseAnim({ id, highlight, height = 300, autoplay = true, label, fixedU, compact = false }: { id: string; highlight?: { primary: Segment[]; secondary: Segment[] }; height?: number; autoplay?: boolean; label?: string; /** Standbild (0 = Start, 0,5 = Endstellung) */ fixedU?: number; compact?: boolean }) {

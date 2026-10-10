@@ -100,7 +100,10 @@ describe('Muster passen zu den Muskeln der Übung', () => {
     const { filterExercises } = await import('../src/lib/muscles');
     const ex = CATALOG.map((c, i) => ({ id: i + 1, name: c.name, type: c.type, user_id: null, muscles: c.muscles }));
     const brust = filterExercises(ex, { muscles: ['brust'] }).map((e) => e.name);
-    expect(brust.slice(0, 3)).toEqual(['Bankdrücken', 'Schrägbankdrücken', 'Kurzhantel-Bankdrücken']);
+    expect(brust.slice(0, 3)).toEqual(['Brustpresse (Maschine)', 'Butterfly', 'Cable Crossover (Kabelzug)']);
+    // Muskelgruppe = Hauptmuskel: Dips (Trizeps zuerst) gehören zu Trizeps, nicht zu Brust
+    expect(brust).not.toContain('Dips');
+    expect(filterExercises(ex, { muscles: ['trizeps'] }).map((e) => e.name)).toContain('Dips');
     expect(CATALOG.length).toBeGreaterThanOrEqual(1000);
   });
 });

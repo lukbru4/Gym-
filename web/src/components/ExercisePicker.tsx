@@ -80,7 +80,7 @@ export function ExercisePicker(props: {
         {found.map((ex) => (
           <li key={ex.id}>
             <button type="button" className="picker-item" data-id={ex.id} onClick={() => props.onPick(ex)}>
-              <ExerciseThumb name={ex.name} muscles={musclesOf(ex)} />
+              <ExerciseThumb ex={ex} />
               <span className="picker-name">
                 {ex.name}
                 {ex.user_id && <span className="muted"> ★</span>}
