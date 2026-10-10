@@ -23,6 +23,9 @@ export const BODY_MAP: Record<MuscleId, { front?: string[]; back?: string[] }> =
 };
 /** Auf dem Körper nicht beschriften (Platz/Überschneidung) */
 const NO_LABEL: Record<'front' | 'back', MuscleId[]> = { front: ['trizeps', 'oberer_ruecken'], back: [] };
+/** Der Körper wird in der Breite leicht gestreckt: kräftigerer, muskulöserer Eindruck */
+const BULK = 1.07;
+const CX = { front: 362, back: 1086 };
 const MUSCLE_ORDER = Object.keys(BODY_MAP) as MuscleId[];
 const USED = (side: 'front' | 'back') => new Set(MUSCLE_ORDER.flatMap((m) => BODY_MAP[m][side] ?? []));
 
@@ -118,7 +121,7 @@ function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [labels, side, focus]);
   return (
-    <g ref={ref} data-side={side}>
+    <g ref={ref} data-side={side} transform={`translate(${CX[side]} 0) scale(${BULK} 1) translate(${-CX[side]} 0)`}>
       <path d={ANATOMY.outline[side]} className="body-outline" />
       {!simple && <g className="body-neutral">
         {Object.entries(data).filter(([slug]) => !used.has(slug)).map(([slug, part]) => (
@@ -164,13 +167,13 @@ function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) 
 }
 
 /** skin: Shop-Look; ohne Angabe der eigene ausgerüstete Look */
-export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = false, view = 'both', simple = false }: { levels?: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void; skin?: string | null; /** Übungs-/Trainingsansicht: Hauptmuskel (p) und Hilfsmuskel (s) statt Kraft-Stufen */ focus?: Focus; labels?: boolean; /** nur von vorne oder nur von hinten */ view?: 'both' | 'front' | 'back'; simple?: boolean }) {
+export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = false, view = 'both', simple = false, box }: { levels?: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void; skin?: string | null; /** Übungs-/Trainingsansicht: Hauptmuskel (p) und Hilfsmuskel (s) statt Kraft-Stufen */ focus?: Focus; labels?: boolean; /** nur von vorne oder nur von hinten */ view?: 'both' | 'front' | 'back'; simple?: boolean; /** Ausschnitt (x, y, Breite, Höhe) zum Heranzoomen */ box?: [number, number, number, number] }) {
   const own = useCosmetics().equipped.skin;
   return (
     <div className="bodygraph-panel" data-skin={skin === undefined ? own : skin ?? undefined}>
       <svg
         className={`bodygraph anat${view !== 'both' ? ' single' : ''}${simple ? ' mini' : ''}`}
-        viewBox={view === 'front' ? '0 0 724 1448' : view === 'back' ? '724 0 724 1448' : '0 0 1448 1448'}
+        viewBox={box ? box.join(' ') : view === 'front' ? '0 0 724 1448' : view === 'back' ? '724 0 724 1448' : '0 0 1448 1448'}
         role="group"
         aria-label={focus ? 'Körper: beanspruchte Muskeln, links von vorne, rechts von hinten' : 'Körpergraph: Kraft-Stufe pro Muskel, links von vorne, rechts von hinten'}
       >

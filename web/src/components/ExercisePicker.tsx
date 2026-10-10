@@ -1,7 +1,7 @@
 // Übungsauswahl als eigene Vollbild-Seite: Suche + Kategorien (Brust, Rücken, …).
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
-import { CATEGORIES, MUSCLE_NAMES, filterExercises, musclesOf, type CategoryId, type TypeFilter } from '../lib/muscles';
+import { EQUIPMENT, MUSCLE_NAMES, filterExercises, musclesOf, type EquipmentId } from '../lib/muscles';
 import type { MuscleId } from '../lib/types';
 import { keywordsOf } from '../lib/exerciseCatalog';
 import type { Exercise } from '../lib/types';
@@ -16,14 +16,12 @@ export function ExercisePicker(props: {
   onClose: () => void;
 }) {
   const { exercises } = useApp();
-  const [category, setCategory] = useState<CategoryId>('alle');
   const [query, setQuery] = useState('');
-  const [type, setType] = useState<TypeFilter>('alle');
+  const [equipment, setEquipment] = useState<EquipmentId | null>(null);
   const [muscles, setMuscles] = useState<MuscleId[]>([]);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [info, setInfo] = useState<Exercise | null>(null);
-  const toggleMuscle = (m: MuscleId) => setMuscles((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]));
-  const activeFilters = muscles.length + (type !== 'alle' ? 1 : 0);
+  // Immer nur eine Muskelgruppe: das zuletzt Angetippte gilt, nochmal antippen hebt auf
+  const toggleMuscle = (m: MuscleId) => setMuscles((cur) => (cur[0] === m ? [] : [m]));
   const { onClose } = props;
 
   useEffect(() => {
@@ -36,7 +34,7 @@ export function ExercisePicker(props: {
     };
   }, [onClose]);
 
-  const found = filterExercises(exercises, { query, category, type, muscles });
+  const found = filterExercises(exercises, { query, muscles, equipment });
   const muscleText = (ex: Exercise) =>
     ex.type === 'cardio' ? 'Cardio' : musclesOf(ex).map((m) => MUSCLE_NAMES.get(m)).join(', ') || 'Keine Muskeln zugeordnet';
   const q = query.trim();
@@ -68,31 +66,15 @@ export function ExercisePicker(props: {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      <div className="picker-cats" role="tablist" aria-label="Kategorie">
-        {CATEGORIES.map(([id, label]) => (
-          <button key={id} type="button" className="picker-cat" role="tab" data-cat={id} aria-selected={category === id} onClick={() => setCategory(id)}>
+      <div className="picker-cats equip" role="group" aria-label="Gerät">
+        {EQUIPMENT.map(([id, label]) => (
+          <button key={id} type="button" className="picker-cat" data-equip={id} aria-pressed={equipment === id} aria-selected={equipment === id} onClick={() => setEquipment((cur) => (cur === id ? null : id))}>
             {label}
           </button>
         ))}
       </div>
       <MuscleStrip selected={muscles} onToggle={toggleMuscle} />
-      <div className="picker-filter">
-        <button type="button" className="btn small-btn" id="filter-toggle" aria-expanded={filterOpen} onClick={() => setFilterOpen((o) => !o)}>
-          Filter{activeFilters ? ` (${activeFilters})` : ''} {filterOpen ? '▴' : '▾'}
-        </button>
-        {activeFilters > 0 && <button type="button" className="linklike" id="filter-reset" onClick={() => { setType('alle'); setMuscles([]); }}>zurücksetzen</button>}
-        <span className="muted small" id="filter-count">{found.length} Übungen</span>
-      </div>
-      {filterOpen && (
-        <div className="picker-filter-panel" id="filter-panel">
-          <p className="muted small">Art</p>
-          <div className="picker-cats" role="group" aria-label="Art">
-            {([['alle', 'Alle'], ['strength', 'Kraft'], ['cardio', 'Cardio']] as const).map(([id, label]) => (
-              <button key={id} type="button" className="picker-cat" data-type={id} aria-selected={type === id} onClick={() => setType(id)}>{label}</button>
-            ))}
-          </div>
-        </div>
-      )}
+      <p className="muted small" id="filter-count">{found.length} Übungen</p>
       {info && <ExerciseInfo ex={info} onClose={() => setInfo(null)} />}
       <ul className="picker-list cards">
         {found.map((ex) => (

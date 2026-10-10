@@ -119,15 +119,47 @@ const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u03
 /** Filtert nach Kategorie, Art (Kraft/Cardio), gewählten Muskelgruppen (mindestens eine muss passen) und Suchtext. Jedes Suchwort muss im Namen oder in einem Muskelnamen vorkommen. */
 export type TypeFilter = 'alle' | 'strength' | 'cardio';
 
+// Geräte-Schnellauswahl ganz oben in der Übungsauswahl (nur eine gleichzeitig)
+export type EquipmentId = 'maschine' | 'kabel' | 'kurzhantel' | 'langhantel' | 'koerpergewicht' | 'cardio' | 'smith' | 'kettlebell' | 'band' | 'eigene';
+export const EQUIPMENT: [EquipmentId, string][] = [
+  ['maschine', 'Maschine'],
+  ['kabel', 'Kabelturm'],
+  ['kurzhantel', 'Kurzhantel'],
+  ['langhantel', 'Langhantel'],
+  ['koerpergewicht', 'Körpergewicht'],
+  ['cardio', 'Cardio'],
+  ['smith', 'Smith'],
+  ['kettlebell', 'Kettlebell'],
+  ['band', 'Band'],
+  ['eigene', 'Eigene'],
+];
+const EQUIPMENT_TEST: Record<Exclude<EquipmentId, 'cardio' | 'eigene'>, RegExp> = {
+  maschine: /maschine|butterfly|beinpresse|beinstrecker|beinbeuger|brustpresse|abduktoren|adduktoren|^wadenheben$|hackenschmidt|bauchmaschine|trizepsmaschine/,
+  kabel: /kabel|seil|latziehen|pushdown|face pull|cable|pulldown|trizepsdruecken am kabel|woodchop|pallof/,
+  kurzhantel: /kurzhantel|arnold press|hammercurl|konzentrationscurl|goblet|pullover/,
+  langhantel: /langhantel|sz-stange|trap-bar|^bankdruecken|^schraegbankdruecken|^kreuzheben|^kniebeuge|sumo-kreuzheben|pendlay|rack pull|good morning|^french press|hip thrust \(langhantel|^clean|^snatch|^jerk|enges bankdruecken/,
+  koerpergewicht: /koerpergewicht|liegestuetz|klimmz|^dips|plank|crunch|sit-up|beinheben|knieheben|burpee|superman|ausfallschritt|bulgar|wandsitzen|mountain|bicycle|russian|dead bug|bird dog|hollow|seitstuetz|calisthenics|muscle-up|handstand|glute bridge|clamshell|step-up|bank-dips|inverted|nordic|hyperextension/,
+  smith: /smith/,
+  kettlebell: /kettlebell/,
+  band: /widerstandsband|\bband\b/,
+};
+export const matchesEquipment = (ex: Exercise, id: EquipmentId): boolean => {
+  if (id === 'cardio') return ex.type === 'cardio';
+  if (id === 'eigene') return Boolean(ex.user_id);
+  if (ex.type === 'cardio') return false;
+  return EQUIPMENT_TEST[id].test(normalize(ex.name));
+};
+
 export function filterExercises(
   exercises: Exercise[],
-  { query = '', category = 'alle', type = 'alle', muscles = [] }: { query?: string; category?: CategoryId; type?: TypeFilter; muscles?: MuscleId[] } = {},
+  { query = '', category = 'alle', type = 'alle', muscles = [], equipment }: { query?: string; category?: CategoryId; type?: TypeFilter; muscles?: MuscleId[]; equipment?: EquipmentId | null } = {},
 ): Exercise[] {
   const words = normalize(query).split(/\s+/).filter(Boolean);
   const hits = exercises.filter((ex) => {
     if (category !== 'alle' && !exerciseCategories(ex).has(category)) return false;
     if (type !== 'alle' && ex.type !== type) return false;
     if (muscles.length && !musclesOf(ex).some((m) => muscles.includes(m))) return false;
+    if (equipment && !matchesEquipment(ex, equipment)) return false;
     if (!words.length) return true;
     const hay = normalize([ex.name, keywordsOf(ex.name), ...musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m)].join(' '));
     return words.every((w) => hay.includes(w));

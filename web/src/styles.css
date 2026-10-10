@@ -1780,9 +1780,9 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 
 /* Muskelgruppen-Leiste in der Übungsauswahl */
 .muscle-strip { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 10px; margin: 0 -2px; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
-.muscle-tile { flex: 0 0 auto; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 6px; border-radius: 14px; border: 1px solid var(--border, rgba(255,255,255,0.12)); background: var(--card, #111); color: var(--text); font: inherit; cursor: pointer; }
+.muscle-tile { flex: 0 0 auto; width: 104px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 6px; border-radius: 14px; border: 1px solid var(--border, rgba(255,255,255,0.12)); background: var(--card, #111); color: var(--text); font: inherit; cursor: pointer; }
 .muscle-tile .bodygraph-panel { background: none; border: 0; padding: 0; margin: 0; box-shadow: none; width: 100%; }
-.muscle-tile .bodygraph.mini { height: 82px; width: 100%; max-width: none; }
+.muscle-tile .bodygraph { height: 104px; width: 100%; max-width: none; border-radius: 10px; }
 .muscle-tile-name { font-size: 0.68rem; font-weight: 600; line-height: 1.1; text-align: center; min-height: 1.6em; }
 .muscle-tile.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
 .bodygraph.anat.mini .body-outline { stroke-width: 5; }
@@ -1799,3 +1799,11 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .picker-list.cards .picker-sub { font-size: 0.74rem; }
 .picker-list.cards .picker-added { position: absolute; left: 8px; top: 8px; background: var(--accent); color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 0.7rem; }
 .picker-list.cards .picker-info { top: 8px; right: 8px; transform: none; width: 32px; height: 32px; font-size: 0.7rem; }
+
+.picker-cats.equip { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.picker-cats.equip::-webkit-scrollbar { display: none; }
+.muscle-tile-name { font-size: 0.78rem; }
+/* Muskulöser: farbige Muskeln leicht aufgebläht (Rand in Füllfarbe) */
+.bodygraph.anat .muscle.lv-1 { --m: #f4b3b3; } .bodygraph.anat .muscle.lv-2 { --m: #ee7b7f; } .bodygraph.anat .muscle.lv-3 { --m: #e8434b; } .bodygraph.anat .muscle.lv-4 { --m: #de1f2c; } .bodygraph.anat .muscle.lv-5 { --m: #c4101f; }
+.bodygraph.anat .muscle.focus-p { --m: #e0262f; } .bodygraph.anat .muscle.focus-s { --m: #f08a8a; }
+.bodygraph.anat .muscle:is(.lv-1, .lv-2, .lv-3, .lv-4, .lv-5, .focus-p, .focus-s) path { stroke: var(--m); stroke-width: 7; paint-order: stroke; }
