@@ -6,6 +6,7 @@ import { useAsync } from '../app/useAsync';
 import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ExercisePicker } from '../components/ExercisePicker';
 import { ExerciseInfo } from '../components/ExerciseInfo';
+import { ExerciseThumb } from '../components/ExerciseThumb';
 import { WorkoutMuscles } from '../components/WorkoutMuscles';
 import { suggestProgress, suggestionText } from '../lib/progression';
 import {
@@ -457,6 +458,7 @@ function BlockCard(props: {
   return (
     <div className="card block">
       <div className="block-head">
+        <div className="block-thumb"><ExerciseThumb ex={ex} height={64} /></div>
         <h3>{ex.name} <button type="button" className="info-btn" data-action="exercise-info" aria-label={`Anleitung und Animation: ${ex.name}`} onClick={() => setInfo(true)}>▶</button></h3>
         {info && <ExerciseInfo ex={ex} onClose={() => setInfo(false)} />}
         {!cardio && (

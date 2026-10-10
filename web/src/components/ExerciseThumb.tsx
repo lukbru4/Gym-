@@ -6,6 +6,7 @@ import { PATTERNS } from '../lib/animations';
 import { drawScene, frameOf, type Focus as AnimFocus } from '../lib/drawFigure';
 import { musclesOf } from '../lib/muscles';
 import { BodyGraph } from './BodyGraph';
+import { ExerciseMedia, useHasMedia } from './ExerciseMedia';
 import { focusFor, readColors } from './ExerciseAnim';
 import { MUSCLE_BOX, MUSCLE_VIEW } from './MuscleStrip';
 import { focusOf } from './WorkoutMuscles';
@@ -54,6 +55,9 @@ function CardioThumb({ name, muscles, height }: { name: string; muscles: MuscleI
 export function ExerciseThumb({ ex, height = 128 }: { ex: Pick<Exercise, 'name' | 'type' | 'muscles'>; height?: number }) {
   const muscles = musclesOf(ex);
   const [wrap, seen] = useVisible<HTMLDivElement>();
+  const hasMedia = useHasMedia(ex.name);
+  // Echtes Übungsfoto, wenn vorhanden
+  if (hasMedia) return <div className="ex-thumb-wrap" style={{ height }}><ExerciseMedia name={ex.name} height={height} className="thumb" /></div>;
   if (ex.type === 'cardio' || !muscles.length) return <CardioThumb name={ex.name} muscles={muscles} height={height} />;
   const primary = muscles[0];
   return (

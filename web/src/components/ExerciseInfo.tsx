@@ -11,6 +11,7 @@ import { estimate1RM, isWorkingSet } from '../lib/stats';
 import { ExerciseAnim, focusFor } from './ExerciseAnim';
 import { BodyGraph } from './BodyGraph';
 import { MuscleTile } from './MuscleStrip';
+import { ExerciseMedia } from './ExerciseMedia';
 import { focusOf } from './WorkoutMuscles';
 import type { Exercise, Workout, WorkoutSet } from '../lib/types';
 
@@ -126,6 +127,7 @@ export function ExerciseInfo({ ex, onClose }: { ex: Pick<Exercise, 'name' | 'typ
       {tab === 'history' && <History id={ex.id} />}
       {tab === 'about' && (
         <>
+          <ExerciseMedia name={ex.name} height={280} />
           <ExerciseAnim id={id} highlight={focusFor(muscles)} height={300} label={`Animation: ${ex.name}`} />
           {id === 'generic' && <p className="muted small">Für diese Übung gibt es noch keine eigene Animation – gezeigt wird eine allgemeine Bewegung.</p>}
           {id !== 'generic' && PATTERNS[id].name !== ex.name && <p className="muted small">Bewegungsablauf: {p.name}. Varianten (Gerät, Griff) sehen ähnlich aus.</p>}
