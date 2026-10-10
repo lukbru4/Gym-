@@ -12,7 +12,9 @@ export type Prop =
   | { kind: 'bench'; angle?: number }                 // Winkel der Rückenlehne (0 = flach)
   | { kind: 'seat'; back?: number }                    // Sitz mit Lehne (Maschine)
   | { kind: 'cable'; from: V3 }                        // Kabelzug von der Rolle zu den Händen (mit Kabelturm samt Gewichtsblock)
-  | { kind: 'stack'; dz?: number; lever?: boolean }    // Gewichtsblock mit Rahmen hinter dem Sitz (Maschine); lever = Druckhebel zu den Händen
+  | { kind: 'legpad' }                                 // Beinrolle (Beinstrecker/-beuger)
+  | { kind: 'kneepad' }                                // Knierolle (Latziehen)
+  | { kind: 'stack'; dz?: number; lever?: boolean; front?: boolean }    // Gewichtsblock mit Rahmen hinter dem Sitz (Maschine); lever = Druckhebel zu den Händen
   | { kind: 'bar'; y: number }
   | { kind: 'dipbars'; y: number }
   | { kind: 'pullbar' }                                // Zugstange am Kabel (Latziehen)                         // feste Stange (Klimmzug)
@@ -97,14 +99,14 @@ def({
   mistakes: ['Das Becken hebt sich unten ab (Rücken rundet).', 'Knie komplett durchgedrückt.', 'Zu wenig Tiefe.'],
 });
 def({
-  id: 'legext', name: 'Beinstrecker', seconds: 2.8, azimuth: 85, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 8 }, { kind: 'stack' }],
+  id: 'legext', name: 'Beinstrecker', seconds: 2.8, azimuth: 85, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 8 }, { kind: 'stack' }, { kind: 'legpad' }],
   base: { trunk: -8, ...arms(10, 0, 40, 0), hipL: 80, hipR: 80 },
   frames: [F({ kneeL: 95, kneeR: 95 }), F({ kneeL: 4, kneeR: 4 })],
   cues: ['Kniegelenk auf Höhe der Drehachse der Maschine.', 'Oben kurz anspannen.', 'Langsam senken.'],
   mistakes: ['Schwung statt Muskelkraft.', 'Das Gesäß hebt vom Sitz ab.'],
 });
 def({
-  id: 'legcurl', name: 'Beinbeuger', seconds: 2.8, azimuth: 80, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'bench' }, { kind: 'stack', dz: 0.25 }],
+  id: 'legcurl', name: 'Beinbeuger', seconds: 2.8, azimuth: 80, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'bench' }, { kind: 'stack', dz: 0.25 }, { kind: 'legpad' }],
   base: { trunk: 90, hipL: 0, hipR: 0, ...arms(70, 0, 95, 0) },
   frames: [F({ hipL: -92, hipR: -92, kneeL: 0, kneeR: 0 }), F({ hipL: -92, hipR: -92, kneeL: 115, kneeR: 115 })],
   cues: ['Hüfte bleibt auf der Auflage.', 'Fersen zum Gesäß ziehen.', 'Langsam wieder strecken.'],
@@ -244,7 +246,7 @@ def({
   mistakes: ['Der Oberkörper dreht auf.', 'Zu viel Schwung.'],
 });
 def({
-  id: 'pulldown', name: 'Latziehen', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 0 }, { kind: 'stack', dz: -0.3 }, { kind: 'pullbar' }],
+  id: 'pulldown', name: 'Latziehen', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 0 }, { kind: 'stack', front: true, dz: 0.05 }, { kind: 'kneepad' }, { kind: 'pullbar' }],
   base: { ...legs(88, 88), trunk: -8 },
   frames: [F({ ...arms(172, 25, 176, 20) }), F({ ...arms(55, 70, 170, 35), trunk: -14 })],
   cues: ['Leicht zurücklehnen, Brust raus.', 'Stange zur oberen Brust ziehen, nicht in den Nacken.', 'Schulterblätter nach unten-hinten ziehen.', 'Arme oben nicht komplett durchhängen lassen.'],

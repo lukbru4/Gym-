@@ -43,8 +43,8 @@ export function frameOf(p: Pattern): { target: V3; size: number } {
   // Maschinen/Kabelturm gehören mit ins Bild
   const pz = solve({ ...NEUTRAL, ...patternPose(p, 0) }, p.anchor).pelvis[2];
   for (const prop of p.props) {
-    if (prop.kind === 'stack') { min[2] = Math.min(min[2], pz - 0.95 - (prop.dz ?? 0)); max[1] = Math.max(max[1], 1.95); }
-    if (prop.kind === 'cable') { max[1] = Math.max(max[1], 2.3); min[2] = Math.min(min[2], pz + (p.id === 'seatedrow' ? prop.from[2] : prop.from[2]) - 0.6); }
+    if (prop.kind === 'stack') { if (prop.front) max[2] = Math.max(max[2], pz + 1.0 + (prop.dz ?? 0)); else min[2] = Math.min(min[2], pz - 0.95 - (prop.dz ?? 0)); max[1] = Math.max(max[1], 1.95); }
+    if (prop.kind === 'cable') { max[1] = Math.max(max[1], 2.3); const zf = p.id === 'seatedrow' ? prop.from[2] : pz + prop.from[2]; max[2] = Math.max(max[2], zf + 0.6); }
   }
   const target: V3 = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2 + 0.05, (min[2] + max[2]) / 2];
   const size = Math.max(max[1] - min[1], (max[2] - min[2]) * 0.9, 1.3) * 1.15;
@@ -243,6 +243,9 @@ function weightStack(h: PropHelpers, c: Colors, z: number, top: number, pinned: 
   h.line([0, 0.05, z], [0, top, z], 3, c.propDark, 0.12);
 }
 
+const PAD = '#26282f';
+const FRAME = '#8c93a1';
+
 function drawProp(h: PropHelpers, prop: Prop, j: Joints, pose: Pose, pat: Pattern) {
   const c = h.c;
   const hands = mid(j.handL, j.handR);
@@ -280,7 +283,7 @@ function drawProp(h: PropHelpers, prop: Prop, j: Joints, pose: Pose, pat: Patter
       if (pat.id === 'glute') { box(h, -0.22, 0.22, 0, 0.4, shift - 0.62, shift - 0.38, c.prop); break; }
       if (pat.id === 'backext') { box(h, -0.2, 0.2, 0.45, 0.62, shift - 0.12, shift + 0.14, c.prop); h.line([0, 0, shift - 0.3], [0, 0.45, shift - 0.3], 5, c.propDark); h.line([0, 0, shift + 0.1], [0, 0.45, shift + 0.1], 5, c.propDark); break; }
       const seatLen = 0.35, backLen = 0.85, a = (angle * Math.PI) / 180;
-      box(h, -0.16, 0.16, y - 0.07, y, shift, shift + seatLen, c.prop);
+      box(h, -0.16, 0.16, y - 0.07, y, shift, shift + seatLen, PAD);
       const back0: V3 = [0, y, shift];
       const back1: V3 = [0, y + Math.sin(a) * backLen, shift - Math.cos(a) * backLen];
       h.poly([[-0.16, back0[1], back0[2]], [0.16, back0[1], back0[2]], [0.16, back1[1], back1[2]], [-0.16, back1[1], back1[2]]], c.prop, 0.05);
@@ -290,10 +293,10 @@ function drawProp(h: PropHelpers, prop: Prop, j: Joints, pose: Pose, pat: Patter
     case 'seat': {
       const y = pat.anchor && pat.anchor.on === 'surface' ? pat.anchor.y : 0.42;
       const back = ((prop.back ?? 0) * Math.PI) / 180;
-      box(h, -0.2, 0.2, y - 0.07, y, shift - 0.22, shift + 0.22, c.prop);
+      box(h, -0.2, 0.2, y - 0.07, y, shift - 0.22, shift + 0.22, PAD);
       const b0: V3 = [0, y, shift - 0.22];
       const b1: V3 = [0, y + Math.cos(back) * 0.8, shift - 0.22 - Math.sin(back) * 0.8];
-      h.poly([[-0.2, b0[1], b0[2]], [0.2, b0[1], b0[2]], [0.2, b1[1], b1[2]], [-0.2, b1[1], b1[2]]], c.prop, 0.05);
+      h.poly([[-0.2, b0[1], b0[2]], [0.2, b0[1], b0[2]], [0.2, b1[1], b1[2]], [-0.2, b1[1], b1[2]]], PAD, 0.05);
       h.line([0, 0, shift], [0, y - 0.07, shift], 6, c.propDark);
       h.line([-0.25, 0, shift - 0.2], [0.25, 0, shift - 0.2], 5, c.propDark);
       break;
@@ -309,11 +312,13 @@ function drawProp(h: PropHelpers, prop: Prop, j: Joints, pose: Pose, pat: Patter
       // Kabelturm: Rahmen, Umlenkrolle, Gewichtsblock dahinter, Kabel zu den Händen
       const from: V3 = [prop.from[0], prop.from[1], pat.id === 'seatedrow' ? prop.from[2] : shift + prop.from[2]];
       const zf = from[2];
-      for (const x of [-0.3, 0.3]) h.line([x, 0, zf], [x, 2.3, zf], 7, c.propDark, 0.1);
-      h.line([-0.3, 2.3, zf], [0.3, 2.3, zf], 7, c.propDark, 0.1);
-      h.line([-0.3, 0.03, zf - 0.55], [-0.3, 0.03, zf + 0.25], 6, c.propDark, 0.1); h.line([0.3, 0.03, zf - 0.55], [0.3, 0.03, zf + 0.25], 6, c.propDark, 0.1);
-      weightStack(h, c, zf - 0.34, 2.05, 5);
-      h.line([0, 2.3, zf - 0.34], [0, 2.3, zf], 2, c.propDark, 0.05);
+      // Der Gewichtsblock steht immer auf der Seite des Turms, die vom Trainierenden abgewandt ist
+      const sg = zf >= shift ? 1 : -1;
+      const zs = zf + sg * 0.36;
+      for (const x of [-0.3, 0.3]) { h.line([x, 0, zf], [x, 2.3, zf], 7, FRAME, 0.1); h.line([x, 0, zs], [x, 2.3, zs], 7, FRAME, 0.1); h.line([x, 2.3, zf], [x, 2.3, zs], 7, FRAME, 0.1); h.line([x, 0.03, zf], [x, 0.03, zs + sg * 0.2], 6, FRAME, 0.1); }
+      h.line([-0.3, 2.3, zf], [0.3, 2.3, zf], 7, FRAME, 0.1);
+      weightStack(h, c, zs, 2.05, 5);
+      h.line([0, 2.3, zs], [0, 2.3, zf], 2, c.propDark, 0.05);
       h.line(from, hands, 2.5, c.propDark, -0.05);
       h.poly(ring(from, 'x', 0.07, 14), c.prop, -0.06);
       h.poly(ring([from[0] - 0.04, from[1], from[2]], 'x', 0.025, 8), c.propDark, -0.07);
@@ -321,13 +326,29 @@ function drawProp(h: PropHelpers, prop: Prop, j: Joints, pose: Pose, pat: Patter
     }
     case 'stack': {
       // Maschine: Gewichtsblock mit Rahmen hinter dem Sitz; optional Druckhebel zu den Händen
-      const z = shift - 0.62 - (prop.dz ?? 0);
-      for (const x of [-0.32, 0.32]) h.line([x, 0, z], [x, 1.95, z], 7, c.propDark, 0.1);
-      h.line([-0.32, 1.95, z], [0.32, 1.95, z], 7, c.propDark, 0.1);
+      const z = prop.front ? shift + 0.7 + (prop.dz ?? 0) : shift - 0.62 - (prop.dz ?? 0);
+      for (const x of [-0.32, 0.32]) h.line([x, 0, z], [x, 1.95, z], 7, FRAME, 0.1);
+      h.line([-0.32, 1.95, z], [0.32, 1.95, z], 7, FRAME, 0.1);
+      if (prop.front) h.line([-0.32, 0.03, z], [-0.32, 0.03, shift - 0.1], 6, FRAME, 0.1), h.line([0.32, 0.03, z], [0.32, 0.03, shift - 0.1], 6, FRAME, 0.1);
       weightStack(h, c, z, 1.7, 0);
       if (prop.lever) {
         for (const hd of [j.handL, j.handR]) { h.line([hd[0] * 1.1, 1.18, shift - 0.3], hd, 5, c.prop, -0.04); h.poly(ring([hd[0] * 1.1, 1.18, shift - 0.3], 'x', 0.035, 8), c.propDark, -0.05); }
       }
+      break;
+    }
+    case 'legpad': {
+      // Beinstrecker/-beuger: schwarze Rolle an den Unterschenkeln, Hebelarm zur Drehachse am Sitz
+      const a = mid(j.anL, j.anR), piv: V3 = [0, 0.42, shift + 0.22];
+      h.line([a[0] - 0.14, a[1] + 0.07, a[2]], [a[0] + 0.14, a[1] + 0.07, a[2]], 15, PAD, -0.03);
+      for (const x of [-0.16, 0.16]) h.line([x, a[1] + 0.07, a[2]], [x, piv[1], piv[2]], 5, FRAME, 0.02);
+      h.poly(ring([0, piv[1], piv[2]], 'x', 0.06, 10), FRAME, 0.03);
+      break;
+    }
+    case 'kneepad': {
+      // Latziehen: Knierolle über den Oberschenkeln
+      const y = (pat.anchor && pat.anchor.on === 'surface' ? pat.anchor.y : 0.4) + 0.2;
+      for (const x of [-0.15, 0.15]) h.line([x, y - 0.1, shift + 0.4], [x, y, shift + 0.4], 12, PAD, -0.03);
+      h.line([-0.2, y - 0.1, shift + 0.42], [0.2, y - 0.1, shift + 0.42], 5, FRAME, 0.02);
       break;
     }
     case 'bar': {
@@ -337,11 +358,15 @@ function drawProp(h: PropHelpers, prop: Prop, j: Joints, pose: Pose, pat: Patter
       break;
     }
     case 'pullbar': {
+      // Zugstange am Kabel: Seil läuft über eine Umlenkrolle am Ausleger des Geräts nach vorn zum Gewichtsblock
       h.line([hands[0] - 0.5, hands[1], hands[2]], [hands[0] + 0.5, hands[1], hands[2]], 5, c.prop, -0.02);
-      const top: V3 = [0, 2.35, shift + 0.1];
+      h.line([hands[0] - 0.5, hands[1], hands[2]], [hands[0] - 0.42, hands[1] - 0.09, hands[2]], 4, c.prop, -0.02);
+      h.line([hands[0] + 0.5, hands[1], hands[2]], [hands[0] + 0.42, hands[1] - 0.09, hands[2]], 4, c.prop, -0.02);
+      const top: V3 = [0, 2.3, shift + 0.28];
       h.line(top, hands, 2.5, c.propDark, -0.05);
-      h.line([-0.5, 2.35, shift + 0.1], [0.5, 2.35, shift + 0.1], 6, c.prop);
-      h.line([-0.5, 0, shift + 0.1], [-0.5, 2.35, shift + 0.1], 5, c.propDark); h.line([0.5, 0, shift + 0.1], [0.5, 2.35, shift + 0.1], 5, c.propDark);
+      h.line([0, 2.3, shift + 0.28], [0, 2.2, shift + 0.7], 5, FRAME, 0.02);
+      h.line([0, 2.1, shift + 0.7], [0, 2.2, shift + 0.7], 9, FRAME, 0.02);
+      h.poly(ring(top, 'x', 0.06, 12), c.prop, -0.06);
       break;
     }
     case 'dipbars': {
