@@ -8,6 +8,7 @@ import { AvatarDot } from '../components/AvatarDot';
 import { TileIcon, type TileIconId } from '../components/TileIcons';
 import { LoadError, Loading, QuestRows } from '../components/Bits';
 import { Calendar } from '../components/Calendar';
+import { LastDaysCard, LevelCard, StreakCard, StrengthGoalCard } from '../components/ProfileCards';
 import { RankBadge } from '../components/RankBadge';
 import { useCosmetics } from '../lib/cosmetics';
 import { fmt, fmtDate } from '../lib/format';
@@ -81,6 +82,10 @@ export function Profile() {
           <span className="small">Trainingsplan, Muskel-Auswertung, Kalorien tracken und mehr – ab {fmtEuro(PRO_PRICES.year / 12)} im Monat. Antippen zum Ansehen.</span>
         </a>
       )}
+      <StrengthGoalCard g={g} />
+      <LastDaysCard g={g} />
+      <StreakCard g={g} />
+      <LevelCard g={g} />
       <Calendar workouts={g.workouts} />
     </>
   );

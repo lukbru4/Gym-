@@ -132,6 +132,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 85: Animationsfigur kräftiger (breitere Schultern, dickere Arme/Beine, kurze dunkle Haare, dunkle Shorts, graue Haut, hellgrauer Grund); Animation zeichnet nur noch, wenn sichtbar (spart Akku)
 - [x] Schritt 86: Maschinen in der Animation korrigiert: Gewichtsblock steht auf der richtigen Seite (Latziehen/Rudern/Kabelzug vorn, Brustpresse/Beinstrecker hinten), schwarze Polster, Beinrolle am Beinstrecker/-beuger, Knierolle am Latzug
 - [x] Schritt 87: Einstellungen als Menüliste mit Symbolen und Unterseiten (Profil, Konto, Pro, Ziele, Themen, Daten, App, FAQ, Neuigkeiten, Rechtliches)
+- [x] Schritt 88: Profil mit Stärkeziel (Ring, selbst gesetztes 1RM-Ziel), Letzte 7 Tage (Körperfigur + Balken Volumen/Wdh./Cardio), Serien (Wochenkreise), Level-Karte
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
