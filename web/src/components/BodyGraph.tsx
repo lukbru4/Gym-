@@ -1,7 +1,8 @@
 // Körpergraph: Anatomie-Zeichnung (hellgrauer Körper) von vorne und hinten; beanspruchte/trainierte Muskeln sind rot.
-// Die Muskelflächen stammen aus einem MIT-lizenzierten Anatomie-Datensatz (siehe lib/anatomy.ts und THIRD_PARTY.md).
+// Körperform und Muskelflächen sind eigene Handzeichnung (lib/bodyShape.ts); nur der Kopf stammt aus einem MIT-Datensatz (THIRD_PARTY.md).
 import { useLayoutEffect, useRef, useState } from 'react';
-import { ANATOMY, type AnatomyPart } from '../lib/anatomy';
+import { SHAPE } from '../lib/bodyShape';
+import type { AnatomyPart } from '../lib/bodyShape';
 import { useCosmetics } from '../lib/cosmetics';
 import { MUSCLE_NAMES, type MuscleLevel } from '../lib/muscles';
 import type { MuscleId } from '../lib/types';
@@ -14,17 +15,17 @@ export const BODY_MAP: Record<MuscleId, { front?: string[]; back?: string[] }> =
   trizeps: { front: ['triceps'], back: ['triceps'] },
   bauch: { front: ['abs', 'obliques'] },
   oberer_ruecken: { front: ['trapezius'], back: ['trapezius'] },
-  lat: { back: ['upper-back'] },
-  unterer_ruecken: { back: ['lower-back'] },
-  gesaess: { back: ['gluteal'] },
-  quadrizeps: { front: ['quadriceps', 'adductors'] },
-  beinbeuger: { back: ['hamstring'] },
-  waden: { front: ['calves', 'tibialis'], back: ['calves'] },
+  lat: { back: ['lat'] },
+  unterer_ruecken: { back: ['lower'] },
+  gesaess: { back: ['glutes'] },
+  quadrizeps: { front: ['quadriceps'] },
+  beinbeuger: { back: ['hamstrings'] },
+  waden: { front: ['calves'], back: ['calves'] },
 };
 /** Auf dem Körper nicht beschriften (Platz/Überschneidung) */
 const NO_LABEL: Record<'front' | 'back', MuscleId[]> = { front: ['trizeps', 'oberer_ruecken'], back: [] };
 /** Der Körper wird in der Breite leicht gestreckt: kräftigerer, muskulöserer Eindruck */
-const BULK = 1.07;
+const BULK = 1;
 const CX = { front: 362, back: 1086 };
 const SHOW_LABELS = false;
 const MUSCLE_ORDER = Object.keys(BODY_MAP) as MuscleId[];
@@ -103,7 +104,7 @@ interface FigureProps {
 function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) {
   const ref = useRef<SVGGElement>(null);
   const [pos, setPos] = useState<Partial<Record<MuscleId, [number, number]>>>({});
-  const data = ANATOMY[side];
+  const data = SHAPE[side];
   const muscles = MUSCLE_ORDER.filter((m) => BODY_MAP[m][side]);
   const used = USED(side);
   // Beschriftung: Mitte der linken Fläche messen; mittige Muskeln über die ganze Gruppe
@@ -123,7 +124,9 @@ function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) 
   }, [labels, side, focus]);
   return (
     <g ref={ref} data-side={side} transform={`translate(${CX[side]} 0) scale(${BULK} 1) translate(${-CX[side]} 0)`}>
-      <path d={ANATOMY.outline[side]} className="body-outline" />
+      <g className="body-sil" aria-hidden="true">
+        {SHAPE.sil[side].map((d, i) => <path key={i} d={d} />)}
+      </g>
       {!simple && <g className="body-neutral">
         {Object.entries(data).filter(([slug]) => !used.has(slug)).map(([slug, part]) => (
           <g key={slug} data-slug={slug}><PartPaths part={part} /></g>

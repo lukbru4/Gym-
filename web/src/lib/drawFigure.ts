@@ -348,6 +348,14 @@ function drawProp(h: PropHelpers, prop: Prop, j: Joints, pose: Pose, pat: Patter
       h.line([-0.32, 1.95, z], [0.32, 1.95, z], 7, FRAME, 0.1);
       if (prop.front) h.line([-0.32, 0.03, z], [-0.32, 0.03, shift - 0.1], 6, FRAME, 0.1), h.line([0.32, 0.03, z], [0.32, 0.03, shift - 0.1], 6, FRAME, 0.1);
       weightStack(h, c, z, 1.7, 0);
+      // Führungsstangen im Block, Abdeckplatte oben, Bodenschienen und (hinten liegender Block) Stützholm hinter dem Rückenpolster
+      for (const x of [-0.09, 0.09]) h.line([x, 0.05, z], [x, 1.9, z], 2, c.propDark, 0.13);
+      box(h, -0.23, 0.23, 1.74, 1.8, z - 0.15, z + 0.15, FRAME);
+      for (const x of [-0.32, 0.32]) h.line([x, 0.03, z], [x, 0.03, prop.front ? shift - 0.1 : shift + 0.3], 7, FRAME, 0.1);
+      if (!prop.front) {
+        h.line([0, 0.03, shift - 0.4], [0, 1.05, shift - 0.4], 7, FRAME, 0.1);
+        h.line([0, 1.05, shift - 0.4], [0, 1.95, z], 5, FRAME, 0.1);
+      }
       if (prop.lever) {
         for (const hd of [j.handL, j.handR]) { h.line([hd[0] * 1.1, 1.18, shift - 0.3], hd, 5, c.prop, -0.04); h.poly(ring([hd[0] * 1.1, 1.18, shift - 0.3], 'x', 0.035, 8), c.propDark, -0.05); }
       }
