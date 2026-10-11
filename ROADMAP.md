@@ -134,6 +134,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 87: Einstellungen als Menüliste mit Symbolen und Unterseiten (Profil, Konto, Pro, Ziele, Themen, Daten, App, FAQ, Neuigkeiten, Rechtliches)
 - [x] Schritt 88: Profil mit Stärkeziel (Ring, selbst gesetztes 1RM-Ziel), Letzte 7 Tage (Körperfigur + Balken Volumen/Wdh./Cardio), Serien (Wochenkreise), Level-Karte
 - [x] Schritt 89: Ränge-Reiter Galerie (Rang je Übung mit Suche) und Rechner (geschätztes 1RM aus Gewicht und Wiederholungen, Gewicht nach Prozent)
+- [x] Schritt 90: Beinpresse mit Schienen, Fußplatte und Gewichtsscheiben; Butterfly als Maschine (Armpolster mit Drehachse, Gewichtsblock)
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

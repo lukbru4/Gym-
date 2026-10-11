@@ -47,6 +47,7 @@ const RULES: [RegExp, string][] = [
   [/liegestuetz|diamant/, 'pushup'],
   [/dip-maschine|bank-dips|dips/, 'dip'],
   [/brustpresse/, 'chestpress'],
+  [/^butterfly$|^butterfly \(maschine|pec deck/, 'pecdeck'],
   [/fliegende|butterfly|crossover|pullover/, 'fly'],
   [/((druecken|presse).*schraeg|schraeg.*(druecken|presse)).*kurzhantel|kurzhantel.*(druecken|presse).*schraeg|kurzhantel-schraeg/, 'incline-db'],
   [/(druecken|presse).*schraeg|schraeg.*(druecken|presse)/, 'incline'],

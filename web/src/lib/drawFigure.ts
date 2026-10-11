@@ -302,10 +302,27 @@ function drawProp(h: PropHelpers, prop: Prop, j: Joints, pose: Pose, pat: Patter
       break;
     }
     case 'plate': {
+      // Beinpresse (45°): zwei Schienen, Schlitten mit Fußplatte senkrecht zur Druckrichtung, Gewichtsscheiben seitlich
       const f = mid(j.toeL, j.toeR);
-      const tilt = 0.5;
-      h.poly([[-0.34, f[1] - tilt * 0.4, f[2] + 0.02], [0.34, f[1] - tilt * 0.4, f[2] + 0.02], [0.34, f[1] + tilt * 0.4, f[2] + 0.02], [-0.34, f[1] + tilt * 0.4, f[2] + 0.02]], c.prop, -0.1);
-      h.line([-0.3, 0, shift - 0.5], [-0.3, 0.5, f[2] + 0.6], 4, c.propDark); h.line([0.3, 0, shift - 0.5], [0.3, 0.5, f[2] + 0.6], 4, c.propDark);
+      const r: V3 = [0, 0.7, 0.7], pdir: V3 = [0, 0.7, -0.7]; // Druckrichtung und Richtung in der Plattenebene
+      const at = (x: number, k: number, m: number): V3 => [x, f[1] + r[1] * k + pdir[1] * m, f[2] + r[2] * k + pdir[2] * m];
+      for (const x of [-0.34, 0.34]) {
+        h.line([x, Math.max(0.05, f[1] - 1.5 * 0.7), f[2] - 1.5 * 0.7], [x, f[1] + 0.9 * 0.7, f[2] + 0.9 * 0.7], 6, FRAME, 0.1);
+        h.line([x, f[1] - 0.2, f[2] - 0.4], [x, 0.02, f[2] - 0.4], 5, FRAME, 0.1);
+        plateAt(x * 1.28, f[1] + 0.12, f[2] + 0.08, 0.2);
+      }
+      for (const dk of [0, 0.05]) h.poly([at(-0.36, dk, 0.26), at(0.36, dk, 0.26), at(0.36, dk, -0.26), at(-0.36, dk, -0.26)], dk ? PAD : c.prop, -0.1 + dk);
+      h.line(at(-0.36, 0.06, 0), at(0.36, 0.06, 0), 3, c.propDark, -0.12);
+      break;
+    }
+    case 'pecpads': {
+      // Butterfly-Maschine: schwarze Polster an den Unterarmen, Hebelarme zur Drehachse hinter dem Kopf
+      for (const [el, wr, x] of [[j.elL, j.wrL, -1], [j.elR, j.wrR, 1]] as const) {
+        const top: V3 = [x * 0.3, Math.max(el[1], wr[1]) + 0.12, shift - 0.25];
+        h.line([el[0], el[1], el[2] + 0.02], [wr[0], wr[1], wr[2] + 0.02], 15, PAD, -0.04);
+        h.line([wr[0], wr[1], wr[2]], top, 5, FRAME, 0.02);
+        h.poly(ring(top, 'y', 0.05, 8), FRAME, 0.03);
+      }
       break;
     }
     case 'cable': {

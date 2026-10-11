@@ -12,6 +12,7 @@ export type Prop =
   | { kind: 'bench'; angle?: number }                 // Winkel der Rückenlehne (0 = flach)
   | { kind: 'seat'; back?: number }                    // Sitz mit Lehne (Maschine)
   | { kind: 'cable'; from: V3 }                        // Kabelzug von der Rolle zu den Händen (mit Kabelturm samt Gewichtsblock)
+  | { kind: 'pecpads' }                                // Butterfly-Maschine: Armpolster mit Drehachse
   | { kind: 'legpad' }                                 // Beinrolle (Beinstrecker/-beuger)
   | { kind: 'kneepad' }                                // Knierolle (Latziehen)
   | { kind: 'stack'; dz?: number; lever?: boolean; front?: boolean }    // Gewichtsblock mit Rahmen hinter dem Sitz (Maschine); lever = Druckhebel zu den Händen
@@ -159,6 +160,13 @@ def({
   frames: [F({ ...arms(170, 0, 172, 0) }), F({ armL: 100, armR: 100, armPlaneL: 90, armPlaneR: 90, foreL: 150, foreR: 150, forePlaneL: 80, forePlaneR: 80 })],
   cues: ['Ellbogen bleiben leicht gebeugt.', 'Die Arme öffnen sich wie beim Umarmen eines Baumes.', 'Oben die Brust zusammendrücken.'],
   mistakes: ['Zu tiefes Absenken (Schulter überdehnt).', 'Die Ellbogen strecken oder beugen sich ständig.'],
+});
+def({
+  id: 'pecdeck', name: 'Butterfly (Maschine)', seconds: 3, azimuth: 35, anchor: { on: 'surface', y: 0.42 }, props: [{ kind: 'seat', back: 0 }, { kind: 'stack' }, { kind: 'pecpads' }],
+  base: { trunk: -2, ...legs(85, 85) },
+  frames: [F({ armL: 92, armR: 92, armPlaneL: 78, armPlaneR: 78, foreL: 172, foreR: 172, forePlaneL: 0, forePlaneR: 0 }), F({ armL: 92, armR: 92, armPlaneL: 12, armPlaneR: 12, foreL: 172, foreR: 172, forePlaneL: 0, forePlaneR: 0 })],
+  cues: ['Sitzhöhe so einstellen, dass die Ellbogen auf Schulterhöhe sind.', 'Unterarme liegen an den Polstern, Rücken fest an der Lehne.', 'Die Arme vor der Brust zusammenführen, kurz halten.', 'Kontrolliert öffnen, nicht über die Schulterlinie hinaus.'],
+  mistakes: ['Schultern ziehen nach vorn.', 'Zu weit nach hinten öffnen (Schulter überdehnt).', 'Mit Schwung arbeiten.'],
 });
 def({
   id: 'chestpress', name: 'Brustpresse (Maschine)', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.42 }, props: [{ kind: 'seat', back: 0 }, { kind: 'stack', lever: true }],
