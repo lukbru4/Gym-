@@ -56,6 +56,7 @@ const ROUTES: Route[] = [
   [/^#\/koerper$/, () => <Body />],
   [/^#\/backup$/, () => <Backup />],
   [/^#\/konto$/, () => <Account />],
+  [/^#\/konto\/([a-z]+)$/, (m) => <Account section={m[1]} />],
   [/^#\/(trainingsplan|fragen)$/, () => <Quiz />],
   [/^#\/pro$/, () => <ProPage />],
   [/^#\/essen$/, () => <Food />],

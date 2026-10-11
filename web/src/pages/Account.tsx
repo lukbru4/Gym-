@@ -1,6 +1,6 @@
 // Konto & Einstellungen sowie Backup (nur lokaler Modus).
 import { ask, askText } from '../components/Dialog';
-import { useState, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent, type ReactNode } from 'react';
 import { useAsync } from '../app/useAsync';
 import { LegalLinks } from './Auth';
 import type { Visibility } from '../data/social';
@@ -38,6 +38,8 @@ import {
 } from '../lib/theme';
 import { hardReload } from '../lib/update';
 import { APP_VERSION } from '../version';
+import { SettingsIcon } from '../components/SettingsIcons';
+import { FAQ, NEWS } from '../lib/news';
 
 const confirmDelete = (what: string) =>
   askText(`${what} kann nicht rückgängig gemacht werden. Tippe LÖSCHEN zum Bestätigen.`, { title: 'Wirklich löschen?', ok: 'Endgültig löschen', danger: true, requireText: 'LÖSCHEN' }).then((t) => t?.trim().toUpperCase() === 'LÖSCHEN');
@@ -160,7 +162,7 @@ function WeekGoalCard() {
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-export function Account() {
+export function Account({ section }: { section?: string }) {
   const { api, user, setExercises, showError, dataChanged } = useApp();
   const [scheme, setSchemeState] = useState(getScheme());
   const [themeMode, setThemeModeState] = useState(getThemeMode());
@@ -206,9 +208,9 @@ export function Account() {
     }
   };
 
-  return (
-    <>
-      <h2>Konto &amp; Einstellungen</h2>
+  const sections: Record<string, ReactNode> = {
+    konto: (
+      <>
       <div className="card account">
         <h3>Konto</h3>
         {api.mode === 'cloud' ? (
@@ -231,6 +233,10 @@ export function Account() {
           </>
         )}
       </div>
+      </>
+    ),
+    profil: (
+      <>
       {api.social ? (
         <SocialSettings />
       ) : (
@@ -242,9 +248,21 @@ export function Account() {
           </label>
         </div>
       )}
+      </>
+    ),
+    ziele: (
+      <>
       <WeekGoalCard />
       <QuestionsCard />
+      </>
+    ),
+    pro: (
+      <>
       <ProCard />
+      </>
+    ),
+    themen: (
+      <>
       <div className="card">
         <h3>Stil</h3>
         <label>
@@ -299,21 +317,77 @@ export function Account() {
           </div>
         )}
       </div>
+      </>
+    ),
+    app: (
+      <>
       <div className="card">
         <h3>App</h3>
         <p className="muted small">App-Version: {APP_VERSION}</p>
         <button className="btn block" id="hard-reload" onClick={hardReload}>App aktualisieren</button>
         <p className="muted small">Lädt die neueste Version vom Server. Deine Trainings bleiben erhalten.</p>
       </div>
+      </>
+    ),
+    daten: (
+      <>
       <div className="card">
         <h3>Daten</h3>
         <a className="btn block" href="#/backup">Backup</a>
       </div>
+      </>
+    ),
+    recht: (
+      <>
       <div className="card" id="legal">
         <h3>Rechtliches</h3>
         <LegalLinks />
         <p className="muted small">Die Körper-Zeichnung stammt aus dem Open-Source-Paket „react-muscle-highlighter“ (MIT-Lizenz, © My Muscle Contributors; abgeleitet von „react-native-body-highlighter“, © 2022 ELABBASSI Hicham). Lizenztexte: THIRD_PARTY.md im Quellcode.</p>
       </div>
+      </>
+    ),
+    news: (
+      <div className="settings-list-text">
+        {NEWS.map((n) => <div className="card" key={n.title}><h3>{n.title}</h3><p className="small">{n.text}</p></div>)}
+      </div>
+    ),
+    faq: (
+      <div className="settings-list-text">
+        {FAQ.map((f) => <details className="card faq" key={f.q}><summary><strong>{f.q}</strong></summary><p className="small">{f.a}</p></details>)}
+      </div>
+    ),
+  };
+  // „alles“: die frühere lange Einstellungsseite (für Tests und Direktlinks)
+  sections.alles = <><h2>Konto &amp; Einstellungen</h2>{sections.konto}{sections.profil}{sections.ziele}{sections.pro}{sections.themen}{sections.app}{sections.daten}{sections.recht}</>;
+  const MENU: [string, [string, string, string][]][] = [
+    ['Benutzer', [['profil', 'Profil', '#/konto/profil'], ['konto', 'Konto', '#/konto/konto'], ['pro', 'Pro', '#/konto/pro'], ['ziele', 'Ziele & Trainingsplan', '#/konto/ziele'], ['statistik', 'Statistiken', '#/fortschritt']]],
+    ['Einstellungen', [['themen', 'Themen & Farben', '#/konto/themen'], ['daten', 'Daten & Backup', '#/konto/daten'], ['app', 'App & Version', '#/konto/app']]],
+    ['Ressourcen', [['faq', 'Häufig gestellte Fragen', '#/konto/faq'], ['news', 'Neuigkeiten', '#/konto/news']]],
+    ['Rechtliches', [['recht', 'Datenschutz, Bedingungen, Lizenzen', '#/konto/recht']]],
+  ];
+  const TITLES = Object.fromEntries(MENU.flatMap(([, items]) => items.map(([id, label]) => [id, label])));
+  if (section && sections[section]) {
+    return (
+      <>
+        <div className="settings-head"><a className="back-link" href="#/konto" aria-label="Zurück zu den Einstellungen">←</a><h2>{TITLES[section]}</h2></div>
+        {sections[section]}
+      </>
+    );
+  }
+  return (
+    <>
+      <h2>Einstellungen</h2>
+      {MENU.map(([group, items]) => (
+        <section key={group} className="settings-group">
+          <h3 className="settings-group-title">{group}</h3>
+          <ul className="settings-list">
+            {items.filter(([id]) => (id !== 'pro' || api.social) && (id !== 'konto' || true)).map(([id, label, href]) => (
+              <li key={id}><a href={href} className="settings-item" data-menu={id}><span className="settings-icon"><SettingsIcon id={id} /></span><span className="settings-label">{label}</span><span className="settings-chev" aria-hidden="true">›</span></a></li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      {api.mode === 'cloud' && <button className="settings-logout" id="sign-out-menu" onClick={() => api.signOut()}>Abmelden</button>}
     </>
   );
 }

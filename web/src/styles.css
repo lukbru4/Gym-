@@ -1881,3 +1881,18 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .block-head .block-thumb .ex-thumb-wrap { width: 76px; margin: 0; border-radius: 10px; }
 .block-head .block-thumb .bodygraph-panel { border-radius: 10px; }
 .block-head h3 { flex: 1; padding: 0 10px; }
+
+/* Einstellungen als Menüliste */
+.settings-group { margin: 18px 0; }
+.settings-group-title { font-size: 1.05rem; margin: 0 0 6px; padding-bottom: 6px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+.settings-list { list-style: none; margin: 0; padding: 0; }
+.settings-item { display: flex; align-items: center; gap: 16px; padding: 16px 4px; color: var(--text); text-decoration: none; font-size: 1.12rem; }
+.settings-icon { display: inline-flex; width: 30px; justify-content: center; }
+.settings-label { flex: 1; }
+.settings-chev { color: var(--text-secondary); font-size: 1.6rem; line-height: 1; }
+.settings-logout { display: block; margin: 28px auto 12px; background: none; border: 0; color: #e53935; font: inherit; font-size: 1.15rem; font-weight: 600; cursor: pointer; padding: 10px 24px; }
+.settings-head { display: flex; align-items: center; gap: 12px; }
+.settings-head h2 { margin: 12px 0; }
+.back-link { font-size: 1.6rem; color: var(--text); text-decoration: none; padding: 4px 8px; }
+.settings-list-text { display: flex; flex-direction: column; gap: 10px; }
+.faq summary { cursor: pointer; }
