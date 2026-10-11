@@ -21,7 +21,7 @@ import { getCosmetics, setCosmetics } from '../lib/cosmetics';
 import { setServerCatalog } from '../lib/shop';
 import { enforceSchemeRules } from '../lib/theme';
 import { getWeekGoal, setLocalWeekGoal } from '../lib/weekGoal';
-import { Analysis, Ranks } from '../pages/Ranks';
+import { Analysis, OneRmCalculator, RankGallery, Ranks } from '../pages/Ranks';
 import { Quiz } from '../pages/Quiz';
 import { loadQuiz, saveQuiz, setQuizSyncer } from '../lib/plan';
 import { Food } from '../pages/Food';
@@ -62,6 +62,8 @@ const ROUTES: Route[] = [
   [/^#\/essen$/, () => <Food />],
   [/^#\/rezepte$/, () => <Recipes />],
   [/^#\/raenge$/, () => <Ranks />],
+  [/^#\/raenge\/galerie$/, () => <RankGallery />],
+  [/^#\/raenge\/rechner$/, () => <OneRmCalculator />],
   [/^#\/freunde$/, () => <Friends />],
   [/^#\/freunde\/add\/([A-Za-z0-9]{8})$/, (m) => <AcceptInvite code={m[1].toUpperCase()} />],
   [/^#\/freunde\/profil\/([0-9a-f-]{36})$/, (m) => <FriendProfile userId={m[1]} />],

@@ -1,5 +1,6 @@
 // Ränge pro Übung, Gesamt-Rang, Rekorde & Level pro Übung, Analyse einer Übung.
 import { ChoiceField } from '../components/ChoiceSheet';
+import { pickNumber } from '../components/NumberPicker';
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
@@ -11,7 +12,7 @@ import { datedSets } from '../lib/editor';
 import { fmt, fmtDate, fmtShortDate, plural } from '../lib/format';
 import { strengthLevels } from '../lib/muscles';
 import { rankFromPoints } from '../lib/ranks';
-import { exerciseProgress, todayISO, type CardioPoint, type StrengthPoint } from '../lib/stats';
+import { estimate1RM, exerciseProgress, todayISO, type CardioPoint, type StrengthPoint } from '../lib/stats';
 import { KG_PER_WEIGHT_LEVEL, exerciseLevel, weightLevel, type Progress } from '../lib/xp';
 
 export function Ranks() {
@@ -180,6 +181,77 @@ export function Analysis() {
           onChange={(k) => choose(Number(k))}
         />
         <div id="p-body">{body}</div>
+      </div>
+    </>
+  );
+}
+
+
+/** Galerie: Rang je Übung, mit Suche */
+export function RankGallery() {
+  const { exerciseById } = useApp();
+  const game = useGame();
+  const [q, setQ] = useState('');
+  if (game.status === 'loading') return <Loading />;
+  if (game.status === 'error') return <LoadError error={game.error} />;
+  const g = game.data;
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const cards = g.strength
+    .map(([id, st]) => ({ ex: exerciseById(id), st, rank: rankFromPoints(st.xp) }))
+    .filter((c) => c.ex && words.every((w) => c.ex!.name.toLowerCase().includes(w)))
+    .sort((a, b) => b.st.xp - a.st.xp || a.ex!.name.localeCompare(b.ex!.name, 'de'));
+  return (
+    <>
+      <h2>Galerie</h2>
+      <input type="search" className="picker-search" id="gallery-search" placeholder="Übung suchen …" aria-label="Übung suchen" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="rank-grid">
+        {cards.map((c) => (
+          <div className="rank-card" key={c.ex!.id} style={{ '--tier': c.rank.tier.color } as React.CSSProperties}>
+            <div className="rank-head"><strong>{c.rank.label}</strong><span>{c.rank.lp} LP</span></div>
+            <RankBadge rank={c.rank} size={84} />
+            <div className="rank-name">{c.ex!.name}</div>
+            <div className="rank-best">Bestes gesch. 1RM {fmt(c.st.best)} kg</div>
+            <ProgressBar className="xp-bar tier-bar" value={c.rank.lp} max={c.rank.needed} label={`${c.rank.lp} von ${c.rank.needed} LP bis zur nächsten Stufe`} />
+          </div>
+        ))}
+      </div>
+      {!cards.length && <p className="muted">{q ? 'Keine Übung gefunden.' : 'Trainiere eine Kraftübung, um sie hier zu sehen.'}</p>}
+    </>
+  );
+}
+
+/** Rechner: geschätztes 1RM aus Gewicht × Wiederholungen (Epley) und Gewichte für andere Wiederholungszahlen */
+export function OneRmCalculator() {
+  const { exercises, exerciseById } = useApp();
+  const game = useGame();
+  const strength = exercises.filter((e) => e.type === 'strength').sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const [exId, setExId] = useState<number | null>(null);
+  const [kg, setKg] = useState(60);
+  const [reps, setReps] = useState(8);
+  const e1rm = estimate1RM(kg, reps);
+  const current = exId ?? strength.find((e) => e.name === 'Bankdrücken')?.id ?? strength[0]?.id ?? -1;
+  const best = game.status === 'ok' ? game.data.strength.find(([id]) => id === current)?.[1].best ?? 0 : 0;
+  const pick = async (title: string, unit: string, value: number, min: number, max: number, step: number, big: number, integer?: boolean) => {
+    const v = await pickNumber({ title, unit, value: String(value), min, max, step, bigStep: big, itemW: integer ? 14 : 10, labelEvery: integer ? 5 : 10, integer });
+    return v === null ? null : Number(v.replace(',', '.'));
+  };
+  const table = [100, 95, 90, 85, 80, 75, 70, 65, 60, 55, 50].map((p) => ({ p, w: Math.round(((e1rm * p) / 100) / 0.5) * 0.5, r: p === 100 ? 1 : Math.max(1, Math.round(30 * (100 / p - 1))) }));
+  return (
+    <>
+      <h2>Rechner</h2>
+      <div className="card" id="calc">
+        <ChoiceField id="calc-exercise" label="Übung" title="Übung wählen" items={strength.map((e) => ({ key: e.id, label: e.name }))} value={current} onChange={(k) => setExId(Number(k))} />
+        <div className="calc-inputs">
+          <button type="button" className="calc-btn" id="calc-kg" onClick={async () => { const v = await pick('Gewicht', 'kg', kg, 0, 400, 0.5, 2.5); if (v !== null) setKg(v); }}><span className="muted small">Gewicht</span><strong>{fmt(kg)} kg</strong></button>
+          <button type="button" className="calc-btn" id="calc-reps" onClick={async () => { const v = await pick('Wiederholungen', 'Wdh.', reps, 1, 50, 1, 1, true); if (v !== null) setReps(v); }}><span className="muted small">Wiederholungen</span><strong>{reps} Wdh.</strong></button>
+        </div>
+        <div className="calc-result" id="calc-result"><span className="muted small">Geschätztes 1RM</span><strong>{fmt(e1rm)} kg</strong>{best > 0 && exerciseById(current) && <span className="muted small">Dein bisheriger Bestwert bei {exerciseById(current)!.name}: {fmt(best)} kg</span>}</div>
+      </div>
+      <div className="card">
+        <h3>Gewicht nach Prozent</h3>
+        <table className="table"><thead><tr><th>% 1RM</th><th>Gewicht</th><th>ca. Wdh.</th></tr></thead>
+          <tbody>{table.map((r) => <tr key={r.p}><td>{r.p} %</td><td>{fmt(r.w)} kg</td><td>{r.r}</td></tr>)}</tbody></table>
+        <p className="muted small">Nach der Epley-Formel (Gewicht × (1 + Wdh. / 30)); die Wiederholungszahlen sind Richtwerte.</p>
       </div>
     </>
   );

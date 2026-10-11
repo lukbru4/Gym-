@@ -96,6 +96,8 @@ export function Header({ game }: { game: Game | null }) {
 const SUBNAV: [string, string][] = [
   ['#/raenge', 'Rang'],
   ['#/koerper', 'Körpergraph'],
+  ['#/raenge/galerie', 'Galerie'],
+  ['#/raenge/rechner', 'Rechner'],
   ['#/fortschritt', 'Analyse'],
 ];
 
