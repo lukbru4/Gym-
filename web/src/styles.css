@@ -1922,3 +1922,57 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .calc-result { display: flex; flex-direction: column; gap: 2px; padding: 14px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
 .calc-result strong { font-size: 2.2rem; }
 .subnav { overflow-x: auto; }
+
+/* Ernährungscoach (Essen): Interview, Ergebnis und Tracker. Blauer Akzent nur hier; Hell/Dunkel über die App-Themes */
+.nc, .nc-screen { --nc-ac: #2563EB; --nc-ac2: #4F8BFF; --nc-card: var(--surface, #fff); --nc-ln: color-mix(in srgb, var(--text) 14%, transparent); --nc-mu: var(--text-secondary); font-variant-numeric: tabular-nums; max-width: 460px; margin: 0 auto; }
+.nc-screen h1 { font-size: 1.9rem; line-height: 1.15; letter-spacing: -0.5px; margin: 8px 0 12px; font-style: normal; text-transform: none; }
+.nc-screen h2 { font-size: 1.5rem; margin: 0 0 6px; text-transform: none; font-style: normal; }
+.nc-screen p { color: var(--nc-mu); line-height: 1.45; }
+.nc-bar, .nc-track { height: 6px; background: var(--nc-ln); border-radius: 9px; overflow: hidden; margin: 6px 0 22px; }
+.nc-bar i, .nc-track i { display: block; height: 100%; background: linear-gradient(90deg, var(--nc-ac), var(--nc-ac2)); border-radius: 9px; transition: width 0.3s; }
+.nc-track { margin: 10px 0; } .nc-track i.water { background: linear-gradient(90deg, #38bdf8, #2563EB); }
+.nc-wave { font-size: 3.2rem; margin-top: 28px; }
+.nc-note { background: color-mix(in srgb, var(--nc-ac) 10%, transparent); border: 1px solid color-mix(in srgb, var(--nc-ac) 30%, transparent); border-radius: 16px; padding: 12px 14px; font-size: 0.9rem; margin: 14px 0; }
+.nc-count { font-size: 0.85rem; margin: 0 0 6px; }
+.nc-help { font-size: 0.85rem; margin-top: 10px; }
+.nc-err { color: #ef4444 !important; font-size: 0.9rem; margin: 8px 0 0; }
+.nc-in { width: 100%; padding: 14px; font-size: 1.4rem; font-weight: 700; border-radius: 16px; border: 1.5px solid var(--nc-ac); background: var(--nc-card); color: var(--text); }
+.nc-in.nc-text { font-size: 1rem; font-weight: 400; }
+.nc-numrow { display: flex; align-items: center; gap: 10px; } .nc-numrow span { color: var(--nc-mu); font-weight: 600; }
+.nc-options { display: flex; flex-direction: column; gap: 10px; }
+.nc-opt { text-align: left; padding: 14px; border-radius: 16px; border: 1.5px solid var(--nc-ln); background: var(--nc-card); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.nc-opt small { display: block; font-weight: 400; color: var(--nc-mu); margin-top: 2px; }
+.nc-opt.on { border-color: var(--nc-ac); background: color-mix(in srgb, var(--nc-ac) 12%, var(--nc-card)); }
+.nc-row { display: flex; gap: 10px; margin-top: 18px; } .nc-row > * { flex: 1; }
+.nc-btn { display: block; width: 100%; padding: 14px; border: 0; border-radius: 16px; background: linear-gradient(135deg, var(--nc-ac), var(--nc-ac2)); color: #fff; font: inherit; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3); margin-top: 10px; }
+.nc-row .nc-btn { margin-top: 0; }
+.nc-btn.ghost { background: none; color: var(--nc-mu); box-shadow: none; border: 1px solid var(--nc-ln); }
+.nc-btn.small { padding: 9px; font-size: 0.9rem; }
+.nc-btn:disabled { opacity: 0.5; }
+.nc-card { background: var(--nc-card); border: 1px solid var(--nc-ln); border-radius: 22px; padding: 16px; margin-bottom: 14px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12); }
+.nc-card p { margin: 6px 0 0; font-size: 0.88rem; color: var(--nc-mu); }
+.nc-hero { text-align: center; } .nc-hero > span { color: var(--nc-mu); font-size: 0.85rem; display: block; }
+.nc-hero > strong { display: block; font-size: 2.6rem; letter-spacing: -1.5px; }
+.nc-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.nc-tile { background: var(--nc-card); border: 1px solid var(--nc-ln); border-radius: 18px; padding: 12px; }
+.nc-tile span { display: block; font-size: 0.78rem; color: var(--nc-mu); } .nc-tile b { display: block; font-size: 1.5rem; letter-spacing: -0.5px; } .nc-tile small { color: var(--nc-mu); font-size: 0.72rem; }
+.nc-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; } .nc-dot.p { background: #2563EB; } .nc-dot.c { background: #14B8A6; } .nc-dot.f { background: #F59E0B; }
+.nc-method { font-size: 0.75rem; color: var(--nc-mu); }
+.nc-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; }
+.nc-head h1 { margin: 0; font-size: 2rem; letter-spacing: -0.5px; text-transform: none; font-style: normal; } .nc-head small { color: var(--nc-mu); }
+.nc-pill { display: flex; border: 1px solid var(--nc-ln); border-radius: 99px; background: var(--nc-card); overflow: hidden; }
+.nc-pill button { border: 0; background: none; color: var(--text); padding: 7px 11px; font: inherit; font-size: 0.85rem; cursor: pointer; } .nc-pill button.m { background: var(--nc-ln); font-weight: 700; } .nc-pill button:disabled { opacity: 0.35; }
+.nc-ring { position: relative; display: inline-block; } .nc-ring-track { fill: none; stroke: var(--nc-ln); } .nc-ring-fill { transition: stroke-dasharray 0.6s; }
+.nc-ring-mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.nc-hero .nc-ring-mid strong { font-size: 2.2rem; letter-spacing: -1px; line-height: 1; } .nc-hero .nc-ring-mid small { color: var(--nc-mu); font-size: 0.75rem; }
+.nc-left { margin: 6px 0 0 !important; }
+.nc-rings { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; } .nc-rings b { display: block; margin-top: 4px; } .nc-rings small { color: var(--nc-mu); font-size: 0.72rem; }
+.nc-between { display: flex; justify-content: space-between; }
+.nc-bars { position: relative; display: flex; align-items: flex-end; gap: 10px; height: 120px; margin-top: 10px; }
+.nc-bars > div { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; text-align: center; font-size: 0.7rem; color: var(--nc-mu); }
+.nc-bars > div i { display: block; border-radius: 8px 8px 3px 3px; background: linear-gradient(180deg, var(--nc-ac2), var(--nc-ac)); margin-bottom: 4px; opacity: 0.55; } .nc-bars > div.on i { opacity: 1; }
+.nc-meal { display: flex; align-items: center; gap: 8px; margin: 6px 0 2px; } .nc-meal i { width: 9px; height: 9px; border-radius: 50%; } .nc-meal span { margin-left: auto; color: var(--nc-mu); font-size: 0.85rem; }
+.nc-entry { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--nc-ln); font-size: 0.9rem; } .nc-entry > span:first-child { flex: 1; } .nc-entry small { display: block; color: var(--nc-mu); font-size: 0.75rem; } .nc-entry-k { font-weight: 700; }
+.nc-empty { margin: 0 0 6px !important; }
+.nc-card summary { font-weight: 700; cursor: pointer; } .nc-small { font-size: 0.85rem; }
+.nc-foot { font-size: 0.72rem; color: var(--nc-mu); text-align: center; margin: 6px 0 24px; }

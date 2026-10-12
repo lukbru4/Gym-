@@ -26,7 +26,6 @@ import { Quiz } from '../pages/Quiz';
 import { loadQuiz, saveQuiz, setQuizSyncer } from '../lib/plan';
 import { Food } from '../pages/Food';
 import { Animations } from '../pages/Animations';
-import { Recipes } from '../pages/Recipes';
 import { ProPage } from '../components/Pro';
 import { setPro } from '../lib/pro';
 import { clearAvatars, refreshAvatars } from '../lib/avatars';
@@ -60,7 +59,6 @@ const ROUTES: Route[] = [
   [/^#\/(trainingsplan|fragen)$/, () => <Quiz />],
   [/^#\/pro$/, () => <ProPage />],
   [/^#\/essen$/, () => <Food />],
-  [/^#\/rezepte$/, () => <Recipes />],
   [/^#\/raenge$/, () => <Ranks />],
   [/^#\/raenge\/galerie$/, () => <RankGallery />],
   [/^#\/raenge\/rechner$/, () => <OneRmCalculator />],
