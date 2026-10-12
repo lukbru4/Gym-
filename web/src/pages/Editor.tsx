@@ -8,6 +8,7 @@ import { ExercisePicker } from '../components/ExercisePicker';
 import { ExerciseInfo } from '../components/ExerciseInfo';
 import { ExerciseThumb } from '../components/ExerciseThumb';
 import { WorkoutMuscles } from '../components/WorkoutMuscles';
+import { FEEDBACK_LABEL, FEEDBACK_OPTIONS, getFeedback, previousFeedback, setFeedback, type Feedback } from '../lib/feedback';
 import { suggestProgress, suggestionText } from '../lib/progression';
 import {
   blockFor,
@@ -70,7 +71,7 @@ export function Editor({ mode, id }: { mode: EditorMode; id?: number }) {
 const REST_SELECT_STD = '';
 
 function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number, WorkoutSet[]> }) {
-  const { api, exerciseById, exercises, addExercise, showError, dataChanged } = useApp();
+  const { api, user, exerciseById, exercises, addExercise, showError, dataChanged } = useApp();
   const [state, setState] = useState(initial);
   const [picking, setPicking] = useState(false);
   const [newEx, setNewEx] = useState<{ name: string; type: ExerciseType; muscles: MuscleId[] } | null>(null);
@@ -296,6 +297,8 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
           mode={mode}
           exercise={exerciseById(b.exercise_id)!}
           prevSets={prev.get(b.exercise_id)}
+          uid={user?.id ?? 'lokal'}
+          date={state.date}
           placeholders={(si) => placeholders(b, si)}
           update={update}
           onDone={(si) => toggleDone(bi, si)}
@@ -399,6 +402,8 @@ function BlockCard(props: {
   mode: EditorMode;
   exercise: Exercise;
   prevSets: WorkoutSet[] | undefined;
+  uid: string;
+  date: string;
   placeholders: (si: number) => Partial<Record<RowField, string>>;
   update: (fn: (s: EditorState) => void) => void;
   onDone: (si: number) => void;
@@ -411,7 +416,16 @@ function BlockCard(props: {
   const labels = rowLabels(b.sets, cardio);
   // Gewichtsvorschlag aus dem letzten Training (Doppelte Progression); Zielwiederholungen aus dem Plan
   const targetReps = b.sets.find((r) => !r.warmup && r.target?.reps)?.target?.reps ?? null;
-  const suggestion = live && !cardio ? suggestProgress(props.prevSets, targetReps) : null;
+  // Rückmeldung vom letzten Training verändert den Vorschlag; die von heute gilt fürs nächste Mal
+  const lastFeedback = previousFeedback(props.uid, b.exercise_id, props.date);
+  const suggestion = live && !cardio ? suggestProgress(props.prevSets, targetReps, lastFeedback) : null;
+  const [feedback, setFb] = useState<Feedback | null>(() => (getFeedback(props.uid, b.exercise_id)?.date === props.date ? getFeedback(props.uid, b.exercise_id)!.value : null));
+  const workDone = b.sets.filter((r) => !r.warmup);
+  const allDone = workDone.length > 0 && workDone.every((r) => r.done);
+  const giveFeedback = (v: Feedback) => {
+    setFeedback(props.uid, b.exercise_id, props.date, v);
+    setFb(v);
+  };
   const takeSuggestion = () => {
     if (!suggestion) return;
     update((st) => {
@@ -503,9 +517,21 @@ function BlockCard(props: {
           <p className="suggest-line">
             <span className="muted small">Vorschlag heute</span> <strong>{suggestionText(suggestion)}</strong>
             <span className="muted small"> · letztes Mal {suggestion.last}</span>
+            {suggestion.feedback && <span className="muted small"> · du fandest es {FEEDBACK_LABEL[suggestion.feedback]}</span>}
           </p>
           <p className="muted small">{suggestion.why}</p>
           <button type="button" className="btn small-btn" data-action="take-suggestion" onClick={takeSuggestion}>Gewicht übernehmen</button>
+        </div>
+      )}
+      {live && !cardio && allDone && (
+        <div className="feedback" id={`feedback-${bi}`}>
+          <span className="muted small">Wie war die Übung?</span>
+          <div className="feedback-row" role="group" aria-label="Rückmeldung zur Übung">
+            {FEEDBACK_OPTIONS.map(([v, text]) => (
+              <button key={v} type="button" data-fb={v} className={`btn small-btn${feedback === v ? ' primary' : ''}`} aria-pressed={feedback === v} onClick={() => giveFeedback(v)}>{text}</button>
+            ))}
+          </div>
+          {feedback && <span className="muted small">Gespeichert – das nächste Mal passen wir den Vorschlag an.</span>}
         </div>
       )}
       <div className={`set-table ${live ? 'live' : 'plain'}`}>

@@ -1,5 +1,7 @@
 // Gewichtsvorschlag für das nächste Training („Doppelte Progression“):
 // Schaffst du bei allen Arbeitssätzen die obere Wiederholungszahl, steigt das Gewicht; sonst bleibt es und du versuchst eine Wiederholung mehr.
+import type { Feedback } from './feedback';
+
 export interface PrevSet { weight_kg?: number | string | null; reps?: number | string | null; is_warmup?: boolean }
 
 export interface Suggestion {
@@ -13,6 +15,8 @@ export interface Suggestion {
   why: string;
   /** Was beim letzten Mal war, z. B. „60 kg × 10, 10, 9“ */
   last: string;
+  /** Rückmeldung vom letzten Training, falls sie den Vorschlag verändert hat */
+  feedback?: Feedback;
 }
 
 /** Schrittweite je nach Gewicht (kleine Hanteln 1 kg, Stange und Maschinen 2,5 bzw. 5 kg) */
@@ -21,7 +25,27 @@ const roundTo = (kg: number, step: number) => Math.round(kg / step) * step;
 const de = (n: number) => String(Math.round(n * 100) / 100).replace('.', ',');
 
 /** `targetReps`: obere Wiederholungszahl laut Plan/Vorlage (falls bekannt) */
-export function suggestProgress(prev: PrevSet[] | undefined, targetReps?: number | null): Suggestion | null {
+export function suggestProgress(prev: PrevSet[] | undefined, targetReps?: number | null, feedback?: Feedback | null): Suggestion | null {
+  const base = baseSuggestion(prev, targetReps);
+  return base && feedback ? withFeedback(base, feedback) : base;
+}
+
+/** Rückmeldung „zu leicht“ → größerer Schritt, „zu schwer“ → einen Schritt weniger */
+function withFeedback(s: Suggestion, fb: Feedback): Suggestion {
+  if (fb === 'ok') return s;
+  const step = stepFor(s.weight);
+  const r = step < 2.5 ? 1 : 2.5;
+  if (fb === 'easy') {
+    if (s.action === 'down') return { ...s, action: 'same', weight: Math.round((s.weight + step) / r) * r, feedback: fb, why: 'Du fandest es zu leicht – wir bleiben beim letzten Gewicht.' };
+    const weight = s.action === 'up' ? s.weight + step : Math.round((s.weight + step) / r) * r;
+    return { ...s, action: 'up', weight, feedback: fb, why: s.action === 'up' ? 'Du fandest es zu leicht und hast alles geschafft – diesmal ein größerer Schritt.' : 'Du fandest es zu leicht – deshalb gibt es mehr Gewicht.' };
+  }
+  if (s.action === 'down') return { ...s, feedback: fb, why: 'Du fandest es zu schwer und die Wiederholungen waren niedrig – etwas weniger Gewicht, saubere Technik.' };
+  if (s.action === 'up') return { ...s, action: 'same', weight: Math.max(step, s.weight - step), feedback: fb, why: 'Du fandest es zu schwer – wir bleiben beim letzten Gewicht und halten die Wiederholungen.' };
+  return { ...s, action: 'down', weight: Math.max(step, Math.round((s.weight - step) / r) * r), feedback: fb, why: 'Du fandest es zu schwer – etwas weniger Gewicht, saubere Technik.' };
+}
+
+function baseSuggestion(prev: PrevSet[] | undefined, targetReps?: number | null): Suggestion | null {
   const work = (prev ?? []).map((s) => ({ ...s, w: Number(s.weight_kg), r: Number(s.reps) })).filter((s) => !s.is_warmup && s.w > 0 && s.r > 0);
   if (!work.length) return null;
   const top = Math.max(...work.map((s) => s.w));

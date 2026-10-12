@@ -47,4 +47,30 @@ describe('Gewichtsvorschlag (Doppelte Progression)', () => {
     expect(s.weight).toBe(60);
     expect(s.last).toBe('60 kg × 8, 8');
   });
+
+  test('Rückmeldung „passt“ ändert nichts', () => {
+    expect(suggestProgress(sets(60, [10, 9, 8]), 10, 'ok')).toEqual(suggestProgress(sets(60, [10, 9, 8]), 10));
+  });
+  test('„zu leicht“: bei gleichem Gewicht → Gewicht rauf; bei Aufstieg → größerer Schritt', () => {
+    const same = suggestProgress(sets(60, [10, 9, 8]), 10, 'easy')!;
+    expect(same.action).toBe('up');
+    expect(same.weight).toBe(62.5);
+    expect(same.feedback).toBe('easy');
+    const up = suggestProgress(sets(60, [10, 10, 10]), 10, 'easy')!;
+    expect(up.action).toBe('up');
+    expect(up.weight).toBe(65);
+  });
+  test('„zu schwer“: statt Aufstieg gleiches Gewicht; sonst einen Schritt weniger', () => {
+    const up = suggestProgress(sets(60, [10, 10, 10]), 10, 'hard')!;
+    expect(up.action).toBe('same');
+    expect(up.weight).toBe(60);
+    const same = suggestProgress(sets(60, [10, 9, 8]), 10, 'hard')!;
+    expect(same.action).toBe('down');
+    expect(same.weight).toBe(57.5);
+    const down = suggestProgress(sets(100, [3, 3, 2]), 10, 'hard')!;
+    expect(down.weight).toBe(95);
+  });
+  test('ohne Vorsatz bleibt es null', () => {
+    expect(suggestProgress(undefined, 10, 'easy')).toBeNull();
+  });
 });

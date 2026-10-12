@@ -139,6 +139,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 92: Körpergraph wieder wie vorher (Anatomie-Zeichnung); die Geräte-Verbesserungen aus Schritt 91 bleiben
 - [x] Schritt 93: Essen komplett ersetzt: Ernährungscoach (Interview mit 11 Fragen, Plan nach Mifflin-St-Jeor mit Methodik) und neuer Tracker (Kalorienring, Makroringe, Wasser, 7 Tage, Tagebuch); Rezepte, Barcode, Foto-KI und Essens-Chat entfernt
 - [x] Schritt 94: Gerichte mit Zutaten beim Essen: über 220 Gerichte (Frühstück, Warme Küche, Pasta, Imbiss, Suppen, Salate, Snacks) mit Zutatenliste, anpassbarer Portion und Zutaten; Nährwerte aus den Zutaten berechnet
+- [x] Schritt 95: Rückmeldung nach jeder Übung („Zu leicht / Passt / Zu schwer“); der nächste Gewichtsvorschlag passt sich an (zu leicht → größerer Schritt, zu schwer → weniger); gerätelokal gespeichert
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
