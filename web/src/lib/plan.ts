@@ -47,6 +47,8 @@ export const QUESTIONS: Question[] = [
   { id: 'focus', q: 'Welche Muskeln sind dir besonders wichtig?', hint: 'Mehrere möglich.', type: 'multi', options: [['brust', 'Brust'], ['ruecken', 'Rücken'], ['schultern', 'Schultern'], ['arme', 'Arme'], ['beine', 'Beine'], ['bauch', 'Bauch'], ['alles', 'Alles gleich']] },
   { id: 'fav', q: 'Welche Übungen willst du unbedingt machen?', hint: 'Kommen bevorzugt in deinen Plan (wenn sie zu Aufteilung, Geräten und Beschwerden passen). Mehrere möglich.', type: 'multi', options: [] },
   { id: 'pain', q: 'Hast du Beschwerden?', hint: 'Solche Übungen lassen wir weg. Bei Schmerzen bitte ärztlich abklären.', type: 'multi', options: [['keine', 'Keine'], ['knie', 'Knie'], ['ruecken', 'Unterer Rücken'], ['schulter', 'Schulter'], ['ellbogen', 'Ellbogen'], ['handgelenk', 'Handgelenk']] },
+  { id: 'style', q: 'Welche Art von Übungen bevorzugst du?', hint: 'Daran richten wir die Übungsauswahl aus. „Nur Maschinen“ gilt im Fitnessstudio.', type: 'one', options: [['alles', 'Alles – egal'], ['maschinen', 'Nur Maschinen und Kabelzüge'], ['frei', 'Keine Maschinen (Hanteln, Stange, Körpergewicht)'], ['ohnelh', 'Ohne Langhantel']] },
+  { id: 'avoid', q: 'Welche Übungen willst du nicht machen?', hint: 'Diese Übungen kommen nicht in deinen Plan – auch wenn sie sonst passen würden. Mehrere möglich, oben stehen ganze Gruppen.', type: 'multi', options: [] },
   { id: 'cardio', q: 'Wie viel Cardio möchtest du pro Training?', type: 'one', options: [['0', 'Keins'], ['10', 'Ein bisschen (10 Min.)'], ['20', 'Regelmäßig (20 Min.)']] },
   { id: 'sports', q: 'Machst du außerhalb vom Gym noch Sport?', hint: 'Mehrere möglich – das zählt für deinen Kalorienbedarf.', type: 'multi', options: [['keine', 'Keinen'], ['hockey', 'Feldhockey'], ['tennis', 'Tennis'], ['fussball', 'Fußball'], ['laufen', 'Laufen / Joggen'], ['rad', 'Radfahren'], ['schwimmen', 'Schwimmen'], ['basketball', 'Basketball'], ['handball', 'Handball'], ['volleyball', 'Volleyball'], ['badminton', 'Badminton / Tischtennis'], ['kampf', 'Kampfsport / Boxen'], ['klettern', 'Klettern'], ['wandern', 'Wandern / Spazieren'], ['tanzen', 'Tanzen'], ['yoga', 'Yoga / Pilates'], ['ski', 'Ski / Snowboard'], ['andere', 'Anderer Sport']] },
   { id: 'sportDays', q: 'Wie oft pro Woche machst du diesen Sport?', type: 'one', when: (a) => hasOtherSport(a), options: [['1', '1× pro Woche'], ['2', '2× pro Woche'], ['3', '3× pro Woche'], ['4', '4× pro Woche'], ['5', '5× pro Woche'], ['6', '6× pro Woche']] },
@@ -70,6 +72,7 @@ export const answerLabel = (q: Question, a: Answers): string => {
   const v = a[q.id];
   if (q.type === 'range') return v === undefined ? '–' : `${v} ${q.unit ?? ''}`.trim();
   const name = (x: string) => q.options?.find((o) => o[0] === x)?.[1] ?? x;
+  if (q.id === 'avoid' && Array.isArray(v) && v.length > 3) return `${v.length} Übungen ausgeschlossen`;
   return Array.isArray(v) ? v.map(name).join(', ') || '–' : v === undefined ? '–' : name(v);
 };
 
@@ -145,6 +148,20 @@ const X = {
 };
 // Alle Kraftübungen als Auswahl bei „Welche Übungen willst du unbedingt machen?“
 QUESTIONS.find((q) => q.id === 'fav')!.options = Object.values(P).map((p) => [p.name, p.name] as [string, string]);
+
+/** Ganze Übungsgruppen zum Ausschließen („kein Bankdrücken“) */
+export const AVOID_GROUPS: Record<string, { label: string; names: string[] }> = {
+  'grp:bank': { label: 'Alle Bankdrück-Varianten', names: [P.bank.name, P.schraeg.name, P.khBank.name] },
+  'grp:kniebeuge': { label: 'Alle Kniebeuge-Varianten', names: [P.squat.name, X.hack.name, X.bulgarian.name] },
+  'grp:kreuzheben': { label: 'Alle Kreuzheb-Varianten', names: [P.dead.name, P.rdl.name] },
+  'grp:klimmzug': { label: 'Alle Klimmzug-Varianten', names: [P.pullup.name, X.klimmMa.name] },
+  'grp:dips': { label: 'Dips und Liegestütze', names: [P.dips.name, X.pushup.name] },
+};
+// Zum Ausschließen kann jede Plan-Übung gewählt werden (Gruppen zuerst, dann alphabetisch)
+QUESTIONS.find((q) => q.id === 'avoid')!.options = [
+  ...Object.entries(AVOID_GROUPS).map(([id, g]) => [id, g.label] as [string, string]),
+  ...[...Object.values(P), ...Object.values(X)].map((p) => p.name).sort((x, y) => x.localeCompare(y, 'de')).map((n) => [n, n] as [string, string]),
+];
 
 /** Plätze pro Trainingsart: je Platz mehrere Kandidaten, der passendste wird gewählt */
 type Kind = 'ganz' | 'push' | 'pull' | 'beine' | 'oben' | 'unten';
@@ -245,11 +262,16 @@ export function generatePlan(a: Answers): Plan {
     : days === 1 ? ['ganz'] : days === 2 ? ['ganz', 'ganz'] : days === 3 ? (beginner ? cycle(['ganz']) : ['push', 'pull', 'beine']) : days === 4 ? ['oben', 'unten', 'oben', 'unten'] : ['push', 'pull', 'beine'];
   const names: Record<Kind, string> = { ganz: 'Ganzkörper', push: 'Push', pull: 'Pull', beine: 'Beine', oben: 'Oberkörper', unten: 'Unterkörper' };
 
-  const equip = available(a);
+  // Geräte-Vorliebe („nur Maschinen“ …) und ausgeschlossene Übungen (einzeln oder als Gruppe)
+  const place = String(a.place ?? 'gym');
+  const style0 = String(a.style ?? 'alles');
+  const style = style0 === 'maschinen' && place !== 'gym' ? 'alles' : style0;
+  const equip = new Set([...available(a)].filter((e) => (style === 'maschinen' ? e === 'ma' || e === 'ka' : style === 'frei' ? e !== 'ma' && e !== 'ka' : style === 'ohnelh' ? e !== 'lh' : true)));
+  const avoid = new Set(asList(a.avoid).flatMap((x) => AVOID_GROUPS[x]?.names ?? [x]));
   const pain = new Set(asList(a.pain).filter((p) => p !== 'keine'));
   const focus = new Set(asList(a.focus).filter((f) => f !== 'alles'));
   const favNames = new Set(asList(a.fav));
-  const ok = (p: Pick) => p.equip.some((e) => equip.has(e)) && !p.pain?.some((x) => pain.has(x));
+  const ok = (p: Pick) => p.equip.some((e) => equip.has(e)) && !p.pain?.some((x) => pain.has(x)) && !avoid.has(p.name);
   const isMachine = (p: Pick) => p.equip.every((e) => e === 'ma' || e === 'ka');
   // Wunschübungen und Fokus-Muskeln zuerst; Anfänger bevorzugen Maschinen (leichter zu lernen), Fortgeschrittene freie Gewichte
   const score = (p: Pick) =>
@@ -359,6 +381,10 @@ export function generatePlan(a: Answers): Plan {
   if (split === 'ppl' && days < 3) notes.push('Push / Pull / Beine braucht mindestens 3 Trainingstage, damit alle Teile drankommen – mit weniger Tagen ist Ganzkörper besser.');
   if (split === 'ob' && days < 2) notes.push('Oberkörper / Unterkörper braucht mindestens 2 Trainingstage.');
   if (beginner && days === 3 && split === 'auto') notes.push('Als Einsteiger trainierst du jeden Muskel drei Mal pro Woche (Ganzkörper) – so lernst du die Übungen am schnellsten.');
+  if (style0 === 'maschinen' && place !== 'gym') notes.push('Maschinen gibt es nur im Fitnessstudio – für dein Training zuhause haben wir diese Vorliebe nicht berücksichtigt.');
+  if (style !== 'alles' || avoid.size) {
+    if (templates.some((t) => t.exercises.filter((e) => !e.cardio).length < Math.min(count, 4))) notes.push('Wegen deiner Auswahl (Geräte oder ausgeschlossene Übungen) gibt es in manchen Trainings weniger Übungen.');
+  }
   if (pain.size) notes.push('Übungen, die zu deinen Beschwerden passen, haben wir weggelassen. Bei Schmerzen bitte ärztlich abklären.');
   if (picked.length && picked.length < days) notes.push(`Du hast nur ${picked.length} Tage gewählt – die übrigen Tage haben wir passend ergänzt.`);
   const sportDays = Number(a.sportDays) || 0;

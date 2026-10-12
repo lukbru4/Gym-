@@ -128,4 +128,55 @@ describe('Trainingsplan aus dem Fragebogen', () => {
     expect(all({ ...base, exp: 'neu', days: '6', duration: '90' }).some((n) => /Maschine|Kabel/.test(n))).toBe(true);
     expect(all({ ...base, place: 'homeBw', days: '6', duration: '90' }).some((n) => /Maschine|Kabel/.test(n))).toBe(false);
   });
+
+  describe('Ausschließen und Geräte-Vorlieben', () => {
+    const all = (a: Answers) => generatePlan(a).templates.flatMap((t) => t.exercises.filter((e) => !e.cardio).map((e) => e.name));
+    const free = /^(Bankdrücken|Schrägbankdrücken|Kurzhantel-Bankdrücken|Kniebeuge|Kreuzheben|Rumänisches Kreuzheben|Langhantelrudern|Klimmzüge|Dips|Liegestütze|Ausfallschritte|Hammercurls|French Press|Crunches|Plank|Glute Bridge|Hyperextensions|Step-ups|Bulgarische Kniebeuge|Hip Thrust \(Langhantel\)|Schulterdrücken|Schulterdrücken \(Kurzhantel\)|Fliegende \(Kurzhantel\)|Kurzhantelrudern \(einarmig\))$/;
+    test('kein Bankdrücken: die ganze Gruppe fehlt in jeder Vorlage', () => {
+      for (const exp of ['neu', 'mittel', 'profi']) for (const days of ['2', '3', '4', '5']) {
+        const n = all({ ...base, exp, days, duration: '90', avoid: ['grp:bank'] });
+        expect(n.filter((x) => /Bankdrücken/.test(x))).toEqual([]);
+      }
+      expect(all({ ...base, days: '3', duration: '90' }).some((x) => /Bankdrücken/.test(x))).toBe(true);
+    });
+    test('einzelne Übung ausschließen, auch wenn sie als Wunsch gewählt ist', () => {
+      const n = all({ ...base, fav: ['Kniebeuge'], avoid: ['Kniebeuge'], days: '3', duration: '90' });
+      expect(n).not.toContain('Kniebeuge');
+    });
+    test('nur Maschinen und Kabelzüge: keine freien Gewichte, Plan bleibt gefüllt', () => {
+      for (const days of ['2', '3', '4', '5']) {
+        const p = generatePlan({ ...base, days, duration: '60', style: 'maschinen' });
+        const n = p.templates.flatMap((t) => t.exercises.filter((e) => !e.cardio).map((e) => e.name));
+        expect(n.filter((x) => free.test(x))).toEqual([]);
+        for (const t of p.templates) expect(t.exercises.filter((e) => !e.cardio).length).toBeGreaterThanOrEqual(3);
+      }
+    });
+    test('keine Maschinen: nichts mit Maschine oder Kabel', () => {
+      const n = all({ ...base, days: '5', duration: '90', style: 'frei' });
+      expect(n.filter((x) => /Maschine|Kabel|Butterfly|Latziehen|Beinpresse|Beinstrecker|Beinbeuger|Bauchmaschine/.test(x))).toEqual([]);
+      expect(n.length).toBeGreaterThan(5);
+    });
+    test('ohne Langhantel', () => {
+      const n = all({ ...base, days: '5', duration: '90', style: 'ohnelh' });
+      expect(n).not.toContain('Bankdrücken');
+      expect(n).not.toContain('Kniebeuge');
+      expect(n).not.toContain('Kreuzheben');
+      expect(n).not.toContain('Langhantelrudern');
+    });
+    test('Maschinen-Wunsch zuhause wird mit Hinweis ignoriert', () => {
+      const p = generatePlan({ ...base, place: 'homeDb', equip: ['kh'], style: 'maschinen' });
+      expect(p.notes.some((x) => /Maschinen gibt es nur im Fitnessstudio/.test(x))).toBe(true);
+      expect(p.templates[0].exercises.length).toBeGreaterThan(0);
+    });
+    test('Standard ohne die neuen Angaben bleibt gleich', () => {
+      expect(generatePlan({ ...base })).toEqual(generatePlan({ ...base, style: 'alles', avoid: [] }));
+    });
+    test('Fragen: Optionen und Beschriftung', () => {
+      const avoid = QUESTIONS.find((q) => q.id === 'avoid')!;
+      expect(avoid.options!.length).toBeGreaterThan(40);
+      expect(avoid.options![0][0]).toBe('grp:bank');
+      expect(answerLabel(avoid, { avoid: ['grp:bank'] })).toBe('Alle Bankdrück-Varianten');
+      expect(answerLabel(avoid, { avoid: ['a', 'b', 'c', 'd'] })).toBe('4 Übungen ausgeschlossen');
+    });
+  });
 });

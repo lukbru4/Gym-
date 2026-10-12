@@ -1,5 +1,5 @@
 // Trainingsplan (Einstellungen → Trainingsplan): Fragen beantworten, daraus einen Trainingsplan erstellen und als Vorlagen übernehmen.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { navigate } from '../app/router';
 import { ask, notify } from '../components/Dialog';
@@ -20,12 +20,14 @@ export function Quiz() {
   const { api, exercises, showError, dataChanged } = useApp();
   const [answers, setAnswers] = useState<Answers>(() => loadQuiz()?.answers ?? {});
   const [step, setStep] = useState(0);
+  const [filter, setFilter] = useState('');
   const [phase, setPhase] = useState<'quiz' | 'plan'>('quiz');
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
   const pro = usePro();
   const list = activeQuestions(answers);
   const q: Question | undefined = list[Math.min(step, list.length - 1)];
+  useEffect(() => setFilter(''), [q?.id]);
 
   const store = (next: Answers) => {
     setAnswers(next);
@@ -233,7 +235,8 @@ export function Quiz() {
           </button>
         ) : (
           <div className="quiz-options" role={q.type === 'multi' ? 'group' : 'radiogroup'}>
-            {q.options!.map(([v, label]) => (
+            {(q.options!.length > 12 ? <input id="quiz-filter" type="search" className="quiz-filter" placeholder="Übung suchen" value={filter} onChange={(e) => setFilter(e.target.value)} /> : null)}
+            {q.options!.filter(([, label]) => !filter || label.toLowerCase().includes(filter.toLowerCase())).map(([v, label]) => (
               <button key={v} type="button" className={`quiz-option${chosen(v) ? ' on' : ''}`} data-v={v} aria-pressed={chosen(v)} onClick={() => choose(v)}>
                 {label}
               </button>

@@ -141,6 +141,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 94: Gerichte mit Zutaten beim Essen: über 220 Gerichte (Frühstück, Warme Küche, Pasta, Imbiss, Suppen, Salate, Snacks) mit Zutatenliste, anpassbarer Portion und Zutaten; Nährwerte aus den Zutaten berechnet
 - [x] Schritt 95: Rückmeldung nach jeder Übung („Zu leicht / Passt / Zu schwer“); der nächste Gewichtsvorschlag passt sich an (zu leicht → größerer Schritt, zu schwer → weniger); gerätelokal gespeichert
 - [x] Schritt 96: Wochen-Zyklus („Woche 3 von 6“, 4–6 Wochen je Erfahrung) mit Entlastungswoche: ca. 10 % weniger Gewicht, ein Satz weniger; Zyklus-Start wird mit den Plan-Antworten im Konto gespeichert
+- [x] Schritt 97: Trainingsplan-Fragebogen: „Welche Art von Übungen?“ (nur Maschinen / keine Maschinen / ohne Langhantel) und „Welche Übungen willst du nicht machen?“ (Gruppen wie alle Bankdrück-Varianten, Suchfeld); Ausschluss schlägt Wunschübung
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“
