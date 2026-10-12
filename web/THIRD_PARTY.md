@@ -1,8 +1,8 @@
 # Drittanbieter-Hinweise
 
-## Anatomie-Zeichnung des Körpergraphen (Kopf in web/src/lib/bodyShape.ts)
+## Anatomie-Zeichnung des Körpergraphen (web/src/lib/anatomy.ts)
 
-Nur der Kopf (Gesicht und Haare) der Figur stammt aus dem npm-Paket **react-muscle-highlighter** (MIT-Lizenz). Dieses Paket ist seinerseits von **react-native-body-highlighter** (MIT, © 2022 ELABBASSI Hicham) abgeleitet. Beide Lizenztexte stehen unten.
+Die Muskelflächen und der Körperumriss stammen aus dem npm-Paket **react-muscle-highlighter** (MIT-Lizenz). Dieses Paket ist seinerseits von **react-native-body-highlighter** (MIT, © 2022 ELABBASSI Hicham) abgeleitet. Beide Lizenztexte stehen unten.
 
 ### react-muscle-highlighter
 
