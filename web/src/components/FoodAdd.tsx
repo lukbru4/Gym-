@@ -4,13 +4,14 @@ import { useApp } from '../app/context';
 import { pickNumber } from './NumberPicker';
 import { fmt } from '../lib/format';
 import { searchFood, scale, totals, type FoodEntry, type FoodItem } from '../lib/food';
+import { Dishes } from './FoodDishes';
 import { mealName, parseDescription, searchLocalFoods, type ParsedItem } from '../lib/describe';
 
-type NewEntry = { name: string; brand?: string | null; amount_g?: number | null; kcal: number; protein: number; carbs: number; fat: number; barcode?: string | null; source: FoodEntry['source'] };
+export type NewEntry = { name: string; brand?: string | null; amount_g?: number | null; kcal: number; protein: number; carbs: number; fat: number; barcode?: string | null; source: FoodEntry['source'] };
 
 export function AddFood({ onClose, onAdd, onAddMany }: { onClose: () => void; onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void> }) {
   const { showError } = useApp();
-  const [tab, setTab] = useState<'search' | 'describe' | 'manual'>('search');
+  const [tab, setTab] = useState<'search' | 'dishes' | 'describe' | 'manual'>('search');
   const [picked, setPicked] = useState<{ item: FoodItem; source: 'search' } | null>(null);
   useEffect(() => {
     document.body.classList.add('picker-open');
@@ -31,12 +32,13 @@ export function AddFood({ onClose, onAdd, onAddMany }: { onClose: () => void; on
       ) : (
         <>
           <div className="picker-cats" role="tablist" aria-label="Wie hinzufügen?">
-            {([['search', 'Suche'], ['describe', 'Beschreiben'], ['manual', 'Manuell']] as const).map(([id, text]) => (
+            {([['search', 'Suche'], ['dishes', 'Gerichte'], ['describe', 'Beschreiben'], ['manual', 'Manuell']] as const).map(([id, text]) => (
               <button key={id} type="button" className="picker-cat" role="tab" data-tab={id} aria-selected={tab === id} onClick={() => setTab(id)}>{text}</button>
             ))}
           </div>
           <div className="food-body">
             {tab === 'search' && <Search onPick={(item) => setPicked({ item, source: 'search' })} onError={showError} />}
+            {tab === 'dishes' && <Dishes onAdd={onAdd} onAddMany={onAddMany} />}
             {tab === 'describe' && <Describe onAdd={onAdd} onAddMany={onAddMany} onError={showError} />}
             {tab === 'manual' && <Manual onAdd={onAdd} />}
           </div>

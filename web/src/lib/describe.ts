@@ -1,5 +1,6 @@
 // „Beschreiben“: Aus einem Satz wie „50 g Joghurt, 2 Eier und 1 Banane“ werden Zutaten mit Gramm und Nährwerten.
 // Läuft komplett auf dem Gerät mit der eingebauten Tabelle (foodDb.ts) – keine KI, Ergebnisse sind Richtwerte.
+import { findDishExact, searchDishes, sumIngredients } from './dishes';
 import { FOODS, type Food } from './foodDb';
 import { scale, type FoodItem, type Nutrients } from './food';
 
@@ -60,6 +61,15 @@ const FILLER = /\b(von|vom|an|aus|mit|etwas|ca|circa|ungefaehr|gekochte?n?|frisc
 export function parseDescription(text: string): ParseResult {
   const items: ParsedItem[] = [];
   const unknown: string[] = [];
+  // Ganzer Text ist ein bekanntes Gericht („Spaghetti Bolognese“): Zutaten des Gerichts mit Standardmengen
+  const dish = findDishExact(text);
+  if (dish && dish.ingredients.length > 1) {
+    for (const [key, grams] of dish.ingredients) {
+      const n = sumIngredients([{ key, grams }]);
+      items.push({ key, name: FOODS.find((f) => f.key === key)?.name ?? key, grams, estimated: false, kcal: n.kcal, protein: n.protein, carbs: n.carbs, fat: n.fat });
+    }
+    return { items, unknown };
+  }
   const parts = text.replace(/(\d),(\d)/g, '$1.$2').split(/[,;\n+]|\bund\b|\bsowie\b|\bplus\b|\bdazu\b/i).map((p) => norm(p)).filter(Boolean);
   for (const part of parts) {
     let rest = part;
@@ -110,6 +120,12 @@ export function parseDescription(text: string): ParseResult {
 export function searchLocalFoods(query: string, limit = 40): FoodItem[] {
   const words = norm(query).split(' ').filter((w) => w.length >= 2);
   if (!words.length) return [];
+  // Gerichte zuerst: als Eintrag mit Standardportion (Nährwerte pro 100 g aus den Zutaten)
+  const dishHits: FoodItem[] = searchDishes(query, 'alle', 6).filter((d) => d.ingredients.length > 1).map((d) => {
+    const n = sumIngredients(d.ingredients.map(([key, grams]) => ({ key, grams })));
+    const f = 100 / Math.max(1, n.grams);
+    return { name: `${d.name} (Gericht)`, per100: { kcal: Math.round(n.kcal * f * 10) / 10, protein: Math.round(n.protein * f * 10) / 10, carbs: Math.round(n.carbs * f * 10) / 10, fat: Math.round(n.fat * f * 10) / 10 }, serving_g: n.grams };
+  });
   const scored: [number, Food][] = [];
   for (const f of FOODS) {
     const name = norm(f.name);
@@ -119,11 +135,12 @@ export function searchLocalFoods(query: string, limit = 40): FoodItem[] {
     const rank = words.every((w) => name.startsWith(w) || name.includes(` ${w}`)) ? (name.startsWith(words[0]) ? 0 : 1) : 2;
     scored.push([rank * 1000 + name.length, f]);
   }
-  return scored.sort((a, b) => a[0] - b[0]).slice(0, limit).map(([, f]) => ({
+  const foods = scored.sort((a, b) => a[0] - b[0]).slice(0, limit).map(([, f]) => ({
     name: f.name,
     per100: { kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat },
     serving_g: f.piece,
   }));
+  return [...dishHits, ...foods].slice(0, limit);
 }
 
 /** Name für eine beschriebene Mahlzeit, z. B. „50 g Joghurt, 100 g Ei, 120 g Banane“ (höchstens 120 Zeichen) */
