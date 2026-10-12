@@ -8,6 +8,7 @@ import { ExercisePicker } from '../components/ExercisePicker';
 import { ExerciseInfo } from '../components/ExerciseInfo';
 import { ExerciseThumb } from '../components/ExerciseThumb';
 import { WorkoutMuscles } from '../components/WorkoutMuscles';
+import { deloadAdjust, getCycle } from '../lib/cycle';
 import { FEEDBACK_LABEL, FEEDBACK_OPTIONS, getFeedback, previousFeedback, setFeedback, type Feedback } from '../lib/feedback';
 import { suggestProgress, suggestionText } from '../lib/progression';
 import {
@@ -203,7 +204,7 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
     try {
       const exercisesOut = templateFromWorkout(state.blocks, exerciseById);
       if (!exercisesOut.length) return;
-      if (state.template_id && updateTemplate) {
+      if (state.template_id && updateTemplate && !state.deload) {
         let template;
         try {
           template = await api.getTemplate(state.template_id);
@@ -288,6 +289,9 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
           </label>
         </div>
       )}
+      {live && getCycle(state.date)?.deload && (
+        <div className="deload-banner" id="deload-banner"><strong>Entlastungswoche:</strong> etwa 10 % weniger Gewicht und ein Satz weniger je Übung – Technik und Erholung stehen heute im Vordergrund.</div>
+      )}
       <WorkoutMuscles exercises={state.blocks.map((b) => exerciseById(b.exercise_id)).filter((e): e is Exercise => Boolean(e))} title={live ? 'Heute trainierst du' : 'Diese Muskeln trainierst du'} />
       {state.blocks.map((b, bi) => (
         <BlockCard
@@ -347,10 +351,10 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
                 <input type="radio" name="tpl" id="tpl-keep" checked={!updateTemplate} onChange={() => setUpdateTemplate(false)} />
                 <span><strong>Vorlage wie vorher lassen</strong><small className="muted">Nur dieses Training wird gespeichert.</small></span>
               </label>
-              <label className={`check-row${updateTemplate ? ' on' : ''}`}>
+              {!state.deload && <label className={`check-row${updateTemplate ? ' on' : ''}`}>
                 <input type="radio" name="tpl" id="tpl-update" checked={updateTemplate} onChange={() => setUpdateTemplate(true)} />
                 <span><strong>Vorlage speichern</strong><small className="muted">Übungen, Sätze und Werte von heute kommen in die Vorlage.</small></span>
-              </label>
+              </label>}
             </fieldset>
           ) : (
             <>
@@ -418,7 +422,9 @@ function BlockCard(props: {
   const targetReps = b.sets.find((r) => !r.warmup && r.target?.reps)?.target?.reps ?? null;
   // Rückmeldung vom letzten Training verändert den Vorschlag; die von heute gilt fürs nächste Mal
   const lastFeedback = previousFeedback(props.uid, b.exercise_id, props.date);
-  const suggestion = live && !cardio ? suggestProgress(props.prevSets, targetReps, lastFeedback) : null;
+  const deload = live && !cardio && Boolean(getCycle(props.date)?.deload);
+  const base = live && !cardio ? suggestProgress(props.prevSets, targetReps, lastFeedback) : null;
+  const suggestion = base && deload ? deloadAdjust(base) : base;
   const [feedback, setFb] = useState<Feedback | null>(() => (getFeedback(props.uid, b.exercise_id)?.date === props.date ? getFeedback(props.uid, b.exercise_id)!.value : null));
   const workDone = b.sets.filter((r) => !r.warmup);
   const allDone = workDone.length > 0 && workDone.every((r) => r.done);

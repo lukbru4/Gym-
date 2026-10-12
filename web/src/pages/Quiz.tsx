@@ -10,6 +10,7 @@ import { calorieNeeds, JOB_OPTIONS } from '../lib/calories';
 import { fmt } from '../lib/format';
 import { ExerciseInfo } from '../components/ExerciseInfo';
 import { activeQuestions, answerLabel, generatePlan, hasOtherSport, isAnswered, QUESTIONS, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
+import { withNewCycle } from '../lib/cycle';
 import { setLocalWeekGoal } from '../lib/weekGoal';
 import type { TemplateExercise } from '../lib/types';
 
@@ -90,7 +91,7 @@ export function Quiz() {
         }
         setLocalWeekGoal(plan.weekGoal);
         await api.social?.setWeekGoal(plan.weekGoal).catch(() => {});
-        saveQuiz({ answers, plan: { week: plan.week, weekGoal: plan.weekGoal }, savedAt: new Date().toISOString() });
+        saveQuiz({ answers: withNewCycle(answers), plan: { week: plan.week, weekGoal: plan.weekGoal }, savedAt: new Date().toISOString() });
         dataChanged();
         navigate('#/workouts');
       } catch (err) {

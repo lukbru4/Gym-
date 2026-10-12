@@ -15,6 +15,8 @@ export interface Suggestion {
   why: string;
   /** Was beim letzten Mal war, z. B. „60 kg × 10, 10, 9“ */
   last: string;
+  /** Höchstes Arbeitsgewicht beim letzten Mal */
+  top: number;
   /** Rückmeldung vom letzten Training, falls sie den Vorschlag verändert hat */
   feedback?: Feedback;
 }
@@ -57,13 +59,13 @@ function baseSuggestion(prev: PrevSet[] | undefined, targetReps?: number | null)
   const step = stepFor(top);
   const last = `${de(top)} kg × ${reps.join(', ')}`;
   if (Math.min(...reps) >= hi) {
-    return { action: 'up', weight: roundTo(top + step, step < 2.5 ? 1 : 2.5), repsFrom: lo, repsTo: Math.min(hi, lo + 2), hi, last, why: `Du hast letztes Mal überall mindestens ${hi} Wiederholungen geschafft – Zeit für mehr Gewicht.` };
+    return { top, action: 'up', weight: roundTo(top + step, step < 2.5 ? 1 : 2.5), repsFrom: lo, repsTo: Math.min(hi, lo + 2), hi, last, why: `Du hast letztes Mal überall mindestens ${hi} Wiederholungen geschafft – Zeit für mehr Gewicht.` };
   }
   if (Math.min(...reps) < lo - 1) {
-    return { action: 'down', weight: Math.max(step, roundTo(top - step, step < 2.5 ? 1 : 2.5)), repsFrom: lo, repsTo: hi, hi, last, why: 'Letztes Mal waren die Wiederholungen zu niedrig – etwas weniger Gewicht, saubere Technik.' };
+    return { top, action: 'down', weight: Math.max(step, roundTo(top - step, step < 2.5 ? 1 : 2.5)), repsFrom: lo, repsTo: hi, hi, last, why: 'Letztes Mal waren die Wiederholungen zu niedrig – etwas weniger Gewicht, saubere Technik.' };
   }
   const from = Math.min(hi, Math.min(...reps) + 1);
-  return { action: 'same', weight: top, repsFrom: from, repsTo: hi, hi, last, why: `Gleiches Gewicht, versuche ${from === hi ? hi : `${from}–${hi}`} Wiederholungen – bei ${hi} in allen Sätzen geht es hoch.` };
+  return { top, action: 'same', weight: top, repsFrom: from, repsTo: hi, hi, last, why: `Gleiches Gewicht, versuche ${from === hi ? hi : `${from}–${hi}`} Wiederholungen – bei ${hi} in allen Sätzen geht es hoch.` };
 }
 
 export const suggestionText = (s: Suggestion) =>

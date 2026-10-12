@@ -1,4 +1,5 @@
 // Home: Umschalter „Mein Feed | Freunde“, Begrüßung mit Rückblick (laufendes Training: Zeile über der Leiste), Aufgaben, Körpergraph, Wochenstatistik.
+import { CycleCard } from '../components/CycleCard';
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
@@ -108,6 +109,7 @@ export function Home() {
       <HomeTabs active="mine" />
       <RecapCard workouts={g.workouts} sets={g.sets} today={today} />
       <MigrateCard />
+      <CycleCard compact />
       {api.mode === 'local' && (
         <p className="notice small">
           Lokaler Modus: Deine Daten liegen nur in diesem Browser. Sichere sie regelmäßig über ☰ → <a href="#/backup">Backup</a>.

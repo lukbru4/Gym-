@@ -1986,3 +1986,7 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .nc-ings .food-name { flex: 1; min-width: 0; display: block; } .nc-ings .btn { flex: none; width: auto; }
 /* Rückmeldung nach der Übung */
 .feedback { margin: 10px 0; display: grid; gap: 6px; } .feedback-row { display: flex; gap: 8px; } .feedback-row .btn { flex: 1; }
+/* Trainingszyklus */
+.cycle-phase { font-weight: 700; font-size: 0.8rem; padding: 3px 10px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); } .cycle-phase.deload { background: color-mix(in srgb, #14b8a6 20%, transparent); color: #14b8a6; }
+.cycle-dots { display: flex; gap: 6px; margin: 8px 0; } .cycle-dots i { flex: 1; height: 8px; border-radius: 6px; background: color-mix(in srgb, var(--text) 14%, transparent); } .cycle-dots i.past { background: color-mix(in srgb, var(--accent) 55%, transparent); } .cycle-dots i.now { background: var(--accent); } .cycle-dots i.last { outline: 1px dashed #14b8a6; outline-offset: 1px; } .cycle-dots i.last.now { background: #14b8a6; }
+.deload-banner { background: color-mix(in srgb, #14b8a6 14%, transparent); border: 1px solid color-mix(in srgb, #14b8a6 40%, transparent); border-radius: 14px; padding: 10px 12px; margin: 10px 0; font-size: 0.9rem; }

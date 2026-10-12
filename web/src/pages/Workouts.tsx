@@ -10,6 +10,8 @@ import { STARTER_TEMPLATES, type StarterTemplate } from '../lib/starterTemplates
 import { REST_OPTIONS, getDefaultRest, setDefaultRest } from '../lib/timer';
 import type { Exercise, Template, TemplateExercise } from '../lib/types';
 import { ask } from '../components/Dialog';
+import { CycleCard } from '../components/CycleCard';
+import { getCycle } from '../lib/cycle';
 import { loadQuiz, PLAN_PREFIX } from '../lib/plan';
 
 export function Workouts() {
@@ -52,6 +54,7 @@ export function Workouts() {
   return (
     <>
       <h2>Workouts</h2>
+      <CycleCard />
       {(() => {
         const plan = loadQuiz()?.plan;
         if (!plan?.week.length) return null;
@@ -167,7 +170,7 @@ export function StartFromTemplate({ id }: { id: number }) {
           redirect('#/neu');
           return;
         }
-        saveDraft(stateFromTemplate(t, exerciseById));
+        saveDraft(stateFromTemplate(t, exerciseById, { deload: getCycle()?.deload }));
         redirect('#/neu');
       },
       (err) => {

@@ -1,4 +1,5 @@
 // Reine Logik für den Trainings-/Vorlagen-Editor (ohne React), damit sie testbar ist.
+import { deloadSetCount } from './cycle';
 import { parseNum, toInput } from './format';
 import { todayISO } from './stats';
 import type { DatedSet, Exercise, ExerciseType, ISODate, Side, Template, TemplateExercise, TemplateSet, Workout, WorkoutSet } from './types';
@@ -34,6 +35,8 @@ export interface EditorState {
   template_id?: number | null;
   /** Übungen und Satzzahlen der Vorlage beim Start (um Änderungen am Ende zu erkennen) */
   template_sig?: string;
+  /** Training aus einer Vorlage in der Entlastungswoche (Sätze reduziert): Vorlage nicht überschreiben */
+  deload?: boolean;
   name: string;
   date: ISODate;
   notes: string;
@@ -163,7 +166,7 @@ export function previousFor(prevSets: WorkoutSet[] | undefined, block: Block, si
 
 type ExerciseLookup = (id: number) => Exercise | undefined;
 
-export function stateFromTemplate(t: Template, exerciseById: ExerciseLookup): EditorState {
+export function stateFromTemplate(t: Template, exerciseById: ExerciseLookup, opts: { deload?: boolean } = {}): EditorState {
   const state: EditorState = {
     ...newLiveState(),
     template_id: t.id,
@@ -187,6 +190,16 @@ export function stateFromTemplate(t: Template, exerciseById: ExerciseLookup): Ed
         };
       }),
   };
+  if (opts.deload) {
+    // Entlastungswoche: je Übung einen Arbeitssatz weniger (Aufwärmsätze bleiben)
+    for (const b of state.blocks) {
+      if (b.sets.some((r) => r.side)) continue; // einseitige Übungen (L/R-Paare) bleiben unverändert
+      let work = b.sets.filter((r) => !r.warmup).length;
+      const keep = deloadSetCount(work);
+      for (let i = b.sets.length - 1; i >= 0 && work > keep; i--) if (!b.sets[i].warmup && b.sets.length > 1) (b.sets.splice(i, 1), work--);
+    }
+    state.deload = true;
+  }
   state.template_sig = blocksSignature(state.blocks);
   return state;
 }
