@@ -20,7 +20,7 @@ import type { TemplateExercise } from '../lib/types';
 const WEEKDAY_NAMES: Record<string, string> = { Mo: 'Montag', Di: 'Dienstag', Mi: 'Mittwoch', Do: 'Donnerstag', Fr: 'Freitag', Sa: 'Samstag', So: 'Sonntag' };
 
 export function Quiz() {
-  const { api, exercises, showError, dataChanged } = useApp();
+  const { api, exercises, addExercise, showError, dataChanged } = useApp();
   const [answers, setAnswers] = useState<Answers>(() => loadQuiz()?.answers ?? {});
   const [step, setStep] = useState(0);
   const [filter, setFilter] = useState('');
@@ -86,18 +86,30 @@ export function Quiz() {
           return;
         }
         for (const t of old) await api.deleteTemplate(t.id);
+        const created: string[] = [];
         for (const t of plan.templates) {
           const out: TemplateExercise[] = [];
           for (const e of t.exercises) {
-            const ex = exercises.find((x) => x.name.toLowerCase() === e.name.toLowerCase());
+            let ex = exercises.find((x) => x.name.toLowerCase() === e.name.toLowerCase());
+            // Fehlt die Übung (z. B. Datenbank noch ohne neue Katalog-Übungen), wird sie angelegt – so fehlt kein Training
+            if (!ex) {
+              ex = await api.createExercise(e.name, e.cardio ? 'cardio' : 'strength', e.cardio ? [] : CATALOG_MUSCLES[e.name] ?? []);
+              addExercise(ex);
+              created.push(e.name);
+            }
             if (ex) out.push({ exercise_id: ex.id, rest_seconds: e.rest ?? null, sets: e.sets.map((s) => ({ warmup: Boolean(s.warmup), reps: s.reps ?? null, weight_kg: null, duration_min: s.duration_min ?? null, distance_km: null })) });
           }
           if (out.length) await api.saveTemplate({ id: null, name: t.name, exercises: out });
         }
+        // Prüfen, ob wirklich jedes Training angelegt wurde
+        const savedNames = new Set((await api.listTemplates()).map((t) => t.name));
+        const missing = plan.templates.filter((t) => !savedNames.has(t.name)).map((t) => t.name.replace(PLAN_PREFIX, ''));
+        if (missing.length) throw new Error(`Diese Trainings konnten nicht angelegt werden: ${missing.join(', ')}. Bitte versuche es noch einmal.`);
         setLocalWeekGoal(plan.weekGoal);
         await api.social?.setWeekGoal(plan.weekGoal).catch(() => {});
         saveQuiz({ answers: withNewCycle(answers), plan: { week: plan.week, weekGoal: plan.weekGoal }, savedAt: new Date().toISOString() });
         dataChanged();
+        await notify(`${plan.templates.length} Trainings angelegt: ${plan.templates.map((t) => t.name.replace(PLAN_PREFIX, '')).join(', ')}.${created.length ? ` Neu angelegte Übungen: ${created.join(', ')}.` : ''}`, { title: 'Plan übernommen' });
         navigate('#/workouts');
       } catch (err) {
         setBusy(false);

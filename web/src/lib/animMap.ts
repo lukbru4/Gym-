@@ -29,7 +29,8 @@ const RULES: [RegExp, string][] = [
   [/hueftbeuger/, 'legraise'],
   [/bauchrad|rollout/, 'plank'],
   [/aussenrotation|schulterkreisen|y-heben|wall slides/, 'front'],
-  [/reverse butterfly|reverse fly|face pull|hintere schulter|seitheben \(kurzhantel, vorgebeugt/, 'reversefly'],
+  [/reverse butterfly|reverse fly|reverse kabel|face pull|hintere schulter|hintere-schulter|pull-apart|y-t-w|seitheben \(kurzhantel, vorgebeugt/, 'reversefly'],
+  [/seitheben|lu raises/, 'lateral'],
   [/medizinball-wurf|slam|wall ball|wandwurf/, 'generic'],
   // Beine
   [/bulgar|step-up|ausfallschritt|lunge/, 'lunge'],

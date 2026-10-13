@@ -2,6 +2,10 @@
 // Der Plan besteht aus Vorlagen („Plan · Push“ …) mit Übungen aus dem Standard-Katalog, Sätzen und Wiederholungen,
 // dazu ein Wochenplan (welcher Tag welche Vorlage) und das Wochenziel. Gewichte trägt man beim ersten Training ein.
 
+import { CATALOG, popularityOf } from './exerciseCatalog';
+import { matchesEquipment, type EquipmentId } from './muscles';
+import type { Exercise } from './types';
+
 export type Answers = Record<string, string | string[]>;
 
 export interface Question {
@@ -157,12 +161,12 @@ const X = {
 QUESTIONS.find((q) => q.id === 'fav')!.options = Object.values(P).map((p) => [p.name, p.name] as [string, string]);
 
 /** Ganze Übungsgruppen zum Ausschließen („kein Bankdrücken“) */
-export const AVOID_GROUPS: Record<string, { label: string; names: string[] }> = {
-  'grp:bank': { label: 'Alle Bankdrück-Varianten', names: [P.bank.name, P.schraeg.name, P.khBank.name] },
-  'grp:kniebeuge': { label: 'Alle Kniebeuge-Varianten', names: [P.squat.name, X.hack.name, X.bulgarian.name] },
-  'grp:kreuzheben': { label: 'Alle Kreuzheb-Varianten', names: [P.dead.name, P.rdl.name] },
-  'grp:klimmzug': { label: 'Alle Klimmzug-Varianten', names: [P.pullup.name, X.klimmMa.name] },
-  'grp:dips': { label: 'Dips und Liegestütze', names: [P.dips.name, X.pushup.name] },
+export const AVOID_GROUPS: Record<string, { label: string; names: string[]; pattern: RegExp }> = {
+  'grp:bank': { label: 'Alle Bankdrück-Varianten', names: [P.bank.name, P.schraeg.name, P.khBank.name], pattern: /bankdrucken|bench press/ },
+  'grp:kniebeuge': { label: 'Alle Kniebeuge-Varianten', names: [P.squat.name, X.hack.name, X.bulgarian.name], pattern: /kniebeuge|squat/ },
+  'grp:kreuzheben': { label: 'Alle Kreuzheb-Varianten', names: [P.dead.name, P.rdl.name], pattern: /kreuzheben|deadlift/ },
+  'grp:klimmzug': { label: 'Alle Klimmzug-Varianten', names: [P.pullup.name, X.klimmMa.name], pattern: /klimmz|pull-?up|chin-?up/ },
+  'grp:dips': { label: 'Dips und Liegestütze', names: [P.dips.name, X.pushup.name], pattern: /\bdips\b|liegestutz|push-?up/ },
 };
 // Zum Ausschließen kann jede Plan-Übung gewählt werden (Gruppen zuerst, dann alphabetisch)
 QUESTIONS.find((q) => q.id === 'avoid')!.options = [
@@ -235,6 +239,7 @@ export interface Plan {
 }
 export const PLAN_PREFIX = 'Plan · ';
 
+const nrm = (x: string) => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
 const asList = (v: string | string[] | undefined) => (Array.isArray(v) ? v : v ? [v] : []);
 
 function available(a: Answers): Set<Equip> {
@@ -291,8 +296,11 @@ function allowedOf(a: Answers) {
   const style = style0 === 'maschinen' && place !== 'gym' ? 'alles' : style0;
   const equip = new Set([...available(a)].filter((e) => (style === 'maschinen' ? e === 'ma' || e === 'ka' : style === 'frei' ? e !== 'ma' && e !== 'ka' : style === 'ohnelh' ? e !== 'lh' : true)));
   const avoid = new Set(asList(a.avoid).flatMap((x) => AVOID_GROUPS[x]?.names ?? [x]));
+  // Gruppen („kein Bankdrücken“) schließen alle Varianten im ganzen Katalog aus
+  const groupRes = asList(a.avoid).map((x) => AVOID_GROUPS[x]?.pattern).filter((r): r is RegExp => Boolean(r));
+  const avoided = (name: string) => avoid.has(name) || groupRes.some((re) => re.test(nrm(name)));
   const pain = new Set(asList(a.pain).filter((p) => p !== 'keine'));
-  const ok = (p: Pick) => p.equip.some((e) => equip.has(e)) && !p.pain?.some((x) => pain.has(x)) && !avoid.has(p.name);
+  const ok = (p: Pick) => p.equip.some((e) => equip.has(e)) && !p.pain?.some((x) => pain.has(x)) && !avoided(p.name);
   return { ok, avoid, pain, style, style0, place };
 }
 
@@ -331,7 +339,7 @@ export function generatePlan(raw: Answers): Plan {
     const label = names[kind] + (kinds.filter((k) => k === kind).length > 1 ? ` ${'ABCDEF'[variant] ?? variant + 1}` : '');
     const name = PLAN_PREFIX + label;
     // Selbst zusammengestellt (Plan-Ansicht): genau diese Übungen in dieser Reihenfolge, sofern erlaubt
-    const customPicks = asList(a[customKey(name)]).map((n) => BY_NAME.get(n)).filter((p): p is Pick => Boolean(p) && ok(p!));
+    const customPicks = asList(a[customKey(name)]).map((n) => pickOf(n)).filter((p): p is Pick => Boolean(p) && ok(p!));
     const used = new Set<string>();
     // Plätze mit gewünschten Muskeln zuerst, dann nach Reihenfolge
     // Pflichtplätze (z. B. Beine, Brust, Rücken beim Ganzkörper) kommen immer vor den Wunsch-Muskeln dran,
@@ -496,8 +504,36 @@ export const RECOMMENDED = new Set<string>([
 ]);
 
 export interface PlanChoice { name: string; muscle: string; recommended: boolean }
-const choice = (p: Pick): PlanChoice => ({ name: p.name, muscle: GROUP_NAMES[p.muscles[0]] ?? p.muscles[0], recommended: RECOMMENDED.has(p.name) });
-const byRec = (x: PlanChoice, y: PlanChoice) => Number(y.recommended) - Number(x.recommended) || x.name.localeCompare(y.name, 'de');
+
+// ---- Ganzer Übungskatalog für die Plan-Ansicht (Tauschen/Hinzufügen) ----
+const MUSCLE_TO_GROUP: Record<string, string> = {
+  brust: 'brust', schultern: 'schultern', bizeps: 'arme', trizeps: 'arme', bauch: 'bauch', oberer_ruecken: 'ruecken', lat: 'ruecken',
+  unterer_ruecken: 'ruecken', gesaess: 'beine', quadrizeps: 'beine', beinbeuger: 'beine', waden: 'beine',
+};
+const EQUIP_MAP: [EquipmentId, Equip][] = [['maschine', 'ma'], ['smith', 'ma'], ['kabel', 'ka'], ['kurzhantel', 'kh'], ['kettlebell', 'kh'], ['langhantel', 'lh'], ['band', 'ba'], ['koerpergewicht', 'none']];
+/** Beschwerden, bei denen eine Katalog-Übung besser wegfällt (grobe Einordnung über den Namen) */
+const PAIN_RULES: [string, RegExp][] = [
+  ['knie', /kniebeuge|squat|ausfallschritt|lunge|sprung|jump|beinstrecker|step-?up|pistol|sissy/],
+  ['ruecken', /kreuzheben|deadlift|good morning|langhantelrudern|vorgebeugt.*rudern|pendlay|clean|snatch|jerk/],
+  ['schulter', /uberkopf|overhead|schulterdrucken|dips|handstand|snatch|jerk|nacken|behind|military|aufrechtes rudern/],
+  ['ellbogen', /french|skull|stirn|trizepsdrucken|scott|preacher/],
+  ['handgelenk', /liegestutz|handstand|front squat|frontkniebeuge|clean/],
+];
+const catalogPick = (c: { name: string; muscles: string[] }): Pick => {
+  const probe = { id: 0, name: c.name, type: 'strength', user_id: null, muscles: c.muscles } as unknown as Exercise;
+  const equip = EQUIP_MAP.filter(([id]) => matchesEquipment(probe, id)).map(([, e]) => e);
+  const n = nrm(c.name);
+  if (/klimmz|pull-?up|chin-?up|hangend|muscle-up|toes|zehen-zur-stange/.test(n)) equip.push('kl');
+  const groups = [...new Set(c.muscles.map((m) => MUSCLE_TO_GROUP[m] ?? m))];
+  return { name: c.name, equip: equip.length ? [...new Set(equip)] : ['none'], muscles: groups, pain: PAIN_RULES.filter(([, re]) => re.test(n)).map(([p]) => p), kind: c.muscles.length > 1 ? 'compound' : 'iso' };
+};
+let catalogPicks: Pick[] | null = null;
+const CATALOG_PICKS = () => (catalogPicks ??= CATALOG.filter((c) => c.type === 'strength').map((c) => BY_NAME.get(c.name) ?? catalogPick(c)));
+const pickOf = (name: string): Pick | undefined => BY_NAME.get(name) ?? CATALOG_PICKS().find((p) => p.name === name);
+
+const isTop = (name: string) => RECOMMENDED.has(name) || popularityOf(name) === 1;
+const choice = (p: Pick): PlanChoice => ({ name: p.name, muscle: GROUP_NAMES[p.muscles[0]] ?? p.muscles[0], recommended: isTop(p.name) });
+const byRec = (x: PlanChoice, y: PlanChoice) => Number(y.recommended) - Number(x.recommended) || popularityOf(x.name) - popularityOf(y.name) || x.name.localeCompare(y.name, 'de');
 const kindOf = (templateName: string): Kind | null => {
   const label = templateName.replace(PLAN_PREFIX, '').replace(/ [A-F1-9]$/, '');
   const k = (Object.entries({ ganz: 'Ganzkörper', push: 'Push', pull: 'Pull', beine: 'Beine', oben: 'Oberkörper', unten: 'Unterkörper' }) as [Kind, string][]).find(([, n]) => n === label);
@@ -505,25 +541,25 @@ const kindOf = (templateName: string): Kind | null => {
 };
 const currentNames = (raw: Answers, templateName: string) => new Set((generatePlan(raw).templates.find((t) => t.name === templateName)?.exercises ?? []).map((e) => e.name));
 
-/** Alternativen zu einer Übung: zuerst passende Übungen für denselben Platz, dann weitere mit gleichem Hauptmuskel; nur erlaubte, nicht schon im Training */
+/** Alternativen zu einer Übung aus dem ganzen Katalog: gleicher Platz im Plan und gleiche Muskelgruppe; nur erlaubte, nicht schon im Training */
 export function alternativesFor(raw: Answers, templateName: string, exerciseName: string): { recommended: PlanChoice[]; more: PlanChoice[] } {
   const { ok } = allowedOf(normalizeAnswers(raw).answers);
   const inPlan = currentNames(raw, templateName);
-  const me = BY_NAME.get(exerciseName);
+  const me = pickOf(exerciseName);
   const kind = kindOf(templateName);
   const slotMates = kind ? SLOTS[kind].filter((c) => c.some((p) => p.name === exerciseName)).flat() : [];
-  const sameMuscle = me ? ALL_PICKS.filter((p) => p.muscles[0] === me.muscles[0]) : [];
+  const sameMuscle = me ? CATALOG_PICKS().filter((p) => p.muscles[0] === me.muscles[0]) : [];
   const seen = new Set<string>();
   const list = [...slotMates, ...sameMuscle].filter((p) => ok(p) && !inPlan.has(p.name) && !seen.has(p.name) && (seen.add(p.name), true)).map(choice);
   return { recommended: list.filter((c) => c.recommended).sort(byRec), more: list.filter((c) => !c.recommended).sort(byRec) };
 }
 
-/** Übungen zum Hinzufügen, gruppiert nach Muskelgruppe (empfohlene zuerst) */
+/** Übungen zum Hinzufügen aus dem ganzen Katalog, gruppiert nach Muskelgruppe (empfohlene zuerst) */
 export function addableFor(raw: Answers, templateName: string): { group: string; items: PlanChoice[] }[] {
   const { ok } = allowedOf(normalizeAnswers(raw).answers);
   const inPlan = currentNames(raw, templateName);
   const groups = new Map<string, PlanChoice[]>();
-  for (const p of ALL_PICKS) {
+  for (const p of CATALOG_PICKS()) {
     if (!ok(p) || inPlan.has(p.name)) continue;
     const c = choice(p);
     groups.set(c.muscle, [...(groups.get(c.muscle) ?? []), c]);
@@ -547,4 +583,8 @@ export const GROUP_ORDER = (): string[] => Object.values(GROUP_NAMES);
 export const isCustomized = (raw: Answers, templateName: string) => asList(raw[customKey(templateName)]).length > 0;
 
 /** Alle ausgeschlossenen Übungsnamen (Gruppen aufgelöst, „Sonstiges“-Text eingerechnet) */
-export const avoidedNames = (raw: Answers): Set<string> => new Set(asList(normalizeAnswers(raw).answers.avoid).flatMap((x) => AVOID_GROUPS[x]?.names ?? [x]));
+export const avoidedNames = (raw: Answers): Set<string> => {
+  const list = asList(normalizeAnswers(raw).answers.avoid);
+  const res = list.map((x) => AVOID_GROUPS[x]?.pattern).filter((r): r is RegExp => Boolean(r));
+  return new Set([...list.flatMap((x) => AVOID_GROUPS[x]?.names ?? [x]), ...CATALOG.filter((c) => res.some((re) => re.test(nrm(c.name)))).map((c) => c.name)]);
+};

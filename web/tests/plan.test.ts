@@ -257,4 +257,17 @@ describe('Trainingsplan aus dem Fragebogen', () => {
       for (const q of QUESTIONS) if (q.options) expect(q.options.at(-1)![0]).toBe('sonstiges');
     });
   });
+
+  test('Hinzufügen nutzt den ganzen Katalog: „hintere Schulter“ liefert viele Übungen', async () => {
+    const { matchesSearch } = await import('../src/lib/searchTerms');
+    const { CATALOG_MUSCLES } = await import('../src/lib/exerciseCatalog');
+    const all = addableFor({ ...base, days: '3', split: 'ppl' }, 'Plan · Push').flatMap((g) => g.items);
+    const rear = all.filter((c) => matchesSearch('hintere schulter', c.name, CATALOG_MUSCLES[c.name] ?? []));
+    expect(rear.length).toBeGreaterThanOrEqual(15);
+    expect(all.length).toBeGreaterThan(400);
+  });
+  test('„kein Bankdrücken“ sperrt alle Bankdrück-Varianten im Katalog', () => {
+    const all = addableFor({ ...base, avoid: ['grp:bank'] }, 'Plan · Ganzkörper A').flatMap((g) => g.items.map((c) => c.name));
+    expect(all.filter((n) => /bankdrücken/i.test(n))).toEqual([]);
+  });
 });

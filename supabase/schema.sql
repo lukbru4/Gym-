@@ -1248,7 +1248,46 @@ insert into public.exercises (user_id, name, type, muscles) values
   (null, 'Minigolf', 'cardio', '{}'),
   (null, 'Bowling', 'cardio', '{}'),
   (null, 'Tanzen (Gesellschaftstanz)', 'cardio', '{}'),
-  (null, 'Tanzen (Hip-Hop)', 'cardio', '{}')
+  (null, 'Tanzen (Hip-Hop)', 'cardio', '{}'),
+  (null, 'Reverse Kabel-Crossover (über Kreuz)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Reverse Kabelzug (einarmig, über Kreuz)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Reverse Fly (Kurzhantel, sitzend vorgebeugt)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Reverse Fly (Kurzhantel, stehend vorgebeugt)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Reverse Fly (Kurzhantel, Brust auf Schrägbank)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Reverse Butterfly (Kabel, Schrägbank)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Hintere-Schulter-Rudern (Kurzhantel)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Hintere-Schulter-Rudern (Kabel)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Hintere-Schulter-Rudern (Maschine)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Band Pull-Apart (Widerstandsband)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Face Pulls (mit Außenrotation)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Y-T-W-Heben (Kurzhantel, Schrägbank)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Reverse Butterfly (Maschine, neutraler Griff)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Seitheben (Kabel, Lean-away)', 'strength', '{schultern}'),
+  (null, 'Seitheben (Kurzhantel, angelehnt)', 'strength', '{schultern}'),
+  (null, 'Seitheben (Kurzhantel, Brust auf Schrägbank)', 'strength', '{schultern}'),
+  (null, 'Seitheben (Teilwiederholungen)', 'strength', '{schultern}'),
+  (null, 'Seitheben (Widerstandsband)', 'strength', '{schultern}'),
+  (null, 'Seitheben (Maschine, einarmig)', 'strength', '{schultern}'),
+  (null, 'Seitheben (Kabel, beidarmig über Kreuz)', 'strength', '{schultern}'),
+  (null, 'Lu Raises (Hantelscheibe)', 'strength', '{schultern}'),
+  (null, 'Aufrechtes Rudern (breiter Griff)', 'strength', '{schultern,oberer_ruecken}'),
+  (null, 'Schulterdrücken (Kurzhantel, neutraler Griff)', 'strength', '{schultern,trizeps}'),
+  (null, 'Schulterdrücken (Plattengerät)', 'strength', '{schultern,trizeps}'),
+  (null, 'Schulterdrücken (Widerstandsband)', 'strength', '{schultern,trizeps}'),
+  (null, 'Bradford Press (Langhantel)', 'strength', '{schultern,trizeps}'),
+  (null, 'Nackendrücken (Langhantel)', 'strength', '{schultern,trizeps}'),
+  (null, 'Viking Press (Maschine)', 'strength', '{schultern,trizeps}'),
+  (null, 'Cuban Press (Kurzhantel)', 'strength', '{schultern}'),
+  (null, 'Pike-Liegestütze', 'strength', '{schultern,trizeps}'),
+  (null, 'Pike-Liegestütze (Füße erhöht)', 'strength', '{schultern,trizeps}'),
+  (null, 'Frontheben (Kurzhantel, Schrägbank)', 'strength', '{schultern}'),
+  (null, 'Frontheben (Kabel, Seil)', 'strength', '{schultern}'),
+  (null, 'Halo (Hantelscheibe)', 'strength', '{schultern,bauch}'),
+  (null, 'Innenrotation (Kabel, stehend)', 'strength', '{schultern}'),
+  (null, 'Außenrotation (Kabel, 90 Grad)', 'strength', '{schultern}'),
+  (null, 'Schulterdurchzug (Stab oder Band)', 'strength', '{schultern}'),
+  (null, 'Skapula-Liegestütze', 'strength', '{schultern,brust}'),
+  (null, 'Skapula-Klimmzüge', 'strength', '{schultern,lat}')
 on conflict (coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(name))
   do update set muscles = excluded.muscles;
 
@@ -2737,6 +2776,6 @@ grant execute on function public.my_plan_answers(), public.set_plan_answers(json
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 51 $$;
+returns integer language sql immutable set search_path = '' as $$ select 52 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;
