@@ -1,4 +1,4 @@
-// Eintrag hinzufügen (Suche, Gerichte, Barcode, Beschreiben, Manuell) für das Ernährungstagebuch.
+// Eintrag hinzufügen (Suche, Foto, Gerichte, Barcode, Beschreiben, Manuell) für das Ernährungstagebuch.
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { pickNumber } from './NumberPicker';
@@ -6,14 +6,15 @@ import { fmt } from '../lib/format';
 import { isBarcode, lookupBarcode, searchFood, scale, totals, type FoodEntry, type FoodItem } from '../lib/food';
 import { BarcodeScanner } from './BarcodeScanner';
 import { Dishes } from './FoodDishes';
+import { FoodPhoto } from './FoodPhoto';
 import { mealName, parseDescription, searchLocalFoods, type ParsedItem } from '../lib/describe';
 
 export type NewEntry = { name: string; brand?: string | null; amount_g?: number | null; kcal: number; protein: number; carbs: number; fat: number; barcode?: string | null; source: FoodEntry['source'] };
 
 export function AddFood({ onClose, onAdd, onAddMany }: { onClose: () => void; onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void> }) {
   const { showError } = useApp();
-  const [tab, setTab] = useState<'search' | 'dishes' | 'barcode' | 'describe' | 'manual'>('search');
-  const [picked, setPicked] = useState<{ item: FoodItem; source: 'search' | 'barcode' } | null>(null);
+  const [tab, setTab] = useState<'search' | 'photo' | 'dishes' | 'barcode' | 'describe' | 'manual'>('search');
+  const [picked, setPicked] = useState<{ item: FoodItem; source: 'search' | 'barcode' | 'photo' } | null>(null);
   useEffect(() => {
     document.body.classList.add('picker-open');
     return () => document.body.classList.remove('picker-open');
@@ -33,12 +34,13 @@ export function AddFood({ onClose, onAdd, onAddMany }: { onClose: () => void; on
       ) : (
         <>
           <div className="picker-cats" role="tablist" aria-label="Wie hinzufügen?">
-            {([['search', 'Suche'], ['dishes', 'Gerichte'], ['barcode', 'Barcode'], ['describe', 'Beschreiben'], ['manual', 'Manuell']] as const).map(([id, text]) => (
+            {([['search', 'Suche'], ['photo', 'Foto'], ['dishes', 'Gerichte'], ['barcode', 'Barcode'], ['describe', 'Beschreiben'], ['manual', 'Manuell']] as const).map(([id, text]) => (
               <button key={id} type="button" className="picker-cat" role="tab" data-tab={id} aria-selected={tab === id} onClick={() => setTab(id)}>{text}</button>
             ))}
           </div>
           <div className="food-body">
             {tab === 'search' && <Search onPick={(item) => setPicked({ item, source: 'search' })} onError={showError} />}
+            {tab === 'photo' && <FoodPhoto onAdd={onAdd} onAddMany={onAddMany} onPickFood={(item) => setPicked({ item, source: 'photo' })} onSearch={() => setTab('search')} />}
             {tab === 'dishes' && <Dishes onAdd={onAdd} onAddMany={onAddMany} />}
             {tab === 'barcode' && <Barcode onPick={(item) => setPicked({ item, source: 'barcode' })} onError={showError} />}
             {tab === 'describe' && <Describe onAdd={onAdd} onAddMany={onAddMany} onError={showError} />}

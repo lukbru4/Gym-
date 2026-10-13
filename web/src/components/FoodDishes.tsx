@@ -8,7 +8,7 @@ import type { NewEntry } from './FoodAdd';
 
 const FACTORS: [number, string][] = [[0.5, '½'], [1, '1'], [1.5, '1½'], [2, '2']];
 
-function DishDetail({ dish, onBack, onAdd, onAddMany }: { dish: Dish; onBack: () => void; onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void> }) {
+export function DishDetail({ dish, onBack, onAdd, onAddMany, source = 'manual' }: { dish: Dish; onBack: () => void; onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void>; source?: 'manual' | 'photo' }) {
   const [grams, setGrams] = useState(() => dish.ingredients.map(([, g]) => g));
   const [on, setOn] = useState(() => dish.ingredients.map(() => true));
   const [factor, setFactor] = useState(1);
@@ -56,10 +56,10 @@ function DishDetail({ dish, onBack, onAdd, onAddMany }: { dish: Dish; onBack: ()
           <ol>{dish.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
         </details>
       )}
-      <button type="button" className="btn primary block" id="dish-add" disabled={busy || !chosen.length} onClick={() => run(() => onAdd({ name: `${dish.name}${factorText}`, amount_g: Math.round(sum.grams), kcal: sum.kcal, protein: sum.protein, carbs: sum.carbs, fat: sum.fat, source: 'manual' }))}>Als eine Mahlzeit eintragen</button>
+      <button type="button" className="btn primary block" id="dish-add" disabled={busy || !chosen.length} onClick={() => run(() => onAdd({ name: `${dish.name}${factorText}`, amount_g: Math.round(sum.grams), kcal: sum.kcal, protein: sum.protein, carbs: sum.carbs, fat: sum.fat, source }))}>Als eine Mahlzeit eintragen</button>
       <button type="button" className="btn block" id="dish-add-many" disabled={busy || !chosen.length} onClick={() => run(() => onAddMany(chosen.map((l) => {
         const n = sumIngredients([{ key: l.key, grams: l.grams }]);
-        return { name: FOOD_BY_KEY.get(l.key)?.name ?? l.key, amount_g: Math.round(l.grams), kcal: n.kcal, protein: n.protein, carbs: n.carbs, fat: n.fat, source: 'manual' as const };
+        return { name: FOOD_BY_KEY.get(l.key)?.name ?? l.key, amount_g: Math.round(l.grams), kcal: n.kcal, protein: n.protein, carbs: n.carbs, fat: n.fat, source };
       })))}>Zutaten einzeln eintragen</button>
     </div>
   );

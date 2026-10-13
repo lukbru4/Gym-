@@ -52,3 +52,9 @@ Die Muskelflächen und der Körperumriss stammen aus dem npm-Paket **react-muscl
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
+
+## Foto-Erkennung beim Essen (web/src/lib/photoGuess.ts)
+
+- **@huggingface/transformers** (Transformers.js) – Apache-2.0-Lizenz.
+- **onnxruntime-web** (Microsoft) – MIT-Lizenz; die Laufzeit-Datei (`ort-wasm-*.wasm`) wird mit der App ausgeliefert.
+- **Modell `Xenova/mobileclip_s0`** (umgewandeltes MobileCLIP von Apple) – wird erst beim ersten Gebrauch von Hugging Face geladen und nicht mit der App ausgeliefert. **Vor dem Launch die Lizenz des Modells prüfen** (Apple-Modelllizenz; kommerzielle Nutzung klären) und das Laden in der Datenschutzerklärung erwähnen (Abruf von huggingface.co, das Foto selbst verlässt das Gerät nicht).
