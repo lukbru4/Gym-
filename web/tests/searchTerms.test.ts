@@ -33,3 +33,33 @@ describe('Suche nach Stichwörtern', () => {
     expect(missing.length / strength.length).toBeLessThan(0.05);
   });
 });
+
+describe('Gerät + Muskel in einer Suche („Maschine Brust“)', () => {
+  test('„Maschine Brust“ und „Brustmaschine“: Brustpresse, Butterfly, Plattengerät – nicht Kabel/Landmine oder Rudern mit Brustpolster', () => {
+    for (const q of ['maschine brust', 'Brust Maschine', 'Brustmaschine']) {
+      const h = hits(q);
+      expect(h, q).toEqual(expect.arrayContaining(['Brustpresse (Maschine)', 'Butterfly', 'Bankdrücken (Plattengerät)', 'Brustpresse (Maschine, Schrägbank)', 'Butterfly (Maschine, Schrägbank)']));
+      expect(h, q).not.toContain('Rudern (Maschine, Brustpolster)');
+      expect(h.some((n) => /kabel|landmine|widerstandsband/i.test(n)), q).toBe(false);
+    }
+  });
+  test('weitere Kombinationen finden nur Passendes', () => {
+    expect(hits('kabel rücken')).toEqual(expect.arrayContaining(['Latziehen', 'Kabelrudern']));
+    expect(hits('kabel rücken')).not.toContain('Aufrechtes Rudern (Kabel)');
+    expect(hits('beine maschine')).toEqual(expect.arrayContaining(['Beinpresse', 'Beinstrecker', 'Beinbeuger', 'Wadenheben']));
+    expect(hits('bizeps kabel').every((n) => /kabel|seil/i.test(n))).toBe(true);
+    expect(hits('schulter maschine')).toContain('Schulterdrücken (Maschine)');
+    expect(hits('schulter maschine').some((n) => /Brustpresse|\(Kabel/.test(n))).toBe(false);
+    expect(hits('po maschine')).toEqual(expect.arrayContaining(['Hip Thrust (Maschine)', 'Abduktoren (Maschine)']));
+    expect(hits('po maschine').some((n) => /Viking|Thruster|Widerstandsband/.test(n))).toBe(false);
+    const bauch = hits('bauch ohne geräte');
+    expect(bauch).toEqual(expect.arrayContaining(['Crunches', 'Plank']));
+    expect(bauch.some((n) => /kabel|maschine/i.test(n))).toBe(false);
+    expect(hits('nacken kurzhantel')).toEqual(expect.arrayContaining(['Schulterheben (Kurzhantel)', 'Kelso Shrugs (Kurzhantel)']));
+    expect(hits('nacken kurzhantel').some((n) => /trizeps/i.test(n))).toBe(false);
+  });
+  test('jede Muskelgruppe mit Maschine, Kabel und Kurzhantel liefert Treffer', () => {
+    for (const m of ['brust', 'rücken', 'schulter', 'bizeps', 'trizeps', 'bauch', 'po', 'beine', 'waden'])
+      for (const g of ['maschine', 'kabel', 'kurzhantel']) if (!(m === 'waden' && g === 'kabel')) expect(hits(`${m} ${g}`).length, `${m} ${g}`).toBeGreaterThan(0);
+  });
+});

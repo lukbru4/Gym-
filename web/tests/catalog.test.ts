@@ -118,3 +118,15 @@ describe('Brust aufgeräumt (umbenannt, zusammengeführt, ausgebaut)', () => {
     expect(m.exercises.filter((e) => !e.user_id).length).toBe(CATALOG.length);
   });
 });
+
+describe('Rücken aufgeräumt und ausgebaut', () => {
+  const names = new Set(CATALOG.map((c) => c.name));
+  test('Doppel zusammengeführt, neue Übungen da, Füllmaterial nicht mehr unter Rücken', () => {
+    for (const n of ['Rudern (Langhantel, vorgebeugt)', 'Latziehen (Maschine)', 'Pulldown (Kabel, sitzend)', 'Seilzug-Pullover', 'Farmers Walk (lange Schritte)', 'Superman (Boden)']) expect(names.has(n), n).toBe(false);
+    for (const n of ['Rudern (Plattengerät, hoch)', 'Kroc Rows (Kurzhantel)', 'Rudern (T-Stange, Brustpolster)', 'Klimmzüge (Kommando)', 'Kreuzheben (Defizit)', 'Kelso Shrugs (Kurzhantel)']) expect(names.has(n), n).toBe(true);
+    expect(canonicalName('Pulldown (Kabel, einarmig)')).toBe('Latziehen (einarmig)');
+    const back = CATALOG.filter((c) => ['lat', 'oberer_ruecken', 'unterer_ruecken'].includes(c.muscles[0]));
+    expect(back.length).toBeGreaterThanOrEqual(140);
+    expect(back.some((c) => /^Clean|^Farmers Walk/.test(c.name))).toBe(false);
+  });
+});

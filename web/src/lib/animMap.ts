@@ -43,6 +43,7 @@ const RULES: [RegExp, string][] = [
   [/koerpergewicht.*kniebeuge|kniebeuge.*koerpergewicht|sissy|wandsitzen/, 'squat-bw'],
   [/kniebeuge|hackenschmidt|squat|schlitten/, 'squat'],
   [/rumaenisches kreuzheben \(kurz/, 'hinge-db'],
+  [/jefferson/, 'hinge'],
   [/kreuzheben|good morning|rack pull/, 'hinge'],
   // Brust
   [/liegestuetz|diamant/, 'pushup'],
