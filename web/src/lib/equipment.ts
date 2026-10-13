@@ -47,6 +47,8 @@ export const nameHasEquipment = (name: string, id: Exclude<EquipmentId, 'cardio'
   if (!EQUIPMENT_TEST[id].test(n)) return false;
   // „Brustpresse (Kabel)“, „Abduktoren (Widerstandsband)“: Gerätename im Namen schlägt die typische Maschine
   if (id === 'maschine') return /maschine|plattengerat/.test(n) || !OTHER_GEAR.test(n);
+  // „Hammercurls (Kabel)“, „Pullover (Kabel)“: typische Kurzhantel-Übung, aber mit anderem Gerät
+  if (id === 'kurzhantel') return /kurzhantel/.test(n) || !OTHER_GEAR.test(n);
   // „Cable Crunches (Kabel)“, „Dips (gewichtet)“ mit Hantel o. Ä. zählen nicht als reines Körpergewicht
   if (id === 'koerpergewicht') return /korpergewicht/.test(n) || !WEIGHT_GEAR.test(n);
   return true;

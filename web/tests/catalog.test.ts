@@ -130,3 +130,14 @@ describe('Rücken aufgeräumt und ausgebaut', () => {
     expect(back.some((c) => /^Clean|^Farmers Walk/.test(c.name))).toBe(false);
   });
 });
+
+describe('Arme aufgeräumt und ausgebaut', () => {
+  const names = new Set(CATALOG.map((c) => c.name));
+  test('Doppel zusammengeführt, einheitliche Namen, neue Übungen da', () => {
+    for (const n of ['Bizepscurls (Langhantel)', 'Curls (Spider, Kurzhantel)', 'Trizepsdips (Bank)', 'Close-Grip Liegestütze', 'Liegestütze mit Trizeps-Fokus (Boden)', 'Handgelenkcurls']) expect(names.has(n), n).toBe(false);
+    for (const n of ['Bayesian Curls (Kabel)', 'Reverse Curls (Kurzhantel)', 'Liegestütze (enger Griff, Ringe)', 'Überkopf-Trizepsstrecken (Kabel, über Kreuz)', 'Unterarmroller']) expect(names.has(n), n).toBe(true);
+    expect(canonicalName('Trizepsdips (Bank)')).toBe('Bank-Dips');
+    expect(CATALOG.find((c) => c.name === 'Liegestütze (enger Griff)')!.muscles[0]).toBe('trizeps');
+    expect(CATALOG.filter((c) => ['bizeps', 'trizeps'].includes(c.muscles[0])).length).toBeGreaterThanOrEqual(140);
+  });
+});
