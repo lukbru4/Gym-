@@ -74,3 +74,13 @@ describe('Arme: Suche', () => {
     expect(hits('bizeps kurzhantel').some((n) => /\(Kabel/.test(n))).toBe(false);
   });
 });
+
+describe('Beine und Bauch: Suche', () => {
+  test('unterer Bauch, Beinbeuger zuhause, Waden Maschine', () => {
+    const lower = hits('unterer bauch');
+    expect(lower).toEqual(expect.arrayContaining(['Beinheben (hängend)', 'Reverse Crunch']));
+    expect(lower.some((n) => /Bird Dog|Seitliches Beinheben/.test(n))).toBe(false);
+    expect(hits('beinbeuger zuhause')).not.toContain('Reverse Nordic');
+    expect(hits('waden maschine')).toEqual(expect.arrayContaining(['Wadenheben', 'Wadenheben (Plattengerät)']));
+  });
+});

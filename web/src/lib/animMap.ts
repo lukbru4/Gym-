@@ -37,6 +37,7 @@ const RULES: [RegExp, string][] = [
   [/wadenheben/, 'calf'],
   [/beinpresse/, 'legpress'],
   [/beinstrecker/, 'legext'],
+  [/reverse nordic/, 'legext'],
   [/beinbeuger|nordic/, 'legcurl'],
   [/hip thrust|glute bridge|kickback.*ges|gesaess|abduktor|adduktor|seitliches beinheben|brücke|bruecke/, 'glute'],
   [/goblet/, 'goblet'],

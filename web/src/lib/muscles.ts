@@ -135,7 +135,8 @@ export function filterExercises(
     if (muscles.length && !muscles.includes(musclesOf(ex)[0])) return false;
     if (equipment && !matchesEquipment(ex, equipment)) return false;
     if (!words.length) return true;
-    return matchesSearch(query, ex.name, musclesOf(ex)) || words.every((w) => normalize(musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m).join(' ')).includes(w));
+    // Muskelnamen als Umweg nur bei einem Wort (sonst ergäbe „Bauch“ + „Unterer Rücken“ einen Treffer für „unterer Bauch“)
+    return matchesSearch(query, ex.name, musclesOf(ex)) || (words.length === 1 && normalize(musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m).join(' ')).includes(words[0]));
   });
   // Beliebte Übungen zuerst (Klassiker, dann häufige), danach der Rest nach Namen; bei gleicher Stufe bleibt die Katalog-Reihenfolge
   return hits

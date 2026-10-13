@@ -141,3 +141,13 @@ describe('Arme aufgeräumt und ausgebaut', () => {
     expect(CATALOG.filter((c) => ['bizeps', 'trizeps'].includes(c.muscles[0])).length).toBeGreaterThanOrEqual(140);
   });
 });
+
+describe('Beine und Bauch aufgeräumt und ausgebaut', () => {
+  const names = new Set(CATALOG.map((c) => c.name));
+  test('Doppel zusammengeführt, einheitliche Namen, neue Übungen, richtige Hauptmuskeln', () => {
+    for (const n of ['Kniebeuge (Langhantel, breiter Griff)', 'Beinstrecker (einarmig)', 'Kettlebell Swing (schwer)', 'Sled Push (leicht)', 'Plank (seitlich)', 'Zehen-zur-Stange (strikt)', 'Crunches (Kabel, kniend)']) expect(names.has(n), n).toBe(false);
+    for (const n of ['Pendulum Squat (Maschine)', 'Glute Ham Raise', 'Hip Thrust (Plattengerät)', 'Copenhagen Plank', 'Schlittenschieben (Sprint)', 'Toes to Bar (Ringe)', 'Kettlebell Windmill']) expect(names.has(n), n).toBe(true);
+    expect(canonicalName('Kettlebell Windmill (schwer)')).toBe('Kettlebell Windmill');
+    expect(CATALOG.find((c) => c.name === 'Isometrie (Brust drücken)')!.muscles[0]).toBe('brust');
+  });
+});
