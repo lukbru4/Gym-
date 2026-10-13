@@ -64,15 +64,22 @@ export const QUESTIONS: Question[] = [
 /** Fragen, die bei den bisherigen Antworten gestellt werden */
 export const activeQuestions = (a: Answers) => QUESTIONS.filter((q) => !q.when || q.when(a));
 
+export const OTHER = 'sonstiges';
+export const otherKey = (id: string) => `${id}_other`;
+const otherText = (q: Question, a: Answers) => String(a[otherKey(q.id)] ?? '').trim();
+
 export const isAnswered = (q: Question, a: Answers) => {
   const v = a[q.id];
-  return Array.isArray(v) ? v.length > 0 : v !== undefined && v !== '';
+  const has = Array.isArray(v) ? v.length > 0 : v !== undefined && v !== '';
+  // „Sonstiges“ braucht einen Text
+  const needsText = Array.isArray(v) ? v.includes(OTHER) : v === OTHER;
+  return has && (!needsText || otherText(q, a).length > 0);
 };
 export const answerLabel = (q: Question, a: Answers): string => {
   const v = a[q.id];
   if (q.type === 'range') return v === undefined ? '–' : `${v} ${q.unit ?? ''}`.trim();
-  const name = (x: string) => q.options?.find((o) => o[0] === x)?.[1] ?? x;
-  if (q.id === 'avoid' && Array.isArray(v) && v.length > 3) return `${v.length} Übungen ausgeschlossen`;
+  const name = (x: string) => (x === OTHER ? `Sonstiges: ${otherText(q, a) || '–'}` : q.options?.find((o) => o[0] === x)?.[1] ?? x);
+  if (q.id === 'avoid' && Array.isArray(v) && v.filter((x) => x !== OTHER).length > 3) return `${v.length} Übungen ausgeschlossen`;
   return Array.isArray(v) ? v.map(name).join(', ') || '–' : v === undefined ? '–' : name(v);
 };
 
@@ -162,6 +169,37 @@ QUESTIONS.find((q) => q.id === 'avoid')!.options = [
   ...Object.entries(AVOID_GROUPS).map(([id, g]) => [id, g.label] as [string, string]),
   ...[...Object.values(P), ...Object.values(X)].map((p) => p.name).sort((x, y) => x.localeCompare(y, 'de')).map((n) => [n, n] as [string, string]),
 ];
+// Jede Auswahlfrage bekommt am Ende „Sonstiges …“ mit freier Eingabe
+for (const q of QUESTIONS) if (q.type !== 'range') q.options!.push([OTHER, 'Sonstiges …']);
+
+/** Auswahl „Sonstiges“ aus den Antworten nehmen (die Berechnung nutzt dann Standardwerte) und Freitext bei den Übungs-Fragen
+ *  (Wunsch/Ausschluss) auf passende Plan-Übungen abbilden. Gibt die bereinigten Antworten und Hinweise zurück. */
+export function normalizeAnswers(a: Answers): { answers: Answers; notes: string[] } {
+  const out: Answers = { ...a };
+  const notes: string[] = [];
+  const all = [...Object.values(P), ...Object.values(X)].map((p) => p.name);
+  for (const q of QUESTIONS) {
+    if (q.type === 'range') continue;
+    const v = a[q.id];
+    const picked = Array.isArray(v) ? v.includes(OTHER) : v === OTHER;
+    if (!picked) continue;
+    const text = String(a[otherKey(q.id)] ?? '').trim();
+    if (Array.isArray(v)) out[q.id] = v.filter((x) => x !== OTHER);
+    else delete out[q.id];
+    if (!text) continue;
+    if (q.id === 'fav' || q.id === 'avoid') {
+      const words = text.split(/[,;\n]/).map((w) => w.trim().toLowerCase()).filter((w) => w.length >= 3);
+      const hit = all.filter((n) => words.some((w) => n.toLowerCase().includes(w)));
+      if (hit.length) out[q.id] = [...asList(out[q.id]), ...hit];
+      notes.push(hit.length
+        ? `„${text}“ haben wir ${q.id === 'fav' ? 'als Wunsch' : 'als Ausschluss'} übernommen: ${hit.join(', ')}.`
+        : `Zu „${q.q}“ hast du „${text}“ angegeben – eine passende Übung im Plan haben wir dazu nicht gefunden.`);
+    } else {
+      notes.push(`Zu „${q.q}“ hast du „${text}“ angegeben. Das berücksichtigt der Plan nicht automatisch – passe Übungen bei Bedarf selbst an.`);
+    }
+  }
+  return { answers: out, notes };
+}
 
 /** Plätze pro Trainingsart: je Platz mehrere Kandidaten, der passendste wird gewählt */
 type Kind = 'ganz' | 'push' | 'pull' | 'beine' | 'oben' | 'unten';
@@ -246,7 +284,8 @@ function estimateMinutes(exercises: PlanExercise[]): number {
   return Math.round(sec / 60 / 5) * 5;
 }
 
-export function generatePlan(a: Answers): Plan {
+export function generatePlan(raw: Answers): Plan {
+  const { answers: a, notes: otherNotes } = normalizeAnswers(raw);
   const days = Math.min(6, Math.max(1, Number(a.days) || 3));
   const exp = String(a.exp ?? 'basis');
   const count = ({ '30': 4, '45': 5, '60': 6, '90': 8 } as Record<string, number>)[String(a.duration)] ?? 5;
@@ -396,6 +435,7 @@ export function generatePlan(a: Answers): Plan {
   for (const v of volume) {
     if (v.sets < 8 && ['Brust', 'Rücken', 'Beine & Gesäß'].includes(v.group) && focus.size && [...focus].some((f) => GROUP_NAMES[f] === v.group)) notes.push(`${v.group} bekommt nur ${v.sets} Sätze pro Woche – für Wachstum sind etwa 10–20 sinnvoll. Mehr Trainingstage oder ein längeres Training helfen.`);
   }
+  notes.push(...otherNotes);
   return { templates, week, weekGoal: days, notes, volume };
 }
 

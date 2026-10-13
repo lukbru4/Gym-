@@ -9,7 +9,7 @@ import { usePro } from '../lib/pro';
 import { calorieNeeds, JOB_OPTIONS } from '../lib/calories';
 import { fmt } from '../lib/format';
 import { ExerciseInfo } from '../components/ExerciseInfo';
-import { activeQuestions, answerLabel, generatePlan, hasOtherSport, isAnswered, QUESTIONS, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
+import { activeQuestions, answerLabel, generatePlan, hasOtherSport, isAnswered, OTHER, otherKey, QUESTIONS, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
 import { withNewCycle } from '../lib/cycle';
 import { setLocalWeekGoal } from '../lib/weekGoal';
 import type { TemplateExercise } from '../lib/types';
@@ -199,7 +199,7 @@ export function Quiz() {
     if (q.type === 'one') {
       const next = { ...answers, [q.id]: v };
       store(next);
-      setTimeout(() => goNext(next), 180);
+      if (v !== OTHER) setTimeout(() => goNext(next), 180); // „Sonstiges“ braucht erst einen Text
       return;
     }
     const cur = Array.isArray(value) ? value : [];
@@ -236,11 +236,14 @@ export function Quiz() {
         ) : (
           <div className="quiz-options" role={q.type === 'multi' ? 'group' : 'radiogroup'}>
             {(q.options!.length > 12 ? <input id="quiz-filter" type="search" className="quiz-filter" placeholder="Übung suchen" value={filter} onChange={(e) => setFilter(e.target.value)} /> : null)}
-            {q.options!.filter(([, label]) => !filter || label.toLowerCase().includes(filter.toLowerCase())).map(([v, label]) => (
+            {q.options!.filter(([v, label]) => !filter || v === OTHER || label.toLowerCase().includes(filter.toLowerCase())).map(([v, label]) => (
               <button key={v} type="button" className={`quiz-option${chosen(v) ? ' on' : ''}`} data-v={v} aria-pressed={chosen(v)} onClick={() => choose(v)}>
                 {label}
               </button>
             ))}
+            {chosen(OTHER) && (
+              <input id="quiz-other" className="quiz-other" maxLength={120} placeholder="Deine Angabe …" aria-label="Sonstiges" value={String(answers[otherKey(q.id)] ?? '')} onChange={(e) => store({ ...answers, [otherKey(q.id)]: e.target.value })} />
+            )}
           </div>
         )}
         <div className="row quiz-foot">

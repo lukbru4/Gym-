@@ -9,6 +9,7 @@ import { LevelBar, LoadError, Loading, ProgressBar, RankRules } from '../compone
 import { ChartView } from '../components/ChartView';
 import { RankBadge } from '../components/RankBadge';
 import { datedSets } from '../lib/editor';
+import { performedExercises } from '../lib/performed';
 import { fmt, fmtDate, fmtShortDate, plural } from '../lib/format';
 import { strengthLevels } from '../lib/muscles';
 import { rankFromPoints } from '../lib/ranks';
@@ -94,7 +95,7 @@ export function Analysis() {
   if (game.status === 'error') return <LoadError error={game.error} />;
   const g = game.data;
   const dated = datedSets(g.workouts, g.sets);
-  const used = exercises.filter((e) => dated.some((s) => s.exercise_id === e.id));
+  const used = performedExercises(exercises, dated);
   if (!used.length)
     return (
       <>
@@ -102,8 +103,8 @@ export function Analysis() {
         <p className="muted">Sobald du Trainings erfasst hast, siehst du hier deinen Fortschritt.</p>
       </>
     );
-  const allExercises = [...exercises].sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  const current = exerciseById(selected ?? -1) ? selected! : used[0].id;
+  const sortedUsed = [...used].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const current = used.some((u) => u.id === selected) ? selected! : used[0].id;
   const ex = exerciseById(current)!;
   const rows = exerciseProgress(dated.filter((s) => s.exercise_id === current), ex.type);
   const labels = rows.map((r) => fmtShortDate(r.date));
@@ -176,7 +177,7 @@ export function Analysis() {
           id="p-exercise"
           label="Übung"
           title="Übung wählen"
-          items={allExercises.map((e) => ({ key: e.id, label: e.name, sub: used.some((u) => u.id === e.id) ? undefined : 'noch nicht trainiert' }))}
+          items={sortedUsed.map((e) => ({ key: e.id, label: e.name }))}
           value={current}
           onChange={(k) => choose(Number(k))}
         />
@@ -224,12 +225,13 @@ export function RankGallery() {
 export function OneRmCalculator() {
   const { exercises, exerciseById } = useApp();
   const game = useGame();
-  const strength = exercises.filter((e) => e.type === 'strength').sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  // nur Kraftübungen, die man schon gemacht hat
+  const strength = game.status === 'ok' ? performedExercises(exercises.filter((e) => e.type === 'strength'), datedSets(game.data.workouts, game.data.sets)).sort((a, b) => a.name.localeCompare(b.name, 'de')) : [];
   const [exId, setExId] = useState<number | null>(null);
   const [kg, setKg] = useState(60);
   const [reps, setReps] = useState(8);
   const e1rm = estimate1RM(kg, reps);
-  const current = exId ?? strength.find((e) => e.name === 'Bankdrücken')?.id ?? strength[0]?.id ?? -1;
+  const current = strength.some((e) => e.id === exId) ? exId! : strength.find((e) => e.name === 'Bankdrücken')?.id ?? strength[0]?.id ?? -1;
   const best = game.status === 'ok' ? game.data.strength.find(([id]) => id === current)?.[1].best ?? 0 : 0;
   const pick = async (title: string, unit: string, value: number, min: number, max: number, step: number, big: number, integer?: boolean) => {
     const v = await pickNumber({ title, unit, value: String(value), min, max, step, bigStep: big, itemW: integer ? 14 : 10, labelEvery: integer ? 5 : 10, integer });
@@ -240,7 +242,11 @@ export function OneRmCalculator() {
     <>
       <h2>Rechner</h2>
       <div className="card" id="calc">
-        <ChoiceField id="calc-exercise" label="Übung" title="Übung wählen" items={strength.map((e) => ({ key: e.id, label: e.name }))} value={current} onChange={(k) => setExId(Number(k))} />
+        {strength.length ? (
+          <ChoiceField id="calc-exercise" label="Übung" title="Übung wählen" items={strength.map((e) => ({ key: e.id, label: e.name }))} value={current} onChange={(k) => setExId(Number(k))} />
+        ) : (
+          <p className="muted small" id="calc-empty">Sobald du Kraftübungen trainiert hast, kannst du hier dein Gewicht berechnen. Die Auswahl zeigt nur Übungen, die du schon gemacht hast.</p>
+        )}
         <div className="calc-inputs">
           <button type="button" className="calc-btn" id="calc-kg" onClick={async () => { const v = await pick('Gewicht', 'kg', kg, 0, 400, 0.5, 2.5); if (v !== null) setKg(v); }}><span className="muted small">Gewicht</span><strong>{fmt(kg)} kg</strong></button>
           <button type="button" className="calc-btn" id="calc-reps" onClick={async () => { const v = await pick('Wiederholungen', 'Wdh.', reps, 1, 50, 1, 1, true); if (v !== null) setReps(v); }}><span className="muted small">Wiederholungen</span><strong>{reps} Wdh.</strong></button>

@@ -4,6 +4,9 @@ import { ChoiceField } from './ChoiceSheet';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
+import { useGame } from '../app/gameContext';
+import { datedSets } from '../lib/editor';
+import { performedStrengthNames } from '../lib/performed';
 import type { LeaderRow, Social } from '../data/social';
 import { fmt, fmtShortDate, plural } from '../lib/format';
 
@@ -59,8 +62,12 @@ function WeekBoard({ social }: { social: Social }) {
 }
 
 function ExerciseBoard({ social }: { social: Social }) {
-  const { dataVersion } = useApp();
-  const list = useAsync(() => social.exerciseList(), [social, dataVersion]);
+  const { dataVersion, exercises } = useApp();
+  const game = useGame();
+  const rawList = useAsync(() => social.exerciseList(), [social, dataVersion]);
+  // Nur Übungen zur Auswahl, die man selbst schon gemacht hat
+  const mine = game.status === 'ok' ? performedStrengthNames(exercises, datedSets(game.data.workouts, game.data.sets)) : null;
+  const list = rawList.status === 'ok' && mine ? { ...rawList, data: rawList.data.filter((e) => mine.has(e.name.trim().toLowerCase())) } : mine === null && rawList.status === 'ok' ? ({ status: 'loading' } as const) : rawList;
   const [exercise, setExercise] = useState<string>(() => {
     try {
       return localStorage.getItem(EX_KEY) ?? '';
@@ -81,7 +88,7 @@ function ExerciseBoard({ social }: { social: Social }) {
   }, [current]);
   if (list.status === 'loading') return <p className="muted small">Lädt …</p>;
   if (list.status === 'error') return <p className="muted small">{list.error.message}</p>;
-  if (!names.length) return <p className="muted small">Sobald du oder deine Freunde Kraftübungen trainieren, gibt es hier Bestwerte.</p>;
+  if (!names.length) return <p className="muted small" id="board-empty">Sobald du Kraftübungen trainiert hast, gibt es hier Bestwerte im Vergleich mit deinen Freunden. Die Auswahl zeigt nur Übungen, die du schon gemacht hast.</p>;
   return (
     <>
       <ChoiceField

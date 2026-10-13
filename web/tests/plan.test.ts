@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { activeQuestions, answerLabel, generatePlan, QUESTIONS, type Answers } from '../src/lib/plan';
+import { activeQuestions, answerLabel, generatePlan, isAnswered, QUESTIONS, type Answers } from '../src/lib/plan';
 
 const sql = readFileSync(new URL('../../supabase/schema.sql', import.meta.url), 'utf8');
 const catalog = new Set([...sql.matchAll(/\(null, '([^']+)', '(?:strength|cardio)'/g)].map((m) => m[1]));
@@ -65,7 +65,7 @@ describe('Trainingsplan aus dem Fragebogen', () => {
     expect(generatePlan({ ...base, days: '2', split: 'ppl' }).notes.join(' ')).toMatch(/mindestens 3/);
   });
   test('ausgewählte Übungen kommen in den Plan, alle Auswahl-Übungen gibt es im Katalog', () => {
-    const opts = QUESTIONS.find((q) => q.id === 'fav')!.options!.map((o) => o[0]);
+    const opts = QUESTIONS.find((q) => q.id === 'fav')!.options!.map((o) => o[0]).filter((x) => x !== 'sonstiges');
     expect(opts.length).toBeGreaterThan(20);
     for (const n of opts) expect(catalog.has(n), n).toBe(true);
     const all = generatePlan({ ...base, days: '3', split: 'ppl', duration: '90', fav: ['Face Pulls', 'Hammercurls', 'Wadenheben'] }).templates.flatMap((t) => t.exercises.map((e) => e.name));
@@ -177,6 +177,41 @@ describe('Trainingsplan aus dem Fragebogen', () => {
       expect(avoid.options![0][0]).toBe('grp:bank');
       expect(answerLabel(avoid, { avoid: ['grp:bank'] })).toBe('Alle Bankdrück-Varianten');
       expect(answerLabel(avoid, { avoid: ['a', 'b', 'c', 'd'] })).toBe('4 Übungen ausgeschlossen');
+    });
+  });
+
+  describe('Sonstiges', () => {
+    const all = (a: Answers) => generatePlan(a).templates.flatMap((t) => t.exercises.filter((e) => !e.cardio).map((e) => e.name));
+    test('jede Auswahlfrage hat „Sonstiges“, Bereichsfragen nicht', () => {
+      for (const q of QUESTIONS) {
+        if (q.type === 'range') expect(q.options).toBeUndefined();
+        else expect(q.options!.at(-1)).toEqual(['sonstiges', 'Sonstiges …']);
+      }
+    });
+    test('Sonstiges braucht einen Text', () => {
+      const q = QUESTIONS.find((x) => x.id === 'pain')!;
+      expect(isAnswered(q, { pain: ['sonstiges'] })).toBe(false);
+      expect(isAnswered(q, { pain: ['sonstiges'], pain_other: ' Hüfte ' })).toBe(true);
+      expect(isAnswered(q, { pain: ['knie'] })).toBe(true);
+    });
+    test('Beschriftung zeigt den eigenen Text', () => {
+      const q = QUESTIONS.find((x) => x.id === 'pain')!;
+      expect(answerLabel(q, { pain: ['knie', 'sonstiges'], pain_other: 'Hüfte' })).toBe('Knie, Sonstiges: Hüfte');
+    });
+    test('Sonstiges bei einer festen Frage ändert den Plan nicht, erzeugt aber einen Hinweis', () => {
+      const plain = generatePlan({ ...base });
+      const p = generatePlan({ ...base, goal: 'sonstiges', goal_other: 'Hyrox-Vorbereitung' });
+      expect(p.templates.length).toBe(plain.templates.length);
+      expect(p.notes.some((n) => n.includes('Hyrox-Vorbereitung') && n.includes('nicht automatisch'))).toBe(true);
+    });
+    test('Freitext bei „nicht machen“ schließt passende Übungen wirklich aus', () => {
+      const p = generatePlan({ ...base, days: '3', duration: '90', avoid: ['sonstiges'], avoid_other: 'bankdrücken' });
+      expect(all({ ...base, days: '3', duration: '90', avoid: ['sonstiges'], avoid_other: 'bankdrücken' }).filter((n) => /Bankdrücken/.test(n))).toEqual([]);
+      expect(p.notes.some((n) => /als Ausschluss übernommen/.test(n))).toBe(true);
+    });
+    test('Freitext ohne passende Übung wird gemeldet', () => {
+      const p = generatePlan({ ...base, fav: ['sonstiges'], fav_other: 'Zumba' });
+      expect(p.notes.some((n) => n.includes('Zumba') && n.includes('nicht gefunden'))).toBe(true);
     });
   });
 });
