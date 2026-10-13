@@ -76,7 +76,7 @@ export interface Social {
   wallet(): Promise<{ earned: number; spent: number; balance: number }>;
   myShop(): Promise<{ owned: string[]; equipped: Equipped; admin?: boolean }>;
   /** Pro-Abo (Status kommt nur vom Server) */
-  myPro(): Promise<{ pro: boolean; until: string | null; admin: boolean }>;
+  myPro(): Promise<{ pro: boolean; until: string | null; admin: boolean; owner?: boolean }>;
   /** Profilbild: Freunde (und ich) mit Bild, Hochladen/Entfernen, kurzlebige Links */
   friendAvatars(): Promise<{ user_id: string; v: number }[]>;
   uploadAvatar(blob: Blob): Promise<void>;
@@ -99,6 +99,11 @@ export interface Social {
   adminHideScheme(id: string): Promise<void>;
   adminReports(): Promise<AdminReport[]>;
   adminResolveReport(id: number, deleteComment: boolean): Promise<void>;
+  /** Admins verwalten – nur der Besitzer (prüft der Server) */
+  adminList(): Promise<AdminEntry[]>;
+  /** Person per E-Mail oder Freundescode zum Admin machen */
+  adminAdd(who: string): Promise<string>;
+  adminRemove(userId: string): Promise<void>;
   schemaVersion(): Promise<number>;
   myWeekGoal(): Promise<number>;
   /** Antworten des Trainingsplans (null: noch nie beantwortet) */
@@ -108,6 +113,7 @@ export interface Social {
 }
 
 export interface CatalogRow { id: string; kind: string; name: string; price: number; palette: CustomPalette | null }
+export interface AdminEntry { user_id: string; display_name: string | null; email: string | null; since: string; is_owner: boolean }
 export interface AdminReport {
   id: number;
   created_at: string;
@@ -225,6 +231,9 @@ export function createSocial(supabase: SupabaseClient): Social {
     adminHideScheme: (p_id) => rpc('admin_hide_scheme', { p_id }),
     adminReports: () => rpc('admin_reports'),
     adminResolveReport: (p_id, p_delete_comment) => rpc('admin_resolve_report', { p_id, p_delete_comment }),
+    adminList: () => rpc('admin_list'),
+    adminAdd: (p_who) => rpc('admin_add', { p_who }),
+    adminRemove: (p_user) => rpc('admin_remove', { p_user }),
     schemaVersion: async () => Number(await rpc('schema_version')) || 0,
     myWeekGoal: async () => Number(await rpc('my_week_goal')) || 2,
     setWeekGoal: (p_goal) => rpc('set_week_goal', { p_goal }),

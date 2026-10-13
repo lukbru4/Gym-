@@ -1,14 +1,15 @@
 // Admin-Menü (nur für den Admin; der Server prüft jede Aktion selbst):
 // alle Farben frei wählen, eigene Farbschemata entwerfen und im Shop anbieten, Meldungen bearbeiten.
+// Der Besitzer (nur er) kann zusätzlich weitere Admins hinzufügen und entfernen.
 import { ask } from '../components/Dialog';
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
 import { LoadError, Loading } from '../components/Bits';
-import type { AdminReport } from '../data/social';
+import type { AdminEntry, AdminReport } from '../data/social';
 import { useCosmetics } from '../lib/cosmetics';
 import { fmt } from '../lib/format';
-import { paywallPreview, setPaywallPreview } from '../lib/pro';
+import { paywallPreview, setPaywallPreview, usePro } from '../lib/pro';
 import { setServerCatalog, useShopItems } from '../lib/shop';
 import {
   ACCENT_PRESETS,
@@ -282,6 +283,71 @@ function Reports() {
   );
 }
 
+function Admins() {
+  const { api, showError } = useApp();
+  const [version, setVersion] = useState(0);
+  const [who, setWho] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
+  const list = useAsync(() => api.social!.adminList(), [api, version]);
+  const nameOf = (a: AdminEntry) => a.display_name || a.email || 'Unbekannt';
+  const add = async () => {
+    const value = who.trim();
+    if (!value) return;
+    setBusy(true);
+    setNote('');
+    try {
+      await api.social!.adminAdd(value);
+      setWho('');
+      setNote(`${value} ist jetzt Admin.`);
+      setVersion((v) => v + 1);
+    } catch (err) {
+      showError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async (a: AdminEntry) => {
+    if (!(await ask(`${nameOf(a)} verliert die Admin-Rechte (und damit auch Pro über den Admin-Zugang).`, { title: 'Admin entfernen?', ok: 'Entfernen', danger: true }))) return;
+    try {
+      await api.social!.adminRemove(a.user_id);
+      setNote('');
+      setVersion((v) => v + 1);
+    } catch (err) {
+      showError(err);
+    }
+  };
+  return (
+    <div className="card" id="admin-admins">
+      <h3>Admins verwalten</h3>
+      <p className="muted small">Nur du als Besitzer siehst diesen Bereich. Admins bekommen Pro und alle Shop-Artikel, sehen dieses Admin-Menü und können Meldungen bearbeiten – aber keine Admins hinzufügen oder entfernen.</p>
+      {list.status === 'loading' ? (
+        <Loading />
+      ) : list.status === 'error' ? (
+        <LoadError error={list.error} />
+      ) : (
+        <ul className="admin-list admins">
+          {list.data.map((a) => (
+            <li key={a.user_id} data-admin={a.email ?? a.user_id}>
+              <div className="grow">
+                <strong>{nameOf(a)}</strong>{a.is_owner && <span className="owner-tag">Besitzer</span>}
+                <span className="muted small"> · {a.email ?? ''} · seit {new Date(a.since).toLocaleDateString('de-DE')}</span>
+              </div>
+              {!a.is_owner && <button type="button" className="btn small-btn danger" data-remove-admin={a.email ?? a.user_id} onClick={() => remove(a)}>Entfernen</button>}
+            </li>
+          ))}
+        </ul>
+      )}
+      <form className="admin-add-row" onSubmit={(e) => { e.preventDefault(); void add(); }}>
+        <input id="admin-add-who" type="text" autoCapitalize="none" autoCorrect="off" placeholder="E-Mail oder Freundescode" value={who} onChange={(e) => setWho(e.target.value)} />
+        <button type="submit" className="btn primary" id="admin-add" disabled={busy || !who.trim()}>Als Admin hinzufügen</button>
+      </form>
+      {note && <p className="small" id="admin-add-note">{note}</p>}
+      <p className="muted small">Die Person braucht schon ein Konto. Den Freundescode findet sie unter Freunde.</p>
+    </div>
+  );
+}
+
 function PaywallTest() {
   const [on, setOn] = useState(paywallPreview());
   return (
@@ -299,6 +365,7 @@ function PaywallTest() {
 export function Admin() {
   const { api } = useApp();
   const { admin } = useCosmetics();
+  const { owner } = usePro();
   if (!api.social || !admin)
     return (
       <>
@@ -309,6 +376,7 @@ export function Admin() {
   return (
     <>
       <h2>🛠 Admin-Menü</h2>
+      {owner && <Admins />}
       <MyColors />
       <PaywallTest />
       <Designer />

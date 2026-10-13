@@ -2257,6 +2257,68 @@ returns boolean language sql stable security definer set search_path = '' as $$
   select p_user is not null and exists (select 1 from public.admins a where a.user_id = p_user)
 $$;
 
+-- Besitzer: verwaltet die Admins (nur er darf Admins hinzufügen/entfernen).
+-- Gibt es noch keinen Besitzer, wird der älteste Admin Besitzer. Bewusst festlegen (SQL Editor):
+--   update public.admins set is_owner = (user_id = (select id from auth.users where email = 'DEINE@EMAIL'));
+alter table public.admins add column if not exists is_owner boolean not null default false;
+update public.admins set is_owner = true
+where user_id = (select a.user_id from public.admins a order by a.created_at, a.user_id limit 1)
+  and not exists (select 1 from public.admins o where o.is_owner);
+
+create or replace function public.is_owner(p_user uuid default auth.uid())
+returns boolean language sql stable security definer set search_path = '' as $$
+  select p_user is not null and exists (select 1 from public.admins a where a.user_id = p_user and a.is_owner)
+$$;
+
+-- Alle Admins (nur für den Besitzer)
+create or replace function public.admin_list()
+returns table (user_id uuid, display_name text, email text, since timestamptz, is_owner boolean)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not public.is_owner() then raise exception 'Nur der Besitzer darf Admins verwalten.'; end if;
+  return query
+    select a.user_id, p.display_name, u.email::text, a.created_at, a.is_owner
+    from public.admins a
+    join auth.users u on u.id = a.user_id
+    left join public.profiles p on p.id = a.user_id
+    order by a.is_owner desc, a.created_at;
+end;
+$$;
+
+-- Admin hinzufügen per E-Mail oder Freundescode (nur Besitzer)
+create or replace function public.admin_add(p_who text)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare
+  who text := btrim(coalesce(p_who, ''));
+  target uuid;
+begin
+  if not public.is_owner() then raise exception 'Nur der Besitzer darf Admins verwalten.'; end if;
+  if who = '' then raise exception 'Bitte E-Mail oder Freundescode eingeben.'; end if;
+  if position('@' in who) > 0 then
+    select u.id into target from auth.users u where lower(u.email) = lower(who);
+    if target is null then raise exception 'Kein Konto mit dieser E-Mail gefunden.'; end if;
+  else
+    select p.id into target from public.profiles p where p.friend_code = upper(who);
+    if target is null then raise exception 'Kein Konto mit diesem Freundescode gefunden.'; end if;
+  end if;
+  if exists (select 1 from public.admins a where a.user_id = target) then raise exception 'Diese Person ist schon Admin.'; end if;
+  insert into public.admins (user_id) values (target);
+  return target;
+end;
+$$;
+
+-- Admin entfernen (nur Besitzer; der Besitzer selbst bleibt)
+create or replace function public.admin_remove(p_user uuid)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_owner() then raise exception 'Nur der Besitzer darf Admins verwalten.'; end if;
+  if exists (select 1 from public.admins a where a.user_id = p_user and a.is_owner) then raise exception 'Der Besitzer kann nicht entfernt werden.'; end if;
+  delete from public.admins a where a.user_id = p_user;
+end;
+$$;
+revoke all on function public.is_owner(uuid), public.admin_list(), public.admin_add(text), public.admin_remove(uuid) from public, anon;
+grant execute on function public.is_owner(uuid), public.admin_list(), public.admin_add(text), public.admin_remove(uuid) to authenticated;
+
 -- Eigene Farbschemata: Farben (palette) stehen beim Artikel; active = im Shop sichtbar
 alter table public.shop_items add column if not exists palette jsonb;
 alter table public.shop_items add column if not exists active boolean not null default true;
@@ -2490,6 +2552,7 @@ returns jsonb language sql stable security definer set search_path = '' as $$
     'pro', public.is_admin() or coalesce((select s.pro_until > now() from public.subscriptions s where s.user_id = auth.uid()), false),
     'until', (select s.pro_until from public.subscriptions s where s.user_id = auth.uid()),
     'admin', public.is_admin(),
+    'owner', public.is_owner(),
     'food', public.is_admin() or coalesce((select s.pro_until > now() and s.food_until > now() from public.subscriptions s where s.user_id = auth.uid()), false),
     'food_until', (select s.food_until from public.subscriptions s where s.user_id = auth.uid()))
 $$;
@@ -2776,6 +2839,6 @@ grant execute on function public.my_plan_answers(), public.set_plan_answers(json
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 52 $$;
+returns integer language sql immutable set search_path = '' as $$ select 53 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;
