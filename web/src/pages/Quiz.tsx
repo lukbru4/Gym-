@@ -10,6 +10,7 @@ import { calorieNeeds, JOB_OPTIONS } from '../lib/calories';
 import { fmt } from '../lib/format';
 import { ExerciseInfo } from '../components/ExerciseInfo';
 import { activeQuestions, answerLabel, generatePlan, hasOtherSport, isAnswered, OTHER, otherKey, QUESTIONS, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
+import { PlanDayEditor } from '../components/PlanDayEditor';
 import { withNewCycle } from '../lib/cycle';
 import { setLocalWeekGoal } from '../lib/weekGoal';
 import type { TemplateExercise } from '../lib/types';
@@ -168,20 +169,11 @@ export function Quiz() {
           </ul>
           <p className="muted small">Arbeitssätze pro Woche. Für Muskelaufbau sind etwa 10–20 Sätze pro Muskelgruppe ideal.</p>
         </div>
+        <p className="muted small" id="plan-custom-hint">Stell deine Trainings selbst zusammen: Tausche Übungen (★ = oft empfohlen), entferne oder füge welche hinzu. Ausgeschlossene Übungen tauchen hier nicht auf.</p>
         {plan.templates.map((t) => (
           <div className="card" key={t.name} data-plan-template={t.name}>
             <h3>{t.name.replace(PLAN_PREFIX, '')} <small className="muted plan-minutes">ca. {t.minutes} Min.</small></h3>
-            <ul className="plan-list">
-              {t.exercises.map((e) => {
-                const work = e.sets.filter((s) => !s.warmup);
-                return (
-                  <li key={e.name}>
-                    <span><button type="button" className="linklike plan-ex" data-plan-ex={e.name} onClick={() => setInfo(e.name)}>{e.name}</button></span>
-                    <span className="muted small">{e.cardio ? `${e.sets[0].duration_min} Min.` : `${work.length} × ${e.range ? (e.range[0] === e.range[1] ? e.range[0] : `${e.range[0]}–${e.range[1]}`) : work[0]?.reps}${e.rest ? ` · ${e.rest >= 90 ? `${Math.round((e.rest / 60) * 2) / 2} Min.`.replace('.', ',') : `${e.rest} s`} Pause` : ''}`}</span>
-                  </li>
-                );
-              })}
-            </ul>
+            <PlanDayEditor template={t} answers={answers} onChange={store} onInfo={setInfo} />
           </div>
         ))}
         {info && <ExerciseInfo ex={{ name: info, type: 'strength', muscles: exercises.find((x) => x.name === info)?.muscles }} onClose={() => setInfo(null)} />}
@@ -236,11 +228,12 @@ export function Quiz() {
         ) : (
           <div className="quiz-options" role={q.type === 'multi' ? 'group' : 'radiogroup'}>
             {(q.options!.length > 12 ? <input id="quiz-filter" type="search" className="quiz-filter" placeholder="Übung suchen" value={filter} onChange={(e) => setFilter(e.target.value)} /> : null)}
-            {q.options!.filter(([v, label]) => !filter || v === OTHER || label.toLowerCase().includes(filter.toLowerCase())).map(([v, label]) => (
+            {q.options!.filter(([v, label]) => v !== OTHER && (!filter || label.toLowerCase().includes(filter.toLowerCase()))).map(([v, label]) => (
               <button key={v} type="button" className={`quiz-option${chosen(v) ? ' on' : ''}`} data-v={v} aria-pressed={chosen(v)} onClick={() => choose(v)}>
                 {label}
               </button>
             ))}
+            <button type="button" className={`quiz-option quiz-option-other${chosen(OTHER) ? ' on' : ''}`} data-v={OTHER} aria-pressed={chosen(OTHER)} onClick={() => choose(OTHER)}>Sonstiges …</button>
             {chosen(OTHER) && (
               <input id="quiz-other" className="quiz-other" maxLength={120} placeholder="Deine Angabe …" aria-label="Sonstiges" value={String(answers[otherKey(q.id)] ?? '')} onChange={(e) => store({ ...answers, [otherKey(q.id)]: e.target.value })} />
             )}

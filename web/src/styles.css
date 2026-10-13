@@ -1992,3 +1992,15 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .deload-banner { background: color-mix(in srgb, #14b8a6 14%, transparent); border: 1px solid color-mix(in srgb, #14b8a6 40%, transparent); border-radius: 14px; padding: 10px 12px; margin: 10px 0; font-size: 0.9rem; }
 .quiz-filter { width: 100%; margin-bottom: 8px; }
 .quiz-other { width: 100%; margin-top: 8px; }
+/* „Sonstiges“ immer als letzte, volle Zeile unter allen Antworten */
+.quiz-options .quiz-option-other { grid-column: 1 / -1; width: 100%; margin-top: 6px; border-style: dashed; }
+.quiz-options .quiz-other { grid-column: 1 / -1; }
+/* Trainings im Plan selbst zusammenstellen */
+.pde li { display: flex; align-items: center; gap: 8px; }
+.pde .pde-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pde .pde-actions { display: flex; gap: 6px; flex: none; }
+.pde-foot { gap: 8px; margin-top: 8px; }
+.pde-body { overflow-y: auto; flex: 1; padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
+.pde-head { margin: 12px 0 4px; font-size: 0.95rem; }
+.pde-list { margin: 0; overflow: visible; }
+.pde-star { color: #f5a524; }

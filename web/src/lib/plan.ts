@@ -284,6 +284,18 @@ function estimateMinutes(exercises: PlanExercise[]): number {
   return Math.round(sec / 60 / 5) * 5;
 }
 
+/** Welche Übungen sind erlaubt? Geräte (inkl. Vorliebe „nur Maschinen“ …), Beschwerden und ausgeschlossene Übungen */
+function allowedOf(a: Answers) {
+  const place = String(a.place ?? 'gym');
+  const style0 = String(a.style ?? 'alles');
+  const style = style0 === 'maschinen' && place !== 'gym' ? 'alles' : style0;
+  const equip = new Set([...available(a)].filter((e) => (style === 'maschinen' ? e === 'ma' || e === 'ka' : style === 'frei' ? e !== 'ma' && e !== 'ka' : style === 'ohnelh' ? e !== 'lh' : true)));
+  const avoid = new Set(asList(a.avoid).flatMap((x) => AVOID_GROUPS[x]?.names ?? [x]));
+  const pain = new Set(asList(a.pain).filter((p) => p !== 'keine'));
+  const ok = (p: Pick) => p.equip.some((e) => equip.has(e)) && !p.pain?.some((x) => pain.has(x)) && !avoid.has(p.name);
+  return { ok, avoid, pain, style, style0, place };
+}
+
 export function generatePlan(raw: Answers): Plan {
   const { answers: a, notes: otherNotes } = normalizeAnswers(raw);
   const days = Math.min(6, Math.max(1, Number(a.days) || 3));
@@ -301,16 +313,9 @@ export function generatePlan(raw: Answers): Plan {
     : days === 1 ? ['ganz'] : days === 2 ? ['ganz', 'ganz'] : days === 3 ? (beginner ? cycle(['ganz']) : ['push', 'pull', 'beine']) : days === 4 ? ['oben', 'unten', 'oben', 'unten'] : ['push', 'pull', 'beine'];
   const names: Record<Kind, string> = { ganz: 'Ganzkörper', push: 'Push', pull: 'Pull', beine: 'Beine', oben: 'Oberkörper', unten: 'Unterkörper' };
 
-  // Geräte-Vorliebe („nur Maschinen“ …) und ausgeschlossene Übungen (einzeln oder als Gruppe)
-  const place = String(a.place ?? 'gym');
-  const style0 = String(a.style ?? 'alles');
-  const style = style0 === 'maschinen' && place !== 'gym' ? 'alles' : style0;
-  const equip = new Set([...available(a)].filter((e) => (style === 'maschinen' ? e === 'ma' || e === 'ka' : style === 'frei' ? e !== 'ma' && e !== 'ka' : style === 'ohnelh' ? e !== 'lh' : true)));
-  const avoid = new Set(asList(a.avoid).flatMap((x) => AVOID_GROUPS[x]?.names ?? [x]));
-  const pain = new Set(asList(a.pain).filter((p) => p !== 'keine'));
+  const { ok, avoid, pain, style, style0, place } = allowedOf(a);
   const focus = new Set(asList(a.focus).filter((f) => f !== 'alles'));
   const favNames = new Set(asList(a.fav));
-  const ok = (p: Pick) => p.equip.some((e) => equip.has(e)) && !p.pain?.some((x) => pain.has(x)) && !avoid.has(p.name);
   const isMachine = (p: Pick) => p.equip.every((e) => e === 'ma' || e === 'ka');
   // Wunschübungen und Fokus-Muskeln zuerst; Anfänger bevorzugen Maschinen (leichter zu lernen), Fortgeschrittene freie Gewichte
   const score = (p: Pick) =>
@@ -323,6 +328,10 @@ export function generatePlan(raw: Answers): Plan {
   for (const kind of kinds) {
     const variant = (seen[kind] = (seen[kind] ?? 0) + 1) - 1;
     const slots = SLOTS[kind];
+    const label = names[kind] + (kinds.filter((k) => k === kind).length > 1 ? ` ${'ABCDEF'[variant] ?? variant + 1}` : '');
+    const name = PLAN_PREFIX + label;
+    // Selbst zusammengestellt (Plan-Ansicht): genau diese Übungen in dieser Reihenfolge, sofern erlaubt
+    const customPicks = asList(a[customKey(name)]).map((n) => BY_NAME.get(n)).filter((p): p is Pick => Boolean(p) && ok(p!));
     const used = new Set<string>();
     // Plätze mit gewünschten Muskeln zuerst, dann nach Reihenfolge
     // Pflichtplätze (z. B. Beine, Brust, Rücken beim Ganzkörper) kommen immer vor den Wunsch-Muskeln dran,
@@ -331,8 +340,8 @@ export function generatePlan(raw: Answers): Plan {
     const ranked = slots
       .map((cands, i) => ({ i, best: Math.max(0, ...cands.filter(ok).map(score)) + (must.includes(i) ? 100 : 0) }))
       .sort((x, y) => y.best - x.best || x.i - y.i);
-    const chosen: { i: number; p: Pick }[] = [];
-    for (const { i } of ranked) {
+    const chosen: { i: number; p: Pick }[] = customPicks.length ? customPicks.map((p, i) => ({ i, p })) : [];
+    if (!customPicks.length) for (const { i } of ranked) {
       if (chosen.length >= count) break;
       const cands = slots[i].filter((p) => ok(p) && !used.has(p.name)).sort((x, y) => score(y) - score(x));
       if (!cands.length) continue;
@@ -341,7 +350,7 @@ export function generatePlan(raw: Answers): Plan {
       used.add(p.name);
       chosen.push({ i, p });
     }
-    chosen.sort((x, y) => x.i - y.i);
+    if (!customPicks.length) chosen.sort((x, y) => x.i - y.i);
     const exercises: PlanExercise[] = chosen.map(({ p }, n) => {
       const rx = prescribe(p.kind, a);
       const sets: PlanExercise['sets'] = Array.from({ length: rx.sets }, () => ({ reps: rx.hi }));
@@ -354,7 +363,8 @@ export function generatePlan(raw: Answers): Plan {
     });
     // Passt es nicht in die gewünschte Zeit, fliegt zuerst die letzte Wunsch-/Zusatzübung raus (Pflichtplätze bleiben)
     const minutesWanted = Number(a.duration) || 45;
-    const mustNames = new Set(chosen.filter((c) => must.includes(c.i)).map((c) => c.p.name));
+    // Eigene Auswahl: keine Übung streichen, nur Pausen/Sätze kürzen
+    const mustNames = new Set(chosen.filter((c) => customPicks.length || must.includes(c.i)).map((c) => c.p.name));
     while (estimateMinutes(exercises) > minutesWanted + 3 && exercises.length > 3) {
       let idx = -1;
       for (let k = exercises.length - 1; k >= 0 && idx < 0; k--) if (!mustNames.has(exercises[k].name)) idx = k;
@@ -382,8 +392,6 @@ export function generatePlan(raw: Answers): Plan {
       const outdoor = a.place !== 'gym';
       exercises.push({ name: outdoor ? 'Laufen (draußen)' : 'Laufband', muscles: [], cardio: true, sets: [{ duration_min: cardioMin }] });
     }
-    const label = names[kind] + (kinds.filter((k) => k === kind).length > 1 ? ` ${'ABCDEF'[variant] ?? variant + 1}` : '');
-    const name = PLAN_PREFIX + label;
     if (!templates.some((t) => t.name === name)) {
       templates.push({ name, exercises, minutes: estimateMinutes(exercises) });
     }
@@ -469,3 +477,65 @@ export function saveQuiz(q: SavedQuiz, fromServer = false) {
     syncTimer = setTimeout(() => syncer?.(q.answers), 600);
   }
 }
+
+
+// ---- Trainings selbst zusammenstellen (Plan-Ansicht) ----------------------------------------------------------
+const ALL_PICKS: Pick[] = [...Object.values(P), ...Object.values(X)];
+const BY_NAME = new Map(ALL_PICKS.map((p) => [p.name, p]));
+/** Antwort-Schlüssel für die eigene Übungsauswahl eines Trainings */
+export const customKey = (templateName: string) => `tpl:${templateName}`;
+
+/** Häufig empfohlene Übungen je Muskelgruppe (gängige Trainingsempfehlungen) */
+export const RECOMMENDED = new Set<string>([
+  P.bank.name, P.schraeg.name, P.khBank.name, P.dips.name, X.crossover.name, X.brustpresse.name,
+  P.pullup.name, P.lat.name, P.cableRow.name, X.rowMa.name, X.khRow.name,
+  P.squat.name, X.hack.name, P.presse.name, P.rdl.name, X.curlLegSit.name, X.hipthrust.name, X.bulgarian.name,
+  X.lateralKabel.name, P.lateral.name, X.ohpKh.name, P.facePull.name, X.reverseFly.name,
+  X.scott.name, X.cableCurl.name, P.hammer.name, X.overhead.name, X.ropePushdown.name,
+  P.calves.name, X.legRaise.name, X.cableCrunch.name,
+]);
+
+export interface PlanChoice { name: string; muscle: string; recommended: boolean }
+const choice = (p: Pick): PlanChoice => ({ name: p.name, muscle: GROUP_NAMES[p.muscles[0]] ?? p.muscles[0], recommended: RECOMMENDED.has(p.name) });
+const byRec = (x: PlanChoice, y: PlanChoice) => Number(y.recommended) - Number(x.recommended) || x.name.localeCompare(y.name, 'de');
+const kindOf = (templateName: string): Kind | null => {
+  const label = templateName.replace(PLAN_PREFIX, '').replace(/ [A-F1-9]$/, '');
+  const k = (Object.entries({ ganz: 'Ganzkörper', push: 'Push', pull: 'Pull', beine: 'Beine', oben: 'Oberkörper', unten: 'Unterkörper' }) as [Kind, string][]).find(([, n]) => n === label);
+  return k ? k[0] : null;
+};
+const currentNames = (raw: Answers, templateName: string) => new Set((generatePlan(raw).templates.find((t) => t.name === templateName)?.exercises ?? []).map((e) => e.name));
+
+/** Alternativen zu einer Übung: zuerst passende Übungen für denselben Platz, dann weitere mit gleichem Hauptmuskel; nur erlaubte, nicht schon im Training */
+export function alternativesFor(raw: Answers, templateName: string, exerciseName: string): { recommended: PlanChoice[]; more: PlanChoice[] } {
+  const { ok } = allowedOf(normalizeAnswers(raw).answers);
+  const inPlan = currentNames(raw, templateName);
+  const me = BY_NAME.get(exerciseName);
+  const kind = kindOf(templateName);
+  const slotMates = kind ? SLOTS[kind].filter((c) => c.some((p) => p.name === exerciseName)).flat() : [];
+  const sameMuscle = me ? ALL_PICKS.filter((p) => p.muscles[0] === me.muscles[0]) : [];
+  const seen = new Set<string>();
+  const list = [...slotMates, ...sameMuscle].filter((p) => ok(p) && !inPlan.has(p.name) && !seen.has(p.name) && (seen.add(p.name), true)).map(choice);
+  return { recommended: list.filter((c) => c.recommended).sort(byRec), more: list.filter((c) => !c.recommended).sort(byRec) };
+}
+
+/** Übungen zum Hinzufügen, gruppiert nach Muskelgruppe (empfohlene zuerst) */
+export function addableFor(raw: Answers, templateName: string): { group: string; items: PlanChoice[] }[] {
+  const { ok } = allowedOf(normalizeAnswers(raw).answers);
+  const inPlan = currentNames(raw, templateName);
+  const groups = new Map<string, PlanChoice[]>();
+  for (const p of ALL_PICKS) {
+    if (!ok(p) || inPlan.has(p.name)) continue;
+    const c = choice(p);
+    groups.set(c.muscle, [...(groups.get(c.muscle) ?? []), c]);
+  }
+  return Object.values(GROUP_NAMES).filter((g) => groups.has(g)).map((g) => ({ group: g, items: groups.get(g)!.sort(byRec) }));
+}
+
+/** Eigene Übungsliste eines Trainings setzen (null = wieder automatisch) */
+export function withTemplateExercises(raw: Answers, templateName: string, names: string[] | null): Answers {
+  const next: Answers = { ...raw };
+  if (names === null) delete next[customKey(templateName)];
+  else next[customKey(templateName)] = names;
+  return next;
+}
+export const isCustomized = (raw: Answers, templateName: string) => asList(raw[customKey(templateName)]).length > 0;

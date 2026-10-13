@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { activeQuestions, answerLabel, generatePlan, isAnswered, QUESTIONS, type Answers } from '../src/lib/plan';
+import { activeQuestions, addableFor, alternativesFor, answerLabel, generatePlan, isAnswered, isCustomized, QUESTIONS, withTemplateExercises, type Answers } from '../src/lib/plan';
 
 const sql = readFileSync(new URL('../../supabase/schema.sql', import.meta.url), 'utf8');
 const catalog = new Set([...sql.matchAll(/\(null, '([^']+)', '(?:strength|cardio)'/g)].map((m) => m[1]));
@@ -212,6 +212,49 @@ describe('Trainingsplan aus dem Fragebogen', () => {
     test('Freitext ohne passende Übung wird gemeldet', () => {
       const p = generatePlan({ ...base, fav: ['sonstiges'], fav_other: 'Zumba' });
       expect(p.notes.some((n) => n.includes('Zumba') && n.includes('nicht gefunden'))).toBe(true);
+    });
+  });
+
+  describe('Trainings selbst zusammenstellen', () => {
+    const ppl: Answers = { ...base, days: '3', split: 'ppl', duration: '60' };
+    const push = 'Plan · Push';
+    const namesOf = (a: Answers, t: string) => generatePlan(a).templates.find((x) => x.name === t)!.exercises.filter((e) => !e.cardio).map((e) => e.name);
+    test('eigene Auswahl wird genau so übernommen (Reihenfolge, keine Kürzung)', () => {
+      const pick = ['Butterfly', 'Dips', 'Seitheben', 'Trizepsdrücken am Kabel', 'Face Pulls', 'Cable Crossover (Kabelzug)', 'Schulterdrücken (Maschine)'];
+      expect(namesOf(withTemplateExercises(ppl, push, pick), push)).toEqual(pick);
+    });
+    test('nachträglich ausgeschlossene Übung fällt aus der eigenen Auswahl', () => {
+      const a = withTemplateExercises({ ...ppl, avoid: ['grp:bank'] }, push, ['Bankdrücken', 'Dips', 'Seitheben']);
+      expect(namesOf(a, push)).toEqual(['Dips', 'Seitheben']);
+    });
+    test('Zurücksetzen stellt die Automatik wieder her', () => {
+      const a = withTemplateExercises(ppl, push, ['Dips']);
+      expect(isCustomized(a, push)).toBe(true);
+      const back = withTemplateExercises(a, push, null);
+      expect(isCustomized(back, push)).toBe(false);
+      expect(namesOf(back, push)).toEqual(namesOf(ppl, push));
+    });
+    test('Alternativen: keine ausgeschlossenen und keine schon gewählten, empfohlene zuerst', () => {
+      const a = { ...ppl, avoid: ['grp:bank'] };
+      const first = namesOf(a, push)[0];
+      const alt = alternativesFor(a, push, first);
+      const all = [...alt.recommended, ...alt.more].map((c) => c.name);
+      expect(all.length).toBeGreaterThan(2);
+      expect(all.filter((n) => /Bankdrücken/.test(n))).toEqual([]);
+      for (const n of namesOf(a, push)) expect(all).not.toContain(n);
+      expect(alt.recommended.every((c) => c.recommended)).toBe(true);
+      expect(alt.more.every((c) => !c.recommended)).toBe(true);
+    });
+    test('Hinzufügen: nach Muskelgruppe gruppiert, nur erlaubte Übungen', () => {
+      const groups = addableFor({ ...ppl, style: 'maschinen', avoid: ['grp:bank'] }, push);
+      expect(groups.length).toBeGreaterThan(3);
+      const names = groups.flatMap((g) => g.items.map((c) => c.name));
+      expect(names).not.toContain('Kniebeuge');
+      expect(names.filter((n) => /Bankdrücken/.test(n))).toEqual([]);
+      expect(names).toContain('Beinpresse');
+    });
+    test('Sonstiges bleibt die letzte Option', () => {
+      for (const q of QUESTIONS) if (q.options) expect(q.options.at(-1)![0]).toBe('sonstiges');
     });
   });
 });
