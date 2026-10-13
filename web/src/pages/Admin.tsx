@@ -1,6 +1,6 @@
-// Admin-Menü (nur für den Admin; der Server prüft jede Aktion selbst):
+// Admin-Menü (nur für den Besitzer; der Server prüft jede Aktion selbst):
 // alle Farben frei wählen, eigene Farbschemata entwerfen und im Shop anbieten, Meldungen bearbeiten.
-// Der Besitzer (nur er) kann zusätzlich weitere Admins hinzufügen und entfernen.
+// Der Besitzer kann weitere Admins hinzufügen und entfernen – die haben alles aus Pro, aber kein Admin-Menü.
 import { ask } from '../components/Dialog';
 import { useState } from 'react';
 import { useApp } from '../app/context';
@@ -308,7 +308,7 @@ function Admins() {
     }
   };
   const remove = async (a: AdminEntry) => {
-    if (!(await ask(`${nameOf(a)} verliert die Admin-Rechte (und damit auch Pro über den Admin-Zugang).`, { title: 'Admin entfernen?', ok: 'Entfernen', danger: true }))) return;
+    if (!(await ask(`${nameOf(a)} verliert die Admin-Rechte (Pro und Essen+ über den Admin-Zugang).`, { title: 'Admin entfernen?', ok: 'Entfernen', danger: true }))) return;
     try {
       await api.social!.adminRemove(a.user_id);
       setNote('');
@@ -320,7 +320,7 @@ function Admins() {
   return (
     <div className="card" id="admin-admins">
       <h3>Admins verwalten</h3>
-      <p className="muted small">Nur du als Besitzer siehst diesen Bereich. Admins bekommen Pro und alle Shop-Artikel, sehen dieses Admin-Menü und können Meldungen bearbeiten – aber keine Admins hinzufügen oder entfernen.</p>
+      <p className="muted small">Admins haben alles aus Pro und Essen+, sehen aber kein Admin-Menü. Nur du kannst Admins hinzufügen oder entfernen.</p>
       {list.status === 'loading' ? (
         <Loading />
       ) : list.status === 'error' ? (

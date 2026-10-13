@@ -2242,8 +2242,9 @@ grant execute on function public.my_wallet(), public.my_shop(), public.buy_item(
 -- Admin: Wer Admin ist, steht nur hier auf dem Server (Tabelle admins, ohne direkten Zugriff).
 -- Admin eintragen (einmal im SQL Editor, mit deiner E-Mail):
 --   insert into public.admins (user_id) select id from auth.users where email = 'DEINE@EMAIL' on conflict do nothing;
--- Der Admin besitzt alle Shop-Artikel, kann eigene Farbschemata entwerfen und im Shop anbieten
--- und Meldungen bearbeiten.
+-- Der erste (älteste) Admin ist der Besitzer: Nur er sieht das Admin-Menü, besitzt alle Shop-Artikel,
+-- kann eigene Farbschemata entwerfen und im Shop anbieten, Meldungen bearbeiten und weitere Admins verwalten.
+-- Weitere Admins haben alles aus Pro und Essen+ (my_pro, has_pro), aber kein Admin-Menü und keine Admin-Werkzeuge.
 -- ===========================================================================
 create table if not exists public.admins (
   user_id    uuid primary key references auth.users (id) on delete cascade,
@@ -2267,7 +2268,11 @@ where user_id = (select a.user_id from public.admins a order by a.created_at, a.
 
 create or replace function public.is_owner(p_user uuid default auth.uid())
 returns boolean language sql stable security definer set search_path = '' as $$
-  select p_user is not null and exists (select 1 from public.admins a where a.user_id = p_user and a.is_owner)
+  -- Ist (noch) niemand als Besitzer markiert, gilt der älteste Admin als Besitzer (z. B. frisch per SQL eingetragen).
+  select p_user is not null and exists (
+    select 1 from public.admins a where a.user_id = p_user and (a.is_owner or (
+      not exists (select 1 from public.admins o where o.is_owner)
+      and a.user_id = (select f.user_id from public.admins f order by f.created_at, f.user_id limit 1))))
 $$;
 
 -- Alle Admins (nur für den Besitzer)
@@ -2332,15 +2337,15 @@ language sql stable security definer set search_path = '' as $$
   order by i.price, i.id
 $$;
 
--- Eigene Artikel: Admin besitzt alles; dazu das Admin-Kennzeichen
+-- Eigene Artikel: der Besitzer besitzt alles; dazu das Admin-Kennzeichen (nur Besitzer → Admin-Menü)
 create or replace function public.my_shop()
 returns jsonb language sql stable security definer set search_path = '' as $$
   select jsonb_build_object(
-    'owned', case when public.is_admin()
+    'owned', case when public.is_owner()
       then coalesce((select jsonb_agg(i.id order by i.id) from public.shop_items i), '[]'::jsonb)
       else coalesce((select jsonb_agg(p.item_id order by p.created_at) from public.purchases p where p.user_id = auth.uid()), '[]'::jsonb) end,
     'equipped', coalesce((select pr.equipped from public.profiles pr where pr.id = auth.uid()), '{}'::jsonb),
-    'admin', public.is_admin()
+    'admin', public.is_owner()
   )
 $$;
 
@@ -2353,7 +2358,7 @@ declare
   bal integer;
 begin
   if me is null then raise exception 'nicht angemeldet'; end if;
-  if public.is_admin(me) then raise exception 'Als Admin hast du schon alles.'; end if;
+  if public.is_owner(me) then raise exception 'Als Besitzer hast du schon alles.'; end if;
   perform pg_advisory_xact_lock(hashtext('shop:' || me::text));
   select * into item from public.shop_items where id = p_item and active;
   if not found then raise exception 'Diesen Artikel gibt es nicht.'; end if;
@@ -2378,7 +2383,7 @@ begin
   if p_item is not null and not exists (select 1 from public.shop_items i where i.id = p_item and i.kind = p_kind) then
     raise exception 'ungültig';
   end if;
-  if p_item is not null and not public.is_admin() and not exists (
+  if p_item is not null and not public.is_owner() and not exists (
     select 1 from public.purchases p where p.user_id = auth.uid() and p.item_id = p_item
   ) then
     raise exception 'Das musst du zuerst kaufen.';
@@ -2403,7 +2408,7 @@ $$;
 create or replace function public.admin_save_scheme(p_id text, p_name text, p_price integer, p_palette jsonb)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
-  if not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  if not public.is_owner() then raise exception 'Nur für Admins.'; end if;
   if p_id !~ '^scheme_c_[a-z0-9_]{1,30}$' then raise exception 'Ungültige Kennung.'; end if;
   if char_length(btrim(coalesce(p_name, ''))) not between 1 and 30 then raise exception 'Name: 1 bis 30 Zeichen.'; end if;
   if p_price is null or p_price < 0 or p_price > 100000 then raise exception 'Preis: 0 bis 100000.'; end if;
@@ -2418,7 +2423,7 @@ $$;
 create or replace function public.admin_hide_scheme(p_id text)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
-  if not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  if not public.is_owner() then raise exception 'Nur für Admins.'; end if;
   update public.shop_items set active = false where id = p_id and id like 'scheme\_c\_%';
 end;
 $$;
@@ -2429,7 +2434,7 @@ returns table (id bigint, created_at timestamptz, reason text, reporter_name tex
                comment_id bigint, comment_body text)
 language plpgsql stable security definer set search_path = '' as $$
 begin
-  if not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  if not public.is_owner() then raise exception 'Nur für Admins.'; end if;
   return query
     select r.id, r.created_at, r.reason, coalesce(p1.display_name, '?'), r.reported, coalesce(p2.display_name, '?'),
            r.comment_id, c.body
@@ -2448,7 +2453,7 @@ returns void language plpgsql security definer set search_path = '' as $$
 declare
   cid bigint;
 begin
-  if not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  if not public.is_owner() then raise exception 'Nur für Admins.'; end if;
   select r.comment_id into cid from public.reports r where r.id = p_id;
   if p_delete_comment and cid is not null then
     delete from public.comments where id = cid;
@@ -2561,7 +2566,7 @@ create or replace function public.admin_grant_pro(p_user uuid, p_until timestamp
 returns void language plpgsql security definer set search_path = '' as $$
 begin
   -- Aufruf im SQL Editor (kein angemeldeter Nutzer) oder durch einen Admin
-  if auth.uid() is not null and not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  if auth.uid() is not null and not public.is_owner() then raise exception 'Nur für Admins.'; end if;
   insert into public.subscriptions (user_id, pro_until, source, updated_at) values (p_user, p_until, 'manual', now())
   on conflict (user_id) do update set pro_until = excluded.pro_until, source = 'manual', updated_at = now();
 end;
@@ -2569,7 +2574,7 @@ $$;
 create or replace function public.admin_grant_food(p_user uuid, p_until timestamptz)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
-  if auth.uid() is not null and not public.is_admin() then raise exception 'Nur für Admins.'; end if;
+  if auth.uid() is not null and not public.is_owner() then raise exception 'Nur für Admins.'; end if;
   insert into public.subscriptions (user_id, food_until, source, updated_at) values (p_user, p_until, 'manual', now())
   on conflict (user_id) do update set food_until = excluded.food_until, source = 'manual', updated_at = now();
 end;
@@ -2839,6 +2844,6 @@ grant execute on function public.my_plan_answers(), public.set_plan_answers(json
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 53 $$;
+returns integer language sql immutable set search_path = '' as $$ select 54 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

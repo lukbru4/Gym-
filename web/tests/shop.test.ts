@@ -83,13 +83,18 @@ describe('Essen+ (Zusatz zu Pro)', async () => {
     expect(getPro()).toMatchObject({ pro: true, food: true });
     setPro({ pro: true });
     expect(getPro().food).toBe(false);
-    setPro({ pro: true, admin: true, food: true });
+    setPro({ pro: true, admin: true, owner: true, food: true });
     const store = new Map<string, string>();
     vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) });
     setPaywallPreview(true); // Admin sieht die Bezahlseiten
     expect(getPro()).toMatchObject({ pro: false, food: false });
     setPaywallPreview(false);
     expect(getPro()).toMatchObject({ pro: true, food: true });
+    // Weitere Admins (nicht Besitzer) haben Pro, aber keine Bezahlseiten-Vorschau
+    setPro({ pro: true, admin: true, food: true });
+    setPaywallPreview(true);
+    expect(getPro()).toMatchObject({ pro: true, food: true, owner: false });
+    setPaywallPreview(false);
     vi.unstubAllGlobals();
   });
 });

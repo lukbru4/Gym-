@@ -1,4 +1,4 @@
-// Pro-Abo: Status vom Server (Konto), Preise und die Möglichkeit für Admins, die Bezahlseite zu testen.
+// Pro-Abo: Status vom Server (Konto), Preise und die Möglichkeit für den Besitzer, die Bezahlseite zu testen.
 import { useSyncExternalStore } from 'react';
 
 export const PRO_PRICES = { month: 9.99, year: 64.99 } as const;
@@ -39,7 +39,7 @@ export function setPaywallPreview(on: boolean) {
   state = compute();
   emit();
 }
-const compute = (): ProState => (server.admin && paywallPreview() ? { ...server, pro: false, food: false } : server);
+const compute = (): ProState => (server.owner && paywallPreview() ? { ...server, pro: false, food: false } : server);
 let state = compute();
 export const getPro = () => state;
 export const usePro = () => useSyncExternalStore((cb) => (listeners.add(cb), () => void listeners.delete(cb)), getPro);
