@@ -2004,3 +2004,14 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .pde-head { margin: 12px 0 4px; font-size: 0.95rem; }
 .pde-list { margin: 0; overflow: visible; }
 .pde-star { color: #f5a524; }
+/* Aufklappbare Übungslisten */
+.plan-day > summary { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; cursor: pointer; list-style: none; }
+.plan-day > summary::-webkit-details-marker, .pde-group > summary::-webkit-details-marker, .quiz-group > summary::-webkit-details-marker { display: none; }
+.plan-day > summary strong { font-size: 1.05rem; }
+.plan-day > summary::after, .pde-group > summary::after, .quiz-group > summary::after { content: '▾'; margin-left: auto; transition: transform 0.15s; }
+.plan-day[open] > summary::after, .pde-group[open] > summary::after, .quiz-group[open] > summary::after { transform: rotate(180deg); }
+.plan-day[open] > summary { margin-bottom: 8px; }
+.pde-group > summary, .quiz-group > summary { display: flex; align-items: baseline; gap: 8px; cursor: pointer; list-style: none; padding: 10px 2px; border-bottom: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
+.quiz-group { grid-column: 1 / -1; }
+.quiz-group > summary span { font-weight: 700; }
+.quiz-group-items { display: grid; gap: 8px; padding: 8px 0; }

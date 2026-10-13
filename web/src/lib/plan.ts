@@ -538,4 +538,10 @@ export function withTemplateExercises(raw: Answers, templateName: string, names:
   else next[customKey(templateName)] = names;
   return next;
 }
+/** Muskelgruppe (Anzeige) einer Plan-Übung, z. B. „Brust“; null bei Gruppen/Sonstiges */
+export const exerciseGroupOf = (name: string): string | null => {
+  const p = BY_NAME.get(name);
+  return p ? GROUP_NAMES[p.muscles[0]] ?? null : null;
+};
+export const GROUP_ORDER = (): string[] => Object.values(GROUP_NAMES);
 export const isCustomized = (raw: Answers, templateName: string) => asList(raw[customKey(templateName)]).length > 0;

@@ -1,15 +1,17 @@
 // Ein Training im Plan selbst zusammenstellen: Übung tauschen (empfohlene zuerst), entfernen, hinzufügen.
 // Ausgeschlossene Übungen, Geräte-Vorliebe und Beschwerden gelten auch hier – solche Übungen werden nicht angeboten.
 import { useEffect, useState } from 'react';
+import { CATALOG_MUSCLES } from '../lib/exerciseCatalog';
+import { matchesSearch } from '../lib/searchTerms';
 import { addableFor, alternativesFor, isCustomized, PLAN_PREFIX, withTemplateExercises, type Answers, type PlanChoice, type PlanTemplate } from '../lib/plan';
 
 type Sheet = { mode: 'swap'; target: string } | { mode: 'add' };
 
-function ChoiceList({ title, items, onPick }: { title: string; items: PlanChoice[]; onPick: (name: string) => void }) {
+function ChoiceList({ title, items, onPick, open }: { title: string; items: PlanChoice[]; onPick: (name: string) => void; open: boolean }) {
   if (!items.length) return null;
   return (
-    <>
-      <h4 className="pde-head">{title}</h4>
+    <details className="pde-group" open={open || undefined} data-group={title}>
+      <summary className="pde-head"><span>{title}</span><small className="muted">{items.length}</small></summary>
       <ul className="picker-list pde-list">
         {items.map((c) => (
           <li key={c.name}>
@@ -20,7 +22,7 @@ function ChoiceList({ title, items, onPick }: { title: string; items: PlanChoice
           </li>
         ))}
       </ul>
-    </>
+    </details>
   );
 }
 
@@ -40,7 +42,9 @@ export function PlanDayEditor({ template, answers, onChange, onInfo }: { templat
     else save([...strength, name]);
     close();
   };
-  const match = (c: PlanChoice) => !q || c.name.toLowerCase().includes(q.toLowerCase()) || c.muscle.toLowerCase().includes(q.toLowerCase());
+  // Suche versteht Stichwörter wie „hintere Schulter“ oder „Po“
+  const match = (c: PlanChoice) => !q || matchesSearch(q, c.name, CATALOG_MUSCLES[c.name] ?? []) || c.muscle.toLowerCase().includes(q.toLowerCase());
+  const searching = q.trim().length > 0;
   const day = template.name.replace(PLAN_PREFIX, '');
 
   return (
@@ -76,7 +80,7 @@ export function PlanDayEditor({ template, answers, onChange, onInfo }: { templat
             <h2>{sheet.mode === 'swap' ? `${sheet.target} tauschen` : `${day}: Übung hinzufügen`}</h2>
             <button className="icon-btn" type="button" aria-label="Schließen" id="pde-close" onClick={close}>✕</button>
           </div>
-          <input type="search" className="picker-search" id="pde-search" placeholder="Übung oder Muskel suchen …" value={q} onChange={(ev) => setQ(ev.target.value)} />
+          <input type="search" className="picker-search" id="pde-search" placeholder="Übung oder Körperstelle suchen (z. B. hintere Schulter)" value={q} onChange={(ev) => setQ(ev.target.value)} />
           <div className="pde-body">
             {sheet.mode === 'swap' ? (() => {
               const alt = alternativesFor(answers, template.name, sheet.target);
@@ -84,14 +88,14 @@ export function PlanDayEditor({ template, answers, onChange, onInfo }: { templat
               const more = alt.more.filter(match);
               return (
                 <>
-                  <ChoiceList title="★ Oft empfohlen" items={rec} onPick={pick} />
-                  <ChoiceList title="Weitere Möglichkeiten" items={more} onPick={pick} />
+                  <ChoiceList key={`r${searching}`} title="★ Oft empfohlen" items={rec} onPick={pick} open />
+                  <ChoiceList key={`m${searching}`} title="Weitere Möglichkeiten" items={more} onPick={pick} open={searching} />
                   {!rec.length && !more.length && <p className="muted small">Keine passende Alternative – vielleicht hast du sie ausgeschlossen oder sie braucht andere Geräte.</p>}
                 </>
               );
             })() : (() => {
               const groups = addableFor(answers, template.name).map((g) => ({ ...g, items: g.items.filter(match) })).filter((g) => g.items.length);
-              return groups.length ? groups.map((g) => <ChoiceList key={g.group} title={g.group} items={g.items} onPick={pick} />) : <p className="muted small">Keine weitere passende Übung gefunden.</p>;
+              return groups.length ? groups.map((g) => <ChoiceList key={`${g.group}-${searching}`} title={g.group} items={g.items} onPick={pick} open={searching} />) : <p className="muted small">Keine weitere passende Übung gefunden.</p>;
             })()}
             <p className="muted small">★ = häufig empfohlene Übung für diese Muskelgruppe. Übungen, die du ausgeschlossen hast oder für die dir Geräte fehlen, stehen hier nicht.</p>
           </div>

@@ -9,8 +9,10 @@ import { usePro } from '../lib/pro';
 import { calorieNeeds, JOB_OPTIONS } from '../lib/calories';
 import { fmt } from '../lib/format';
 import { ExerciseInfo } from '../components/ExerciseInfo';
-import { activeQuestions, answerLabel, generatePlan, hasOtherSport, isAnswered, OTHER, otherKey, QUESTIONS, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
+import { activeQuestions, answerLabel, generatePlan, hasOtherSport, exerciseGroupOf, GROUP_ORDER, isAnswered, isCustomized, OTHER, otherKey, QUESTIONS, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
 import { PlanDayEditor } from '../components/PlanDayEditor';
+import { CATALOG_MUSCLES } from '../lib/exerciseCatalog';
+import { matchesSearch } from '../lib/searchTerms';
 import { withNewCycle } from '../lib/cycle';
 import { setLocalWeekGoal } from '../lib/weekGoal';
 import type { TemplateExercise } from '../lib/types';
@@ -171,10 +173,13 @@ export function Quiz() {
         </div>
         <p className="muted small" id="plan-custom-hint">Stell deine Trainings selbst zusammen: Tausche Übungen (★ = oft empfohlen), entferne oder füge welche hinzu. Ausgeschlossene Übungen tauchen hier nicht auf.</p>
         {plan.templates.map((t) => (
-          <div className="card" key={t.name} data-plan-template={t.name}>
-            <h3>{t.name.replace(PLAN_PREFIX, '')} <small className="muted plan-minutes">ca. {t.minutes} Min.</small></h3>
+          <details className="card plan-day" key={t.name} data-plan-template={t.name}>
+            <summary>
+              <strong>{t.name.replace(PLAN_PREFIX, '')}</strong>
+              <span className="muted small">{t.exercises.filter((e) => !e.cardio).length} Übungen · ca. {t.minutes} Min.{isCustomized(answers, t.name) ? ' · angepasst' : ''}</span>
+            </summary>
             <PlanDayEditor template={t} answers={answers} onChange={store} onInfo={setInfo} />
-          </div>
+          </details>
         ))}
         {info && <ExerciseInfo ex={{ name: info, type: 'strength', muscles: exercises.find((x) => x.name === info)?.muscles }} onClose={() => setInfo(null)} />}
         <ul className="plan-notes muted small">{plan.notes.map((n) => <li key={n}>{n}</li>)}</ul>
@@ -227,12 +232,39 @@ export function Quiz() {
           </button>
         ) : (
           <div className="quiz-options" role={q.type === 'multi' ? 'group' : 'radiogroup'}>
-            {(q.options!.length > 12 ? <input id="quiz-filter" type="search" className="quiz-filter" placeholder="Übung suchen" value={filter} onChange={(e) => setFilter(e.target.value)} /> : null)}
-            {q.options!.filter(([v, label]) => v !== OTHER && (!filter || label.toLowerCase().includes(filter.toLowerCase()))).map(([v, label]) => (
-              <button key={v} type="button" className={`quiz-option${chosen(v) ? ' on' : ''}`} data-v={v} aria-pressed={chosen(v)} onClick={() => choose(v)}>
-                {label}
-              </button>
-            ))}
+            {(q.options!.length > 12 ? <input id="quiz-filter" type="search" className="quiz-filter" placeholder="Übung oder Körperstelle suchen (z. B. hintere Schulter)" value={filter} onChange={(e) => setFilter(e.target.value)} /> : null)}
+            {(() => {
+              const opt = (v: string, label: string) => (
+                <button key={v} type="button" className={`quiz-option${chosen(v) ? ' on' : ''}`} data-v={v} aria-pressed={chosen(v)} onClick={() => choose(v)}>
+                  {label}
+                </button>
+              );
+              const list = q.options!.filter(([v]) => v !== OTHER);
+              const exerciseList = q.id === 'fav' || q.id === 'avoid';
+              // Suche versteht Stichwörter („hintere Schulter“, „Po“ …)
+              const hit = ([v, label]: [string, string]) => !filter || (exerciseList && exerciseGroupOf(v) ? matchesSearch(filter, v, CATALOG_MUSCLES[v] ?? []) || (exerciseGroupOf(v) ?? '').toLowerCase().includes(filter.toLowerCase()) : label.toLowerCase().includes(filter.toLowerCase()));
+              const shown = list.filter(hit);
+              if (!exerciseList) return shown.map(([v, label]) => opt(v, label));
+              // Lange Übungslisten: Schnellwahl oben, dann aufklappbar nach Muskelgruppe
+              const loose = shown.filter(([v]) => !exerciseGroupOf(v));
+              return (
+                <>
+                  {loose.map(([v, label]) => opt(v, label))}
+                  {GROUP_ORDER().map((g) => {
+                    const items = shown.filter(([v]) => exerciseGroupOf(v) === g);
+                    if (!items.length) return null;
+                    const picked = items.filter(([v]) => chosen(v)).length;
+                    return (
+                      <details key={`${g}-${filter ? 'f' : ''}`} className="quiz-group" data-group={g} open={Boolean(filter) || undefined}>
+                        <summary><span>{g}</span><small className="muted">{items.length} Übungen{picked ? ` · ${picked} gewählt` : ''}</small></summary>
+                        <div className="quiz-group-items">{items.map(([v, label]) => opt(v, label))}</div>
+                      </details>
+                    );
+                  })}
+                  {!shown.length && <p className="muted small">Keine Übung gefunden – versuche ein anderes Wort oder „Sonstiges“.</p>}
+                </>
+              );
+            })()}
             <button type="button" className={`quiz-option quiz-option-other${chosen(OTHER) ? ' on' : ''}`} data-v={OTHER} aria-pressed={chosen(OTHER)} onClick={() => choose(OTHER)}>Sonstiges …</button>
             {chosen(OTHER) && (
               <input id="quiz-other" className="quiz-other" maxLength={120} placeholder="Deine Angabe …" aria-label="Sonstiges" value={String(answers[otherKey(q.id)] ?? '')} onChange={(e) => store({ ...answers, [otherKey(q.id)]: e.target.value })} />
