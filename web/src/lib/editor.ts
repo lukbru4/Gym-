@@ -37,6 +37,8 @@ export interface EditorState {
   template_sig?: string;
   /** Training aus einer Vorlage in der Entlastungswoche (Sätze reduziert): Vorlage nicht überschreiben */
   deload?: boolean;
+  /** Erholungsabfrage vor dem Training (null = übersprungen) */
+  recovery?: { sleep: 0 | 1 | 2; energy: 0 | 1 | 2; soreness: 0 | 1 | 2; readiness: 'low' | 'normal' | 'high' } | null;
   name: string;
   date: ISODate;
   notes: string;

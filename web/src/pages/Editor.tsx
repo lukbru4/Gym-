@@ -10,6 +10,7 @@ import { ExerciseThumb } from '../components/ExerciseThumb';
 import { SwapSheet } from '../components/SwapSheet';
 import { WorkoutMuscles } from '../components/WorkoutMuscles';
 import { deloadAdjust, getCycle } from '../lib/cycle';
+import { READINESS_TEXT, readiness, RECOVERY_QUESTIONS, recoveryAdjust, recoverySetCount, saveRecovery, type Recovery } from '../lib/recovery';
 import { FEEDBACK_LABEL, FEEDBACK_OPTIONS, getFeedback, previousFeedback, setFeedback, type Feedback } from '../lib/feedback';
 import { suggestProgress, suggestionText } from '../lib/progression';
 import {
@@ -291,6 +292,32 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
           </label>
         </div>
       )}
+      {live && state.blocks.length > 0 && state.recovery === undefined && !state.blocks.some((b) => b.sets.some((r) => r.done)) && (
+        <RecoveryCard
+          onSkip={() => update((s) => void (s.recovery = null))}
+          onDone={(r) => {
+            const level = readiness(r);
+            saveRecovery(user?.id ?? 'lokal', state.date, r);
+            update((s) => {
+              s.recovery = { ...r, readiness: level };
+              // Niedrige Tagesform: je Übung einen offenen Arbeitssatz weniger (nicht zusätzlich zur Entlastungswoche)
+              if (level === 'low' && !s.deload) {
+                for (const b of s.blocks) {
+                  if (b.sets.some((x) => x.side)) continue;
+                  let work = b.sets.filter((x) => !x.warmup).length;
+                  const keep = recoverySetCount(work);
+                  for (let i = b.sets.length - 1; i >= 0 && work > keep; i--) if (!b.sets[i].warmup && !b.sets[i].done) (b.sets.splice(i, 1), work--);
+                }
+              }
+            });
+          }}
+        />
+      )}
+      {live && state.recovery && (
+        <div className={`recovery-banner ${state.recovery.readiness}`} id="recovery-banner">
+          <strong>{READINESS_TEXT[state.recovery.readiness].title}:</strong> {READINESS_TEXT[state.recovery.readiness].text}
+        </div>
+      )}
       {live && getCycle(state.date)?.deload && (
         <div className="deload-banner" id="deload-banner"><strong>Entlastungswoche:</strong> etwa 10 % weniger Gewicht und ein Satz weniger je Übung – Technik und Erholung stehen heute im Vordergrund.</div>
       )}
@@ -306,6 +333,7 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
           workoutExerciseIds={state.blocks.map((x) => x.exercise_id)}
           uid={user?.id ?? 'lokal'}
           date={state.date}
+          lowReadiness={state.recovery?.readiness === 'low'}
           placeholders={(si) => placeholders(b, si)}
           update={update}
           onDone={(si) => toggleDone(bi, si)}
@@ -413,6 +441,8 @@ function BlockCard(props: {
   workoutExerciseIds: number[];
   uid: string;
   date: string;
+  /** Erholungsabfrage ergab niedrige Tagesform */
+  lowReadiness?: boolean;
   placeholders: (si: number) => Partial<Record<RowField, string>>;
   update: (fn: (s: EditorState) => void) => void;
   onDone: (si: number) => void;
@@ -430,7 +460,7 @@ function BlockCard(props: {
   const lastFeedback = previousFeedback(props.uid, b.exercise_id, props.date);
   const deload = live && !cardio && Boolean(getCycle(props.date)?.deload);
   const base = live && !cardio ? suggestProgress(props.prevSets, targetReps, lastFeedback) : null;
-  const suggestion = base && deload ? deloadAdjust(base) : base;
+  const suggestion = base && deload ? deloadAdjust(base) : base && props.lowReadiness ? recoveryAdjust(base) : base;
   const [feedback, setFb] = useState<Feedback | null>(() => (getFeedback(props.uid, b.exercise_id)?.date === props.date ? getFeedback(props.uid, b.exercise_id)!.value : null));
   const workDone = b.sets.filter((r) => !r.warmup);
   const allDone = workDone.length > 0 && workDone.every((r) => r.done);
@@ -666,6 +696,31 @@ function BlockCard(props: {
             − Satz
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Kurze Abfrage vor dem Training: Schlaf, Energie, Muskelkater */
+function RecoveryCard({ onDone, onSkip }: { onDone: (r: Recovery) => void; onSkip: () => void }) {
+  const [r, setR] = useState<Partial<Recovery>>({});
+  const complete = RECOVERY_QUESTIONS.every((q) => r[q.id] !== undefined);
+  return (
+    <div className="card recovery" id="recovery-card">
+      <div className="block-head"><h3>Wie erholt bist du heute?</h3></div>
+      {RECOVERY_QUESTIONS.map((q) => (
+        <div key={q.id} className="recovery-q" data-q={q.id}>
+          <span className="muted small">{q.q}</span>
+          <div className="feedback-row" role="radiogroup" aria-label={q.q}>
+            {q.options.map(([v, label]) => (
+              <button key={v} type="button" role="radio" aria-checked={r[q.id] === v} data-v={v} className={`btn small-btn${r[q.id] === v ? ' primary' : ''}`} onClick={() => setR({ ...r, [q.id]: v })}>{label}</button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="row">
+        <button type="button" className="btn grow" id="recovery-skip" onClick={onSkip}>Überspringen</button>
+        <button type="button" className="btn primary grow" id="recovery-ok" disabled={!complete} onClick={() => onDone(r as Recovery)}>Los geht’s</button>
       </div>
     </div>
   );
