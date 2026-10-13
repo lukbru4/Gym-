@@ -75,7 +75,7 @@ function ChallengeItem({ c, social, onChange }: { c: Challenge; social: Social; 
   );
 }
 
-export function Challenges({ social, friends }: { social: Social; friends: Friend[] }) {
+export function Challenges({ social, friends, heading = true }: { social: Social; friends: Friend[]; /** false: Überschrift steht schon über der Karte */ heading?: boolean }) {
   const { showError, dataVersion, dataChanged } = useApp();
   const list = useAsync(() => social.challenges(), [social, dataVersion]);
   const [open, setOpen] = useState(false);
@@ -102,9 +102,11 @@ export function Challenges({ social, friends }: { social: Social; friends: Frien
 
   return (
     <div className="card" id="challenges">
-      <div className="block-head">
-        <h3>Challenges</h3>
-      </div>
+      {heading && (
+        <div className="block-head">
+          <h3>Challenges</h3>
+        </div>
+      )}
       <p className="muted small">7 Tage ab Annahme. Gewinner bekommt +50 Credits, bei Gleichstand beide +25.</p>
       {accepted.length > 0 && !open && (
         <button className="btn primary block battle-btn" id="new-challenge" onClick={() => setOpen(true)}>

@@ -116,11 +116,11 @@ function ExerciseBoard({ social }: { social: Social }) {
   );
 }
 
-export function Leaderboards({ social, total }: { social: Social; total: LeaderRow[] }) {
+export function Leaderboards({ social, total, heading = true }: { social: Social; total: LeaderRow[]; /** false: Überschrift steht schon über der Karte */ heading?: boolean }) {
   const [tab, setTab] = useState<Tab>('total');
   return (
     <div className="card" id="leaderboards">
-      <h3>Rangliste</h3>
+      {heading && <h3>Rangliste</h3>}
       <nav className="seg seg-small" role="tablist" aria-label="Rangliste">
         {TABS.map(([id, label]) => (
           <button key={id} type="button" role="tab" data-board={id} aria-selected={tab === id} className={`seg-tab${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>

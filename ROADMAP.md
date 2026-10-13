@@ -155,6 +155,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 108: Suche versteht Gerät + Muskel für alle Muskelgruppen („Maschine Brust“, „Brustmaschine“, „Kabel Rücken“, „Bauch ohne Geräte“); Rücken aufgeräumt (21 Doppel zusammengeführt, 7 umbenannt) und um 27 Übungen erweitert; Clean/Farmers Walk nicht mehr unter Rücken (Datenbank-Update 56)
 - [x] Schritt 109: Foto beim Essen – Gratis-Erkennung direkt auf dem Handy (MobileCLIP, 3 Vorschläge aus Gerichten/Lebensmitteln, Foto bleibt auf dem Gerät) und genaue KI-Analyse mit Mengen für Pro (Server-Funktion food-photo)
 - [x] Schritt 110: Arme aufgeräumt – 25 Doppel zusammengeführt, 14 Namen vereinheitlicht (Reverse Curls, Liegestütze enger Griff …), 23 neue Übungen (Bayesian Curls, Unterarmroller, Überkopf-Trizeps über Kreuz …), Suche Griffkraft/Brachialis/langer Trizepskopf genauer (Datenbank-Update 57)
+- [x] Schritt 111: Freunde-Seite im Aufbau der Home-Seite – Wochen-Zusammenfassung oben, 4 Kacheln (Freunde, Platz, Trainings, Anfragen), Anfragen-Karte, großer Knopf „Freunde einladen“, Abschnitte Rangliste → Challenges → Deine Freunde
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

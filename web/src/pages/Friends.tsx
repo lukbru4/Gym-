@@ -78,6 +78,7 @@ export function Friends() {
   const [code, setCode] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const data = useAsync(
     async () => (social ? Promise.all([social.myProfile(), social.friends(), social.leaderboard()]) : null),
     [social, dataVersion],
@@ -113,8 +114,10 @@ export function Friends() {
     }
   };
 
+  // Ohne Freunde ist die Einladung immer offen, sonst über den großen Knopf
+  const inviteOpen = showInvite || accepted.length === 0;
   const invite = (
-    <div className="card invite-card" key="invite">
+    <div className="card invite-card" key="invite" id="invite-card">
       <h3>Freunde einladen</h3>
       <p className="muted small">Dein Code</p>
       <p className="friend-code" aria-label="Freundescode">{profile.friend_code}</p>
@@ -140,14 +143,43 @@ export function Friends() {
     </div>
   );
 
+  // Zusammenfassung wie der Rückblick auf Home: Platz diese Woche und in der Gesamtwertung
+  const me = board.find((r) => r.is_me);
+  const byWeek = [...board].sort((x, y) => y.week_workouts - x.week_workouts);
+  const weekRank = me ? byWeek.findIndex((r) => r.is_me) + 1 : 0;
+  const totalRank = me ? [...board].sort((x, y) => y.credits - x.credits).findIndex((r) => r.is_me) + 1 : 0;
+  const topFriend = byWeek.find((r) => !r.is_me && r.week_workouts > 0);
+  const headline = !accepted.length
+    ? 'Trainiere mit Freunden – lade jemanden ein und vergleicht euch.'
+    : weekRank === 1 && (me?.week_workouts ?? 0) > 0
+      ? 'Du liegst diese Woche vorne! 🏆'
+      : (me?.week_workouts ?? 0) === 0
+        ? 'Diese Woche hast du noch nicht trainiert – hol auf!'
+        : `Du bist diese Woche auf Platz ${weekRank} von ${board.length}.`;
+
   return (
     <>
-      <h2>Freunde</h2>
-      {accepted.length === 0 && invite}
+      <section className="card recap" id="friends-recap" aria-label="Diese Woche unter Freunden">
+        <div className="recap-head"><h2>Freunde</h2></div>
+        <p className="recap-line" id="friends-headline">{headline}</p>
+        {accepted.length > 0 && (
+          <ul className="recap-facts">
+            <li><span aria-hidden="true">💪</span><span>Du: {plural(me?.week_workouts ?? 0, 'Training', 'Trainings')} diese Woche</span></li>
+            {topFriend && <li><span aria-hidden="true">🔥</span><span>{topFriend.display_name}: {plural(topFriend.week_workouts, 'Training', 'Trainings')}</span></li>}
+          </ul>
+        )}
+      </section>
+
+      <div className="tiles" id="friends-tiles">
+        <div className="tile"><span className="tile-value">{accepted.length}</span><span className="tile-label">{accepted.length === 1 ? "Freund" : "Freunde"}</span></div>
+        <div className="tile"><span className="tile-value">{totalRank ? `#${totalRank}` : '–'}</span><span className="tile-label">Platz gesamt</span></div>
+        <div className="tile"><span className="tile-value">{me?.week_workouts ?? 0}</span><span className="tile-label">{(me?.week_workouts ?? 0) === 1 ? "Training" : "Trainings"} diese Woche</span></div>
+        <div className="tile"><span className="tile-value">{incoming.length}</span><span className="tile-label">{incoming.length === 1 ? "Offene Anfrage" : "Offene Anfragen"}</span></div>
+      </div>
 
       {incoming.length > 0 && (
-        <div className="card">
-          <h3>Anfragen <span className="count-pill">{incoming.length}</span></h3>
+        <div className="card highlight" id="friend-requests">
+          <div className="block-head"><h3>Anfragen</h3><span className="count-pill">{incoming.length}</span></div>
           <ul className="friend-rows">
             {incoming.map((f) => (
               <li key={f.user_id} className="friend-request">
@@ -163,8 +195,21 @@ export function Friends() {
         </div>
       )}
 
+      {accepted.length > 0 && (
+        <button type="button" className="btn primary block big" id="open-invite" aria-expanded={inviteOpen} onClick={() => setShowInvite(!showInvite)}>
+          {inviteOpen ? 'Einladen schließen' : '+ Freunde einladen'}
+        </button>
+      )}
+      {inviteOpen && invite}
+
+      <h2>Rangliste</h2>
+      <Leaderboards social={social} total={board} heading={false} />
+
+      <h2>Challenges</h2>
+      <Challenges social={social} friends={friends} heading={false} />
+
+      <h2>Deine Freunde</h2>
       <div className="card" id="friends-card">
-        <div className="block-head"><h3>Deine Freunde</h3><span className="muted small">{accepted.length}</span></div>
         {accepted.length ? (
           <ul className="friend-rows">
             {accepted.map((f) => (
@@ -198,12 +243,6 @@ export function Friends() {
           </>
         )}
       </div>
-
-      {accepted.length > 0 && invite}
-
-      <Challenges social={social} friends={friends} />
-
-      <Leaderboards social={social} total={board} />
     </>
   );
 }

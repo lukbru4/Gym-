@@ -1527,7 +1527,12 @@ body.picker-open { overflow: hidden; }
 .friend-rows a, .friend-rows .friend-request { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--input-bg, var(--bg)); color: var(--text); text-decoration: none; }
 .friend-meta { display: flex; flex-direction: column; min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .friend-meta small { font-size: 0.78rem; }
-.friend-rows .friend-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.friend-rows .friend-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; flex: 0 1 auto; }
+/* Anfragen: Name oben, Knöpfe darunter nebeneinander – der Name bricht nicht Buchstabe für Buchstabe um */
+#friend-requests .friend-request { flex-wrap: wrap; }
+#friend-requests .friend-meta { flex: 1 1 120px; overflow-wrap: normal; }
+#friend-requests .friend-actions { flex: 1 1 100%; justify-content: stretch; }
+#friend-requests .friend-actions .btn { flex: 1; width: auto; margin: 0; }
 .friend-rows .tile-chev { font-size: 1.6rem; line-height: 1; color: var(--text-secondary); }
 .count-pill { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 4px; border-radius: 11px; background: var(--accent); color: var(--accent-text); font-family: "Inter Variable", system-ui, sans-serif; font-style: normal; font-size: 0.78rem; vertical-align: middle; }
 .leaderboard li { grid-template-columns: 28px 40px 1fr auto auto; }
