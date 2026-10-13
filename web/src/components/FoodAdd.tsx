@@ -1,9 +1,10 @@
-// Eintrag hinzufügen (Suche, Beschreiben, Manuell) für das Ernährungstagebuch.
+// Eintrag hinzufügen (Suche, Gerichte, Barcode, Beschreiben, Manuell) für das Ernährungstagebuch.
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { pickNumber } from './NumberPicker';
 import { fmt } from '../lib/format';
-import { searchFood, scale, totals, type FoodEntry, type FoodItem } from '../lib/food';
+import { isBarcode, lookupBarcode, searchFood, scale, totals, type FoodEntry, type FoodItem } from '../lib/food';
+import { BarcodeScanner } from './BarcodeScanner';
 import { Dishes } from './FoodDishes';
 import { mealName, parseDescription, searchLocalFoods, type ParsedItem } from '../lib/describe';
 
@@ -11,8 +12,8 @@ export type NewEntry = { name: string; brand?: string | null; amount_g?: number 
 
 export function AddFood({ onClose, onAdd, onAddMany }: { onClose: () => void; onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void> }) {
   const { showError } = useApp();
-  const [tab, setTab] = useState<'search' | 'dishes' | 'describe' | 'manual'>('search');
-  const [picked, setPicked] = useState<{ item: FoodItem; source: 'search' } | null>(null);
+  const [tab, setTab] = useState<'search' | 'dishes' | 'barcode' | 'describe' | 'manual'>('search');
+  const [picked, setPicked] = useState<{ item: FoodItem; source: 'search' | 'barcode' } | null>(null);
   useEffect(() => {
     document.body.classList.add('picker-open');
     return () => document.body.classList.remove('picker-open');
@@ -32,13 +33,14 @@ export function AddFood({ onClose, onAdd, onAddMany }: { onClose: () => void; on
       ) : (
         <>
           <div className="picker-cats" role="tablist" aria-label="Wie hinzufügen?">
-            {([['search', 'Suche'], ['dishes', 'Gerichte'], ['describe', 'Beschreiben'], ['manual', 'Manuell']] as const).map(([id, text]) => (
+            {([['search', 'Suche'], ['dishes', 'Gerichte'], ['barcode', 'Barcode'], ['describe', 'Beschreiben'], ['manual', 'Manuell']] as const).map(([id, text]) => (
               <button key={id} type="button" className="picker-cat" role="tab" data-tab={id} aria-selected={tab === id} onClick={() => setTab(id)}>{text}</button>
             ))}
           </div>
           <div className="food-body">
             {tab === 'search' && <Search onPick={(item) => setPicked({ item, source: 'search' })} onError={showError} />}
             {tab === 'dishes' && <Dishes onAdd={onAdd} onAddMany={onAddMany} />}
+            {tab === 'barcode' && <Barcode onPick={(item) => setPicked({ item, source: 'barcode' })} onError={showError} />}
             {tab === 'describe' && <Describe onAdd={onAdd} onAddMany={onAddMany} onError={showError} />}
             {tab === 'manual' && <Manual onAdd={onAdd} />}
           </div>
@@ -48,6 +50,41 @@ export function AddFood({ onClose, onAdd, onAddMany }: { onClose: () => void; on
   );
 }
 
+
+function Barcode({ onPick, onError }: { onPick: (i: FoodItem) => void; onError: (e: unknown) => void }) {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [msg, setMsg] = useState('');
+  const find = async (c: string) => {
+    setBusy(true);
+    setMsg('');
+    try {
+      const item = await lookupBarcode(c);
+      if (item) onPick(item);
+      else setMsg('Dieses Produkt kennt Open Food Facts nicht. Trage es unter „Manuell“ ein.');
+    } catch (err) {
+      onError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (scanning)
+    return <BarcodeScanner onClose={() => setScanning(false)} onCode={(c) => { setScanning(false); setCode(c); void find(c); }} />;
+  return (
+    <>
+      <button className="btn primary block" id="scan-start" type="button" onClick={() => setScanning(true)}>📷 Mit der Kamera scannen</button>
+      <p className="muted small center">oder Nummer unter dem Barcode eintippen:</p>
+      <form className="row" onSubmit={(e) => { e.preventDefault(); void find(code); }}>
+        <input id="food-code" className="grow" inputMode="numeric" placeholder="z. B. 3017620422003" aria-label="Barcode-Nummer" autoComplete="off" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+        <button className="btn primary" id="food-lookup" type="submit" disabled={busy || !isBarcode(code)}>Suchen</button>
+      </form>
+      {busy && <p className="muted small">Suche läuft …</p>}
+      {msg && <p className="notice" id="food-msg">{msg}</p>}
+      <p className="muted small">Die Nährwerte kommen von Open Food Facts (freie Produktdatenbank) – bitte kurz prüfen.</p>
+    </>
+  );
+}
 
 function Describe({ onAdd, onAddMany, onError }: { onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void>; onError: (e: unknown) => void }) {
   const [text, setText] = useState('');
