@@ -135,11 +135,11 @@ export const EQUIPMENT: [EquipmentId, string][] = [
   ['eigene', 'Eigene'],
 ];
 const EQUIPMENT_TEST: Record<Exclude<EquipmentId, 'cardio' | 'eigene'>, RegExp> = {
-  maschine: /maschine|butterfly|beinpresse|beinstrecker|beinbeuger|brustpresse|abduktoren|adduktoren|^wadenheben$|hackenschmidt|bauchmaschine|trizepsmaschine/,
-  kabel: /kabel|seil|latziehen|pushdown|face pull|cable|pulldown|trizepsdruecken am kabel|woodchop|pallof/,
+  maschine: /maschine|plattengerat|butterfly|beinpresse|beinstrecker|beinbeuger|brustpresse|abduktoren|adduktoren|^wadenheben$|hackenschmidt|bauchmaschine|trizepsmaschine/,
+  kabel: /kabel|seil|latziehen|pushdown|face pull|cable|pulldown|trizepsdrucken am kabel|woodchop|pallof/,
   kurzhantel: /kurzhantel|arnold press|hammercurl|konzentrationscurl|goblet|pullover/,
-  langhantel: /langhantel|sz-stange|trap-bar|^bankdruecken|^schraegbankdruecken|^kreuzheben|^kniebeuge|sumo-kreuzheben|pendlay|rack pull|good morning|^french press|hip thrust \(langhantel|^clean|^snatch|^jerk|enges bankdruecken/,
-  koerpergewicht: /koerpergewicht|liegestuetz|klimmz|^dips|plank|crunch|sit-up|beinheben|knieheben|burpee|superman|ausfallschritt|bulgar|wandsitzen|mountain|bicycle|russian|dead bug|bird dog|hollow|seitstuetz|calisthenics|muscle-up|handstand|glute bridge|clamshell|step-up|bank-dips|inverted|nordic|hyperextension/,
+  langhantel: /langhantel|sz-stange|trap-bar|^bankdrucken(?! \((kurzhantel|kabel|maschine|smith|widerstandsband|kettlebell|plattengerat))|^schragbankdrucken(?! \((kurzhantel|kabel|maschine|smith|widerstandsband|plattengerat))|^kreuzheben|^kniebeuge|sumo-kreuzheben|pendlay|rack pull|good morning|^french press|hip thrust \(langhantel|^clean|^snatch|^jerk|enges bankdrucken/,
+  koerpergewicht: /korpergewicht|liegestutz|klimmz|^dips|plank|crunch|sit-up|beinheben|knieheben|burpee|superman|ausfallschritt|bulgar|wandsitzen|mountain|bicycle|russian|dead bug|bird dog|hollow|seitstutz|calisthenics|muscle-up|handstand|glute bridge|clamshell|step-up|bank-dips|inverted|nordic|hyperextension/,
   smith: /smith/,
   kettlebell: /kettlebell/,
   band: /widerstandsband|\bband\b/,

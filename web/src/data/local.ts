@@ -1,12 +1,12 @@
 // Lokaler Speicher im Browser (localStorage) – funktioniert ohne Konto und ohne Server.
 // Gleiche Schnittstelle wie supabase.ts.
-import { CATALOG } from '../lib/exerciseCatalog';
+import { CATALOG, RENAMED } from '../lib/exerciseCatalog';
 import { DEFAULT_MUSCLES } from '../lib/muscles';
 import type { Exercise, ExerciseType, Template, User } from '../lib/types';
 import type { Backend, LocalData } from './backend';
 
 export const STORAGE_KEY = 'gym-tracker-data';
-const VERSION = 4;
+const VERSION = 5;
 const LOCAL_USER: User = Object.freeze({ id: 'local', email: 'Lokal' });
 
 // Gleiche Standardübungen wie in supabase/schema.sql (beide kommen aus lib/exerciseCatalog.ts)
@@ -38,18 +38,44 @@ export function validateData(data: unknown): LocalData {
 
 /** Ältere Daten (Version 1) um Vorlagen, Muskeln und Aufwärmsätze ergänzen. */
 export function migrate(data: LocalData): LocalData {
-  if (data.version >= VERSION) return data;
-  data.templates ??= [];
-  for (const e of data.exercises) e.muscles ??= e.user_id ? [] : DEFAULT_MUSCLES[e.name] || [];
-  for (const s of data.sets) s.is_warmup ??= false;
-  // Ab Version 3 (und 4): neue Standardübungen aus dem Katalog ergänzen (nicht, wenn es den Namen schon gibt)
-  const have = new Set(data.exercises.map((e) => e.name.toLowerCase()));
+  if (data.version < VERSION) {
+    data.templates ??= [];
+    for (const e of data.exercises) e.muscles ??= e.user_id ? [] : DEFAULT_MUSCLES[e.name] || [];
+    for (const s of data.sets) s.is_warmup ??= false;
+    data.version = VERSION;
+  }
+  syncCatalog(data);
+  return data;
+}
+
+/** Katalog bei jedem Start abgleichen: umbenannte/zusammengeführte Übungen übertragen (Verlauf bleibt),
+ *  neue Standardübungen ergänzen, Muskeln der Standardübungen aktualisieren. */
+export function syncCatalog(data: LocalData) {
+  const std = (name: string) => data.exercises.find((e) => !e.user_id && e.name.toLowerCase() === name.toLowerCase());
+  for (const [oldName, newName] of Object.entries(RENAMED)) {
+    const from = data.exercises.find((e) => !e.user_id && e.name === oldName);
+    if (!from) continue;
+    const to = std(newName);
+    if (!to) {
+      from.name = newName;
+      continue;
+    }
+    for (const s of data.sets) if (s.exercise_id === from.id) s.exercise_id = to.id;
+    for (const t of data.templates ?? []) for (const x of t.exercises) if (x.exercise_id === from.id) x.exercise_id = to.id;
+    data.exercises = data.exercises.filter((e) => e !== from);
+  }
+  const have = new Map(data.exercises.filter((e) => !e.user_id).map((e) => [e.name.toLowerCase(), e]));
+  const own = new Set(data.exercises.filter((e) => e.user_id).map((e) => e.name.toLowerCase()));
   for (const c of CATALOG) {
-    if (have.has(c.name.toLowerCase())) continue;
+    const key = c.name.toLowerCase();
+    const cur = have.get(key);
+    if (cur) {
+      if (c.type === 'strength') cur.muscles = c.muscles;
+      continue;
+    }
+    if (own.has(key)) continue; // eigene Übung gleichen Namens bleibt
     data.exercises.push({ id: data.nextId++, name: c.name, type: c.type, user_id: null, muscles: c.muscles });
   }
-  data.version = VERSION;
-  return data;
 }
 
 export function create(storage: Storage = globalThis.localStorage): Backend {

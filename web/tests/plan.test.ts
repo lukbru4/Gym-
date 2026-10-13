@@ -223,6 +223,10 @@ describe('Trainingsplan aus dem Fragebogen', () => {
       const pick = ['Butterfly', 'Dips', 'Seitheben', 'Trizepsdrücken am Kabel', 'Face Pulls', 'Cable Crossover (Kabelzug)', 'Schulterdrücken (Maschine)'];
       expect(namesOf(withTemplateExercises(ppl, push, pick), push)).toEqual(pick);
     });
+    test('gespeicherte Auswahl mit alten Übungsnamen wird auf die neuen Namen umgeschrieben', () => {
+      const a = withTemplateExercises(ppl, push, ['Bankdrücken', 'Schrägbank-Brustpresse (Maschine)', 'Fliegende (Kabel, stehend)']);
+      expect(namesOf(a, push)).toEqual(['Bankdrücken', 'Brustpresse (Maschine, Schrägbank)', 'Cable Crossover (Kabelzug)']);
+    });
     test('nachträglich ausgeschlossene Übung fällt aus der eigenen Auswahl', () => {
       const a = withTemplateExercises({ ...ppl, avoid: ['grp:bank'] }, push, ['Bankdrücken', 'Dips', 'Seitheben']);
       expect(namesOf(a, push)).toEqual(['Dips', 'Seitheben']);

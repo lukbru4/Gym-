@@ -151,6 +151,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 104: Mehrere Admins – nur der Besitzer (ältester Admin) kann im Admin-Menü beliebig viele Admins per E-Mail oder Freundescode hinzufügen und entfernen; Server prüft alles (Datenbank-Update 53)
 - [x] Schritt 105: Weitere Admins haben alles aus Pro und Essen+, aber kein Admin-Menü; Admin-Menü, Shop-Freischaltung und Admin-Werkzeuge nur für den Besitzer (Datenbank-Update 54)
 - [x] Schritt 106: Barcode beim Essen wieder da – Tab „Barcode“: mit der Kamera scannen oder Nummer eintippen, Nährwerte von Open Food Facts, Menge wählen
+- [x] Schritt 107: Brust aufgeräumt – doppelte Übungen zusammengeführt und Namen vereinheitlicht (Verlauf bleibt), 29 neue Brust-Varianten, Geräte-Stichwörter, Suche „obere/untere Brust“ genauer, Burpees/Calisthenics nicht mehr unter Brust, Geräte-Erkennung mit Umlauten repariert (Datenbank-Update 55)
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
-import { CATALOG, keywordsOf } from '../src/lib/exerciseCatalog';
-import { filterExercises, MUSCLES } from '../src/lib/muscles';
+import { canonicalName, CATALOG, keywordsOf, RENAMED } from '../src/lib/exerciseCatalog';
+import { filterExercises, matchesEquipment, MUSCLES } from '../src/lib/muscles';
 import { create, migrate } from '../src/data/local';
 import type { Exercise } from '../src/lib/types';
 
@@ -46,7 +46,7 @@ describe('Übungskatalog', () => {
   test('Lokale Daten aus Version 2 bekommen die neuen Übungen, eigene bleiben, nichts doppelt', () => {
     const old = { version: 2, nextId: 40, exercises: [{ id: 1, name: 'Bankdrücken', type: 'strength' as const, user_id: null, muscles: ['brust' as const] }, { id: 39, name: 'Arnold Press', type: 'strength' as const, user_id: 'local', muscles: [] }], workouts: [], sets: [], body_weights: [], templates: [] };
     const m = migrate(old as never);
-    expect(m.version).toBe(4);
+    expect(m.version).toBe(5);
     expect(m.exercises.filter((e) => e.name.toLowerCase() === 'arnold press').length).toBe(1);
     expect(m.exercises.filter((e) => e.name === 'Bankdrücken').length).toBe(1);
     expect(m.exercises.length).toBe(CATALOG.length + 1 - 1 + 0); // alle Katalog-Übungen + (eigene Arnold Press ersetzt den Katalogeintrag)
@@ -70,5 +70,51 @@ describe('Übungskatalog', () => {
     // Kombination mit Suche und Kategorie
     expect(filterExercises(ex, { muscles: ['bizeps'], query: 'maschine' }).every((e) => e.name.toLowerCase().includes('maschine') || keywordsOf(e.name).toLowerCase().includes('maschine'))).toBe(true);
     expect(filterExercises(ex, { muscles: ['bizeps'], type: 'cardio' })).toEqual([]);
+  });
+});
+
+describe('Brust aufgeräumt (umbenannt, zusammengeführt, ausgebaut)', () => {
+  const names = new Set(CATALOG.map((c) => c.name));
+  test('alte Namen sind weg, Ziele gibt es im Katalog', () => {
+    for (const [oldName, newName] of Object.entries(RENAMED)) {
+      expect(names.has(oldName), oldName).toBe(false);
+      expect(names.has(newName), newName).toBe(true);
+    }
+    expect(canonicalName('Negativ-Schrägbankdrücken')).toBe('Negativbankdrücken (Langhantel)');
+    expect(canonicalName('Bankdrücken')).toBe('Bankdrücken');
+  });
+  test('schema.sql führt dieselben Umbenennungen durch', () => {
+    for (const [oldName, newName] of Object.entries(RENAMED)) expect(sql).toContain(`('${oldName}', '${newName}')`);
+  });
+  test('alter Name bleibt als Suchwort erhalten, neue Brust-Übungen sind da', () => {
+    expect(keywordsOf('Brustpresse (Kabel, stehend)')).toContain('Kabelzug-Brustdrücken (stehend)');
+    for (const n of ['Squeeze Press (Kurzhantel)', 'Larsen Press (Langhantel)', 'Liegestütze (Hände erhöht)', 'Bankdrücken (Plattengerät)', 'Fliegende (Kabel, Schrägbank)']) expect(names.has(n), n).toBe(true);
+    const brust = CATALOG.filter((c) => c.muscles[0] === 'brust');
+    expect(brust.length).toBeGreaterThanOrEqual(90);
+    expect(brust.some((c) => /burpee|calisthenics \((front|l-sit|v-sit|dragon)/i.test(c.name))).toBe(false);
+  });
+  test('Geräte-Erkennung mit Umlauten (Bankdrücken = Langhantel, Liegestütze = Körpergewicht)', () => {
+    const ex = (name: string) => ({ id: 1, name, type: 'strength' as const, user_id: null, muscles: [] });
+    expect(matchesEquipment(ex('Bankdrücken'), 'langhantel')).toBe(true);
+    expect(matchesEquipment(ex('Schrägbankdrücken (Pause)'), 'langhantel')).toBe(true);
+    expect(matchesEquipment(ex('Bankdrücken (Kurzhantel, Pause)'), 'langhantel')).toBe(false);
+    expect(matchesEquipment(ex('Bankdrücken (Plattengerät)'), 'maschine')).toBe(true);
+    expect(matchesEquipment(ex('Liegestütze (Klatsch)'), 'koerpergewicht')).toBe(true);
+  });
+  test('lokale Daten: Sätze und Vorlagen ziehen zur zusammengeführten Übung um, Umbenennung behält die ID', () => {
+    const ex = CATALOG.map((c, i) => ({ id: i + 1, name: c.name, type: c.type, user_id: null, muscles: c.muscles }));
+    const keep = ex.find((e) => e.name === 'Negativbankdrücken (Langhantel)')!;
+    ex.push({ id: 5000, name: 'Negativ-Schrägbankdrücken', type: 'strength', user_id: null, muscles: ['brust'] });
+    ex.push({ id: 5001, name: 'Fliegende (Schrägbank)', type: 'strength', user_id: null, muscles: ['brust'] });
+    const withoutNew = ex.filter((e) => e.name !== 'Fliegende (Kurzhantel, Schrägbank)');
+    const data = { version: 5, nextId: 6000, exercises: withoutNew, workouts: [], body_weights: [],
+      sets: [{ id: 1, workout_id: 1, exercise_id: 5000, position: 0, reps: 8, weight_kg: 80, is_warmup: false }, { id: 2, workout_id: 1, exercise_id: 5001, position: 1, reps: 10, weight_kg: 12, is_warmup: false }],
+      templates: [{ id: 1, name: 'T', exercises: [{ exercise_id: 5000, sets: [] }] }] };
+    const m = migrate(data as never);
+    expect(m.sets[0].exercise_id).toBe(keep.id);
+    expect(m.templates[0].exercises[0].exercise_id).toBe(keep.id);
+    expect(m.exercises.find((e) => e.id === 5001)!.name).toBe('Fliegende (Kurzhantel, Schrägbank)');
+    expect(m.exercises.some((e) => e.name === 'Negativ-Schrägbankdrücken')).toBe(false);
+    expect(m.exercises.filter((e) => !e.user_id).length).toBe(CATALOG.length);
   });
 });

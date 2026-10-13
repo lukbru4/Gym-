@@ -2,7 +2,7 @@
 // Der Plan besteht aus Vorlagen („Plan · Push“ …) mit Übungen aus dem Standard-Katalog, Sätzen und Wiederholungen,
 // dazu ein Wochenplan (welcher Tag welche Vorlage) und das Wochenziel. Gewichte trägt man beim ersten Training ein.
 
-import { CATALOG, popularityOf } from './exerciseCatalog';
+import { canonicalName, CATALOG, popularityOf } from './exerciseCatalog';
 import { matchesEquipment, type EquipmentId } from './muscles';
 import type { Exercise } from './types';
 
@@ -128,7 +128,7 @@ const P = {
 /** Weitere Übungen (Maschinen, Kabel, Varianten) – kommen in den Plan, stehen aber nicht in der Liste „Welche Übungen willst du unbedingt machen?“ */
 const X = {
   brustpresse: G('Brustpresse (Maschine)', ['ma'], ['brust', 'arme'], ['schulter']),
-  schraegPresse: G('Schrägbank-Brustpresse (Maschine)', ['ma'], ['brust', 'schultern'], ['schulter']),
+  schraegPresse: G('Brustpresse (Maschine, Schrägbank)', ['ma'], ['brust', 'schultern'], ['schulter']),
   flys: E('Fliegende (Kurzhantel)', ['kh'], ['brust'], ['schulter']),
   crossover: E('Cable Crossover (Kabelzug)', ['ka'], ['brust'], ['schulter']),
   pushup: G('Liegestütze', ['none'], ['brust', 'arme'], ['handgelenk', 'schulter']),
@@ -339,7 +339,7 @@ export function generatePlan(raw: Answers): Plan {
     const label = names[kind] + (kinds.filter((k) => k === kind).length > 1 ? ` ${'ABCDEF'[variant] ?? variant + 1}` : '');
     const name = PLAN_PREFIX + label;
     // Selbst zusammengestellt (Plan-Ansicht): genau diese Übungen in dieser Reihenfolge, sofern erlaubt
-    const customPicks = asList(a[customKey(name)]).map((n) => pickOf(n)).filter((p): p is Pick => Boolean(p) && ok(p!));
+    const customPicks = asList(a[customKey(name)]).map((n) => pickOf(canonicalName(n))).filter((p): p is Pick => Boolean(p) && ok(p!));
     const used = new Set<string>();
     // Plätze mit gewünschten Muskeln zuerst, dann nach Reihenfolge
     // Pflichtplätze (z. B. Beine, Brust, Rücken beim Ganzkörper) kommen immer vor den Wunsch-Muskeln dran,

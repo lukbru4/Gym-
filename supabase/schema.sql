@@ -127,6 +127,55 @@ drop policy if exists "body_weights own" on public.body_weights;
 create policy "body_weights own" on public.body_weights for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
+-- Katalog aufräumen: umbenannte und zusammengeführte Standardübungen (Verlauf, Sätze und Vorlagen bleiben erhalten).
+-- Gibt es den neuen Namen noch nicht, wird umbenannt; sonst werden Sätze und Vorlagen auf die bestehende Übung umgehängt.
+do $$
+declare
+  r record;
+  old_id bigint;
+  new_id bigint;
+begin
+  for r in select * from (values
+    ('Bankdrücken (Kurzhantel, Schrägbank)', 'Schrägbankdrücken (Kurzhantel)'),
+    ('Schrägbank-Brustpresse (Maschine)', 'Brustpresse (Maschine, Schrägbank)'),
+    ('Negativ-Bankdrücken (Kurzhantel)', 'Negativbankdrücken (Kurzhantel)'),
+    ('Fliegende (Schrägbank)', 'Fliegende (Kurzhantel, Schrägbank)'),
+    ('Cable Crossover von unten', 'Cable Crossover (Kabelzug, von unten)'),
+    ('Cable Crossover von oben', 'Cable Crossover (Kabelzug, von oben)'),
+    ('Brustfliegende (Kabel, einarmig)', 'Cable Crossover (Kabelzug, einarmig)'),
+    ('Fliegende (Maschine, Schrägbank)', 'Butterfly (Maschine, Schrägbank)'),
+    ('Kabelzug-Brustdrücken (kniend)', 'Brustpresse (Kabel, kniend)'),
+    ('Brustpresse (Kettlebell, liegend)', 'Bankdrücken (Kettlebell)'),
+    ('Brustpresse (Kettlebell, Boden)', 'Floor Press (Kettlebell)'),
+    ('Kurzhantel-Schrägbankdrücken (neutraler Griff)', 'Schrägbankdrücken (Kurzhantel, neutraler Griff)'),
+    ('Negativ-Schrägbankdrücken', 'Negativbankdrücken (Langhantel)'),
+    ('Negativbankdrücken (Maschine)', 'Brustpresse (Maschine, Negativbank)'),
+    ('Kabelzug-Brustdrücken (stehend)', 'Brustpresse (Kabel, stehend)'),
+    ('Kabelzug-Brustdrücken (einarmig)', 'Brustpresse (Kabel, einarmig)'),
+    ('Kabelzug-Brustdrücken (sitzend)', 'Brustpresse (Kabel, sitzend)'),
+    ('Kabelzug-Brustdrücken (Schrägbank)', 'Schrägbankdrücken (Kabel)'),
+    ('Kabelzug-Brustdrücken (Negativbank)', 'Negativbankdrücken (Kabel)'),
+    ('Fliegende (Kabel, stehend)', 'Cable Crossover (Kabelzug)'),
+    ('Brustpresse (Widerstandsband, liegend)', 'Bankdrücken (Widerstandsband)')
+  ) as v(old_name, new_name) loop
+    select e.id into old_id from public.exercises e where e.user_id is null and e.name = r.old_name;
+    continue when old_id is null;
+    select e.id into new_id from public.exercises e where e.user_id is null and lower(e.name) = lower(r.new_name);
+    if new_id is null then
+      update public.exercises set name = r.new_name where id = old_id;
+    else
+      update public.sets set exercise_id = new_id where exercise_id = old_id;
+      update public.templates t
+         set exercises = (select jsonb_agg(case when (x ->> 'exercise_id')::bigint = old_id
+                                                then jsonb_set(x, '{exercise_id}', to_jsonb(new_id)) else x end order by i)
+                            from jsonb_array_elements(t.exercises) with ordinality as a(x, i))
+       where t.exercises @> jsonb_build_array(jsonb_build_object('exercise_id', old_id));
+      delete from public.exercises where id = old_id;
+    end if;
+  end loop;
+end $$;
+-- Ende Katalog aufräumen
+
 -- ---------------------------------------------------------------------------
 -- Vorgegebene Übungen
 -- ---------------------------------------------------------------------------
@@ -163,18 +212,17 @@ insert into public.exercises (user_id, name, type, muscles) values
   (null, 'Rudergerät', 'cardio', '{}'),
   (null, 'Stepper', 'cardio', '{}'),
   (null, 'Laufen (draußen)', 'cardio', '{}'),
-  (null, 'Bankdrücken (Kurzhantel, Schrägbank)', 'strength', '{brust}'),
-  (null, 'Negativ-Schrägbankdrücken', 'strength', '{brust}'),
-  (null, 'Negativ-Bankdrücken (Kurzhantel)', 'strength', '{brust}'),
+  (null, 'Schrägbankdrücken (Kurzhantel)', 'strength', '{brust}'),
+  (null, 'Negativbankdrücken (Kurzhantel)', 'strength', '{brust}'),
   (null, 'Brustpresse (Maschine)', 'strength', '{brust,trizeps}'),
-  (null, 'Schrägbank-Brustpresse (Maschine)', 'strength', '{brust,schultern}'),
+  (null, 'Brustpresse (Maschine, Schrägbank)', 'strength', '{brust,schultern}'),
   (null, 'Bankdrücken (Smith-Maschine)', 'strength', '{brust,trizeps}'),
   (null, 'Schrägbankdrücken (Smith-Maschine)', 'strength', '{brust,schultern}'),
   (null, 'Fliegende (Kurzhantel)', 'strength', '{brust}'),
-  (null, 'Fliegende (Schrägbank)', 'strength', '{brust}'),
+  (null, 'Fliegende (Kurzhantel, Schrägbank)', 'strength', '{brust}'),
   (null, 'Cable Crossover (Kabelzug)', 'strength', '{brust}'),
-  (null, 'Cable Crossover von unten', 'strength', '{brust}'),
-  (null, 'Cable Crossover von oben', 'strength', '{brust}'),
+  (null, 'Cable Crossover (Kabelzug, von unten)', 'strength', '{brust}'),
+  (null, 'Cable Crossover (Kabelzug, von oben)', 'strength', '{brust}'),
   (null, 'Liegestütze', 'strength', '{brust,trizeps}'),
   (null, 'Liegestütze (Füße erhöht)', 'strength', '{brust,schultern}'),
   (null, 'Pullover (Kurzhantel)', 'strength', '{brust,lat}'),
@@ -323,7 +371,7 @@ insert into public.exercises (user_id, name, type, muscles) values
   (null, 'Rückenstrecker (Boden)', 'strength', '{unterer_ruecken}'),
   (null, 'Kettlebell Swing', 'strength', '{gesaess,beinbeuger}'),
   (null, 'Clean (Langhantel)', 'strength', '{oberer_ruecken,quadrizeps,gesaess}'),
-  (null, 'Burpees', 'strength', '{brust,quadrizeps}'),
+  (null, 'Burpees', 'strength', '{quadrizeps,brust}'),
   (null, 'Thruster', 'strength', '{quadrizeps,schultern}'),
   (null, 'Turkish Get-up', 'strength', '{schultern,bauch}'),
   (null, 'Battle Ropes', 'strength', '{schultern,bauch}'),
@@ -338,11 +386,10 @@ insert into public.exercises (user_id, name, type, muscles) values
   (null, 'HIIT (Intervalltraining)', 'cardio', '{}'),
   (null, 'Boxen (Sandsack)', 'cardio', '{}'),
   (null, 'Elliptical-Stepper (Vario)', 'cardio', '{}'),
-  (null, 'Kurzhantel-Schrägbankdrücken (neutraler Griff)', 'strength', '{brust,schultern}'),
   (null, 'Floor Press (Langhantel)', 'strength', '{brust,trizeps}'),
   (null, 'Bankdrücken (Reverse Grip)', 'strength', '{brust,trizeps}'),
   (null, 'Brustpresse (Kabel, stehend)', 'strength', '{brust,trizeps}'),
-  (null, 'Brustfliegende (Kabel, einarmig)', 'strength', '{brust}'),
+  (null, 'Cable Crossover (Kabelzug, einarmig)', 'strength', '{brust}'),
   (null, 'Svend Press', 'strength', '{brust}'),
   (null, 'Liegestütze (Knie)', 'strength', '{brust,trizeps}'),
   (null, 'Archer-Liegestütze', 'strength', '{brust,trizeps}'),
@@ -464,16 +511,14 @@ insert into public.exercises (user_id, name, type, muscles) values
   (null, 'Schrägbankdrücken (Kurzhantel, Pause)', 'strength', '{brust,schultern}'),
   (null, 'Negativbankdrücken (Langhantel)', 'strength', '{brust,trizeps}'),
   (null, 'Negativbankdrücken (Kurzhantel, einarmig)', 'strength', '{brust,trizeps}'),
-  (null, 'Negativbankdrücken (Maschine)', 'strength', '{brust,trizeps}'),
   (null, 'Negativbankdrücken (Kabel)', 'strength', '{brust,trizeps}'),
   (null, 'Negativbankdrücken (Smith-Maschine)', 'strength', '{brust,trizeps}'),
   (null, 'Fliegende (Kurzhantel, Negativbank)', 'strength', '{brust}'),
   (null, 'Fliegende (Kurzhantel, langsam)', 'strength', '{brust}'),
   (null, 'Fliegende (Widerstandsband)', 'strength', '{brust}'),
-  (null, 'Fliegende (Kabel, stehend)', 'strength', '{brust}'),
   (null, 'Fliegende (Kabel, liegend)', 'strength', '{brust}'),
   (null, 'Fliegende (Kabel, sitzend)', 'strength', '{brust}'),
-  (null, 'Fliegende (Maschine, Schrägbank)', 'strength', '{brust}'),
+  (null, 'Butterfly (Maschine, Schrägbank)', 'strength', '{brust}'),
   (null, 'Brustpresse (Maschine, einarmig)', 'strength', '{brust,trizeps}'),
   (null, 'Brustpresse (Maschine, Negativbank)', 'strength', '{brust,trizeps}'),
   (null, 'Brustpresse (Maschine, langsam)', 'strength', '{brust,trizeps}'),
@@ -504,15 +549,9 @@ insert into public.exercises (user_id, name, type, muscles) values
   (null, 'Pullover (Kurzhantel, langsam)', 'strength', '{brust,lat}'),
   (null, 'Brustpresse (Landmine, einarmig)', 'strength', '{brust,schultern}'),
   (null, 'Brustpresse (Landmine, kniend)', 'strength', '{brust,schultern}'),
-  (null, 'Brustpresse (Widerstandsband, liegend)', 'strength', '{brust,schultern}'),
-  (null, 'Brustpresse (Kettlebell, liegend)', 'strength', '{brust,schultern}'),
-  (null, 'Brustpresse (Kettlebell, Boden)', 'strength', '{brust,schultern}'),
-  (null, 'Kabelzug-Brustdrücken (stehend)', 'strength', '{brust,trizeps}'),
-  (null, 'Kabelzug-Brustdrücken (einarmig)', 'strength', '{brust,trizeps}'),
-  (null, 'Kabelzug-Brustdrücken (kniend)', 'strength', '{brust,trizeps}'),
-  (null, 'Kabelzug-Brustdrücken (sitzend)', 'strength', '{brust,trizeps}'),
-  (null, 'Kabelzug-Brustdrücken (Schrägbank)', 'strength', '{brust,trizeps}'),
-  (null, 'Kabelzug-Brustdrücken (Negativbank)', 'strength', '{brust,trizeps}'),
+  (null, 'Bankdrücken (Kettlebell)', 'strength', '{brust,schultern}'),
+  (null, 'Floor Press (Kettlebell)', 'strength', '{brust,schultern}'),
+  (null, 'Brustpresse (Kabel, kniend)', 'strength', '{brust,trizeps}'),
   (null, 'Schulterdrücken (Kettlebell)', 'strength', '{schultern,trizeps}'),
   (null, 'Schulterdrücken (Kettlebell, einarmig)', 'strength', '{schultern,trizeps}'),
   (null, 'Schulterdrücken (Kettlebell, kniend)', 'strength', '{schultern,trizeps}'),
@@ -1068,13 +1107,13 @@ insert into public.exercises (user_id, name, type, muscles) values
   (null, 'Medizinball-Wurf (Boden)', 'strength', '{schultern,bauch}'),
   (null, 'Medizinball-Wurf (Wand)', 'strength', '{schultern,bauch}'),
   (null, 'Medizinball-Wurf (einbeinig)', 'strength', '{schultern,bauch}'),
-  (null, 'Burpees (mit Liegestütz)', 'strength', '{brust,quadrizeps}'),
-  (null, 'Burpees (Box)', 'strength', '{brust,quadrizeps}'),
-  (null, 'Burpees (Sprung)', 'strength', '{brust,quadrizeps}'),
-  (null, 'Burpees (einarmig)', 'strength', '{brust,quadrizeps}'),
-  (null, 'Burpees (Widerstandsband)', 'strength', '{brust,quadrizeps}'),
-  (null, 'Burpees (gewichtet)', 'strength', '{brust,quadrizeps}'),
-  (null, 'Burpees (Ringe)', 'strength', '{brust,quadrizeps}'),
+  (null, 'Burpees (mit Liegestütz)', 'strength', '{quadrizeps,brust}'),
+  (null, 'Burpees (Box)', 'strength', '{quadrizeps,bauch}'),
+  (null, 'Burpees (Sprung)', 'strength', '{quadrizeps,bauch}'),
+  (null, 'Burpees (einarmig)', 'strength', '{quadrizeps,bauch}'),
+  (null, 'Burpees (Widerstandsband)', 'strength', '{quadrizeps,bauch}'),
+  (null, 'Burpees (gewichtet)', 'strength', '{quadrizeps,bauch}'),
+  (null, 'Burpees (Ringe)', 'strength', '{quadrizeps,bauch}'),
   (null, 'Thruster (Kurzhantel)', 'strength', '{quadrizeps,schultern}'),
   (null, 'Thruster (Kettlebell)', 'strength', '{quadrizeps,schultern}'),
   (null, 'Thruster (Langhantel, Front)', 'strength', '{quadrizeps,schultern}'),
@@ -1137,13 +1176,13 @@ insert into public.exercises (user_id, name, type, muscles) values
   (null, 'Muscle-up (Negativbank)', 'strength', '{lat,trizeps,brust}'),
   (null, 'Muscle-up (Widerstandsband)', 'strength', '{lat,trizeps,brust}'),
   (null, 'Muscle-up (schräg)', 'strength', '{lat,trizeps,brust}'),
-  (null, 'Calisthenics (Front Lever)', 'strength', '{brust,schultern,bauch}'),
-  (null, 'Calisthenics (Back Lever)', 'strength', '{brust,schultern,bauch}'),
-  (null, 'Calisthenics (Planche)', 'strength', '{brust,schultern,bauch}'),
-  (null, 'Calisthenics (L-Sit)', 'strength', '{brust,schultern,bauch}'),
-  (null, 'Calisthenics (V-Sit)', 'strength', '{brust,schultern,bauch}'),
-  (null, 'Calisthenics (Human Flag)', 'strength', '{brust,schultern,bauch}'),
-  (null, 'Calisthenics (Dragon Flag)', 'strength', '{brust,schultern,bauch}'),
+  (null, 'Calisthenics (Front Lever)', 'strength', '{lat,bauch}'),
+  (null, 'Calisthenics (Back Lever)', 'strength', '{lat,schultern,bauch}'),
+  (null, 'Calisthenics (Planche)', 'strength', '{schultern,brust,bauch}'),
+  (null, 'Calisthenics (L-Sit)', 'strength', '{bauch}'),
+  (null, 'Calisthenics (V-Sit)', 'strength', '{bauch}'),
+  (null, 'Calisthenics (Human Flag)', 'strength', '{bauch,lat,schultern}'),
+  (null, 'Calisthenics (Dragon Flag)', 'strength', '{bauch}'),
   (null, 'Isometrie (Wandsitzen)', 'strength', '{quadrizeps,bauch,brust}'),
   (null, 'Isometrie (Brust drücken)', 'strength', '{quadrizeps,bauch,brust}'),
   (null, 'Isometrie (Plank)', 'strength', '{quadrizeps,bauch,brust}'),
@@ -1287,7 +1326,36 @@ insert into public.exercises (user_id, name, type, muscles) values
   (null, 'Außenrotation (Kabel, 90 Grad)', 'strength', '{schultern}'),
   (null, 'Schulterdurchzug (Stab oder Band)', 'strength', '{schultern}'),
   (null, 'Skapula-Liegestütze', 'strength', '{schultern,brust}'),
-  (null, 'Skapula-Klimmzüge', 'strength', '{schultern,lat}')
+  (null, 'Skapula-Klimmzüge', 'strength', '{schultern,lat}'),
+  (null, 'Bankdrücken (Plattengerät)', 'strength', '{brust,trizeps}'),
+  (null, 'Schrägbankdrücken (Plattengerät)', 'strength', '{brust,schultern}'),
+  (null, 'Brustpresse (Plattengerät, Negativbank)', 'strength', '{brust,trizeps}'),
+  (null, 'Brustpresse (Maschine, konvergierend)', 'strength', '{brust,trizeps}'),
+  (null, 'Brustpresse (Maschine, Schrägbank, einarmig)', 'strength', '{brust,schultern}'),
+  (null, 'Schrägbankdrücken (Kurzhantel, flach geneigt)', 'strength', '{brust,schultern}'),
+  (null, 'Bankdrücken (Kurzhantel, neutraler Griff)', 'strength', '{brust,trizeps}'),
+  (null, 'Bankdrücken (Kurzhantel, Pause)', 'strength', '{brust,trizeps}'),
+  (null, 'Bankdrücken (Kurzhantel, Gymnastikball)', 'strength', '{brust,bauch}'),
+  (null, 'Squeeze Press (Kurzhantel)', 'strength', '{brust,trizeps}'),
+  (null, 'Spoto Press (Langhantel)', 'strength', '{brust,trizeps}'),
+  (null, 'Larsen Press (Langhantel)', 'strength', '{brust,trizeps}'),
+  (null, 'Board Press (Langhantel)', 'strength', '{brust,trizeps}'),
+  (null, 'Guillotine Press (Langhantel)', 'strength', '{brust,schultern}'),
+  (null, 'Bankdrücken (Multigriffstange)', 'strength', '{brust,trizeps}'),
+  (null, 'Floor Press (Kurzhantel)', 'strength', '{brust,trizeps}'),
+  (null, 'Brustpresse (Landmine, beidarmig)', 'strength', '{brust,schultern}'),
+  (null, 'Fliegende (Kabel, Schrägbank)', 'strength', '{brust}'),
+  (null, 'Cable Crossover (Kabelzug, kniend)', 'strength', '{brust}'),
+  (null, 'Butterfly (Maschine, einarmig)', 'strength', '{brust}'),
+  (null, 'Fliegende (Kurzhantel, mit Drücken)', 'strength', '{brust,trizeps}'),
+  (null, 'Fliegende (Ringe)', 'strength', '{brust,schultern}'),
+  (null, 'Fliegende (Schlingentrainer)', 'strength', '{brust,schultern}'),
+  (null, 'Liegestütze (Hände erhöht)', 'strength', '{brust,trizeps}'),
+  (null, 'Liegestütze (Deficit)', 'strength', '{brust,trizeps}'),
+  (null, 'Liegestütze (Klatsch)', 'strength', '{brust,trizeps}'),
+  (null, 'Liegestütze (Pause)', 'strength', '{brust,trizeps}'),
+  (null, 'Liegestütze (Widerstandsband)', 'strength', '{brust,trizeps}'),
+  (null, 'Pseudo-Planche-Liegestütze', 'strength', '{brust,schultern}')
 on conflict (coalesce(user_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(name))
   do update set muscles = excluded.muscles;
 
@@ -2844,6 +2912,6 @@ grant execute on function public.my_plan_answers(), public.set_plan_answers(json
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 54 $$;
+returns integer language sql immutable set search_path = '' as $$ select 55 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;
