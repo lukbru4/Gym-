@@ -545,3 +545,6 @@ export const exerciseGroupOf = (name: string): string | null => {
 };
 export const GROUP_ORDER = (): string[] => Object.values(GROUP_NAMES);
 export const isCustomized = (raw: Answers, templateName: string) => asList(raw[customKey(templateName)]).length > 0;
+
+/** Alle ausgeschlossenen Übungsnamen (Gruppen aufgelöst, „Sonstiges“-Text eingerechnet) */
+export const avoidedNames = (raw: Answers): Set<string> => new Set(asList(normalizeAnswers(raw).answers.avoid).flatMap((x) => AVOID_GROUPS[x]?.names ?? [x]));

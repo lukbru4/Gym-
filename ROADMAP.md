@@ -145,6 +145,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 98: Analyse, Rechner und Bestenliste zeigen nur Übungen, die man schon gemacht hat; im Trainingsplan-Fragebogen gibt es bei jeder Auswahlfrage „Sonstiges …“ mit eigenem Text (Pflicht), Hinweise im Plan, Freitext bei Wunsch-/Ausschluss-Übungen wirkt direkt
 - [x] Schritt 99: Trainings im Plan selbst zusammenstellen (Übung tauschen mit ★ oft empfohlenen Alternativen, entfernen, hinzufügen nach Muskelgruppe, zurücksetzen); Ausschlüsse/Geräte/Beschwerden gelten auch dort; „Sonstiges“ immer als letzte volle Zeile
 - [x] Schritt 100: Aufklappbare Übungslisten (Trainings im Plan, Muskelgruppen beim Hinzufügen/Tauschen und im Fragebogen) und Stichwortsuche nach Körperstellen („hintere Schulter“, „Po“, „breiter Rücken“) in Training, Plan und Fragebogen
+- [x] Schritt 101: Übung im laufenden Training tauschen (⇄): Alternativen für dieselbe Muskelgruppe, ★ oft empfohlen, Stichwortsuche, ausgeschlossene Übungen nicht angeboten; erledigte Sätze bleiben bei der alten Übung. Suche mit mehreren Wörtern sucht den zusammenhängenden Begriff
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)
 - [x] Nach der Registrierung: Seite „Schau in dein Postfach“ mit „E-Mail erneut senden“

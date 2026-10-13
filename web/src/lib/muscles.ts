@@ -1,6 +1,6 @@
 // Muskelgruppen, Zuordnung der Übungen, Kraft-Stufe für den Körpergraphen und Übungs-Kategorien.
 import { CATALOG_MUSCLES, popularityOf, popularRank } from './exerciseCatalog';
-import { searchTextOf } from './searchTerms';
+import { matchesSearch } from './searchTerms';
 import { addDays, estimate1RM, isWorkingSet } from './stats';
 import type { DatedSet, Exercise, ExerciseMap, ISODate, MuscleId } from './types';
 
@@ -170,8 +170,7 @@ export function filterExercises(
     if (muscles.length && !muscles.includes(musclesOf(ex)[0])) return false;
     if (equipment && !matchesEquipment(ex, equipment)) return false;
     if (!words.length) return true;
-    const hay = normalize([searchTextOf(ex.name, musclesOf(ex)), ...musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m)].join(' '));
-    return words.every((w) => hay.includes(w));
+    return matchesSearch(query, ex.name, musclesOf(ex)) || words.every((w) => normalize(musclesOf(ex).map((m) => MUSCLE_NAMES.get(m) || m).join(' ')).includes(w));
   });
   // Beliebte Übungen zuerst (Klassiker, dann häufige), danach der Rest nach Namen; bei gleicher Stufe bleibt die Katalog-Reihenfolge
   return hits

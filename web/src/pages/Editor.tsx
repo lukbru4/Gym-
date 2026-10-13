@@ -7,6 +7,7 @@ import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ExercisePicker } from '../components/ExercisePicker';
 import { ExerciseInfo } from '../components/ExerciseInfo';
 import { ExerciseThumb } from '../components/ExerciseThumb';
+import { SwapSheet } from '../components/SwapSheet';
 import { WorkoutMuscles } from '../components/WorkoutMuscles';
 import { deloadAdjust, getCycle } from '../lib/cycle';
 import { FEEDBACK_LABEL, FEEDBACK_OPTIONS, getFeedback, previousFeedback, setFeedback, type Feedback } from '../lib/feedback';
@@ -14,6 +15,7 @@ import { suggestProgress, suggestionText } from '../lib/progression';
 import {
   blockFor,
   blocksSignature,
+  emptySet,
   clearDraft,
   editBlocks,
   isUnilateral,
@@ -301,6 +303,7 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
           mode={mode}
           exercise={exerciseById(b.exercise_id)!}
           prevSets={prev.get(b.exercise_id)}
+          workoutExerciseIds={state.blocks.map((x) => x.exercise_id)}
           uid={user?.id ?? 'lokal'}
           date={state.date}
           placeholders={(si) => placeholders(b, si)}
@@ -406,6 +409,8 @@ function BlockCard(props: {
   mode: EditorMode;
   exercise: Exercise;
   prevSets: WorkoutSet[] | undefined;
+  /** Übungen, die schon im Training sind (nicht zum Tauschen anbieten) */
+  workoutExerciseIds: number[];
   uid: string;
   date: string;
   placeholders: (si: number) => Partial<Record<RowField, string>>;
@@ -414,6 +419,7 @@ function BlockCard(props: {
 }) {
   const { block: b, bi, mode, exercise: ex, update } = props;
   const [info, setInfo] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
   const live = mode === 'live';
   const cardio = ex.type === 'cardio';
   const uni = !cardio && isUnilateral(b);
@@ -493,6 +499,30 @@ function BlockCard(props: {
           >
             L/R
           </button>
+        )}
+        {live && b.sets.some((r) => !r.done) && (
+          <button type="button" className="side-toggle" data-action="swap-exercise" aria-label={`${ex.name} tauschen`} title="Übung tauschen (z. B. Gerät belegt)" onClick={() => setSwapOpen(true)}>⇄</button>
+        )}
+        {swapOpen && (
+          <SwapSheet
+            current={ex}
+            exclude={new Set(props.workoutExerciseIds)}
+            onClose={() => setSwapOpen(false)}
+            onPick={(next) => {
+              setSwapOpen(false);
+              update((st) => {
+                const blk = st.blocks[bi];
+                const done = blk.sets.filter((r) => r.done);
+                // offene Sätze wechseln zur neuen Übung (Zielwerte und Seite bleiben, eingetragene Werte nicht)
+                const open = blk.sets.filter((r) => !r.done).map((r) => ({ ...emptySet(next.type, Boolean(r.warmup)), ...(r.side ? { side: r.side } : {}), ...(r.target ? { target: r.target } : {}), done: false }));
+                if (!done.length) st.blocks[bi] = { ...blk, exercise_id: next.id, sets: open };
+                else {
+                  st.blocks[bi] = { ...blk, sets: done };
+                  st.blocks.splice(bi + 1, 0, { exercise_id: next.id, rest_seconds: blk.rest_seconds, sets: open });
+                }
+              });
+            }}
+          />
         )}
         <button
           className="icon-btn"

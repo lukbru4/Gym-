@@ -32,7 +32,7 @@ const RULES: [RegExp, string, RegExp?][] = [
   [/kettlebell swing|swing|clean|snatch|reissen|umsetzen|thruster|sandsack|sled|schlitten|box jump|sprung|jump/, 'Ganzkörper, Explosivkraft, Power, Athletik'],
   [/knieheben|knee raise|toes to bar|zehen-zur-stange|zehen zur stange|dead bug|bird dog|mountain climber|l-sit|vacuum/, 'Bauch, Core, Rumpf, unterer Bauch'],
   [/windmill|turkish get|get-up|getup|tragen|carry|koffer|suitcase|medizinball|battle rope|burpee/, 'Ganzkörper, Core, Rumpfstabilität, Funktionell'],
-  [/aussenrotation|innenrotation|external rotation|internal rotation|schulterkreisen|rotatoren|wall slide|y-heben|y raise|band pull/, 'Rotatorenmanschette, Schultergesundheit, hintere Schulter, Haltung'],
+  [/aussenrotation|innenrotation|external rotation|internal rotation|schulterkreisen|rotatoren|wall slide|y-heben|y raise|band pull ?apart|pull ?apart/, 'Rotatorenmanschette, Schultergesundheit, hintere Schulter, Haltung'],
   [/clamshell|muschel|monster walk|lateral walk|fire hydrant/, 'Po, Gesäß, seitlicher Po, Hüfte außen, Glutes'],
   [/huftbeuger|hip flexor|psoas/, 'Hüftbeuger, Hüfte vorne'],
   [/floor press|bodendrucken/, 'Brust, Trizeps, Chest'],
@@ -76,12 +76,18 @@ export function searchTextOf(name: string, muscles: readonly string[] = []): str
   return text;
 }
 
-/** Passt die Suche zu einer Übung? Alle Wörter der Suche müssen vorkommen. */
+/** Passt die Suche zu einer Übung?
+ *  Ein Wort: kommt irgendwo in Name, Stichwörtern, Körperregion oder Muskel vor.
+ *  Mehrere Wörter: entweder als zusammenhängender Begriff („hintere schulter“) irgendwo, oder jedes Wort in Name/Katalog-Stichwörtern. */
 export function matchesSearch(query: string, name: string, muscles: readonly string[] = []): boolean {
-  const words = normalizeSearch(query).split(/\s+/).filter(Boolean);
-  if (!words.length) return true;
+  const q = normalizeSearch(query).replace(/\s+/g, ' ').trim();
+  if (!q) return true;
   const hay = searchTextOf(name, muscles);
-  return words.every((w) => hay.includes(w));
+  const words = q.split(' ');
+  if (words.length === 1) return hay.includes(q);
+  if (hay.includes(q)) return true;
+  const own = normalizeSearch(`${name} ${keywordsOf(name)}`);
+  return words.every((w) => own.includes(w));
 }
 
 /** Gibt es für den Namen mindestens einen Regionsbegriff aus den Regeln? (für Tests) */
