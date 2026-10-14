@@ -8,7 +8,7 @@ import { sectionOf, useHash, type Section } from '../app/router';
 import { hasDraft } from '../lib/editor';
 import { NavIcon, type NavIconId } from './NavIcons';
 import type { Game } from '../app/game';
-import { SCHEMA_VERSION } from '../data/config';
+import { SCHEMA_VERSION, supabaseDashboardUrl } from '../data/config';
 import { useCosmetics } from '../lib/cosmetics';
 import { WEB_URL } from '../lib/platform';
 import { fmt } from '../lib/format';
@@ -225,7 +225,10 @@ export function DbUpdateBanner() {
     <div id="db-update-banner" className="update-banner" role="status">
       <span>Datenbank-Update nötig (SQL einmal ausführen)</span>
       <a className="btn small-btn primary" href={`${WEB_URL}supabase/einrichten.html`} target="_blank" rel="noopener">
-        Öffnen
+        1. SQL kopieren
+      </a>
+      <a className="btn small-btn" id="db-update-supabase" href={supabaseDashboardUrl('sql/new')} target="_blank" rel="noopener">
+        2. Supabase öffnen
       </a>
     </div>
   );

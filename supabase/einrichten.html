@@ -18,6 +18,7 @@
   #admin-status { font-weight: 700; overflow-wrap: anywhere; }
   textarea { width: 100%; box-sizing: border-box; height: 220px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: 12px/1.4 ui-monospace, monospace; padding: 8px; }
   .muted { color: var(--muted); font-size: 0.9rem; }
+  .linkbtn { display: block; text-align: center; min-height: 56px; line-height: 56px; border-radius: 14px; border: 2px solid var(--accent); color: var(--text); font: 800 1.1rem system-ui, sans-serif; text-decoration: none; margin: 4px 0 8px; }
   button.small { width: auto; min-height: 40px; padding: 0 14px; font-size: 0.95rem; border-radius: 10px; }
   .row2 { display: flex; gap: 8px; flex-wrap: wrap; }
   .mail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin: 10px 0; }
@@ -36,6 +37,8 @@
   </ol>
   <button id="copy" disabled>SQL wird geladen …</button>
   <p id="status" role="status"></p>
+  <a class="linkbtn" id="open-supabase" href="https://supabase.com/dashboard/project/msyudbdzsmajdhbptfxw/sql/new" target="_blank" rel="noopener">Supabase SQL Editor öffnen</a>
+  <p class="muted">Tipp: In der App findest du das auch unter ☰ → 🛠 Admin-Menü → „Datenbank (Supabase)“ – dort siehst du auch, ob alles aktuell ist.</p>
   <p class="muted" id="info"></p>
   <textarea id="sql" readonly aria-label="SQL-Skript"></textarea>
 

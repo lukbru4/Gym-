@@ -2092,3 +2092,5 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .rem-time input, .rem-time select { min-width: 110px; }
 .reminder-hint { display: block; text-decoration: none; color: var(--text); font-weight: 700; }
 .rem-days .picker-cat[aria-pressed='true'] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.db-ok { color: var(--success, #16a34a); font-weight: 700; } .db-old { color: var(--accent); font-weight: 700; }
+#admin-db .nc-row .btn { flex: 1; text-align: center; }

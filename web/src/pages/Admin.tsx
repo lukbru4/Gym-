@@ -1,6 +1,8 @@
 // Admin-Menü (nur für den Besitzer; der Server prüft jede Aktion selbst):
 // alle Farben frei wählen, eigene Farbschemata entwerfen und im Shop anbieten, Meldungen bearbeiten.
 // Der Besitzer kann weitere Admins hinzufügen und entfernen – die haben alles aus Pro, aber kein Admin-Menü.
+import { SCHEMA_VERSION, SUPABASE_REF, supabaseDashboardUrl } from '../data/config';
+import { WEB_URL } from '../lib/platform';
 import { ask } from '../components/Dialog';
 import { useState } from 'react';
 import { useApp } from '../app/context';
@@ -409,6 +411,36 @@ function DishPhotos() {
   );
 }
 
+/** Datenbank: Stand prüfen und Update mit zwei Knöpfen (SQL kopieren, Supabase öffnen) */
+function Database() {
+  const { api } = useApp();
+  const [check, setCheck] = useState(0);
+  const v = useAsync(() => api.social!.schemaVersion().catch(() => 0), [api, check]);
+  const have = v.status === 'ok' ? Number(v.data) || 0 : null;
+  const ok = have !== null && have >= SCHEMA_VERSION;
+  return (
+    <div className="card" id="admin-db">
+      <h3>Datenbank (Supabase)</h3>
+      {have === null ? <p className="muted">Wird geprüft …</p> : (
+        <p id="admin-db-state" className={ok ? 'db-ok' : 'db-old'}>
+          {ok ? '✓ Aktuell' : '⚠️ Update nötig'} · in Supabase: {have || 'alt'} · App braucht: {SCHEMA_VERSION}
+        </p>
+      )}
+      <ol className="small">
+        <li>„SQL kopieren“ antippen → auf der Seite <strong>SQL kopieren</strong>.</li>
+        <li>„Supabase öffnen“ → SQL Editor: alles einfügen → <strong>Run</strong> → bei der Warnung <strong>Run query</strong>.</li>
+        <li>Zurück hierher und „Erneut prüfen“.</li>
+      </ol>
+      <div className="nc-row">
+        <a className="btn primary" id="admin-db-sql" href={`${WEB_URL}supabase/einrichten.html`} target="_blank" rel="noopener">1. SQL kopieren</a>
+        <a className="btn" id="admin-db-open" href={supabaseDashboardUrl('sql/new')} target="_blank" rel="noopener">2. Supabase öffnen</a>
+      </div>
+      <button type="button" className="btn small-btn" id="admin-db-check" onClick={() => setCheck((c) => c + 1)}>Erneut prüfen</button>
+      <p className="muted small">Supabase-Projekt: {SUPABASE_REF} · Anmelden auf supabase.com mit dem Konto, mit dem du das Projekt angelegt hast.</p>
+    </div>
+  );
+}
+
 function PaywallTest() {
   const [on, setOn] = useState(paywallPreview());
   return (
@@ -438,6 +470,7 @@ export function Admin() {
     <>
       <h2>🛠 Admin-Menü</h2>
       {owner && <Admins />}
+      {owner && <Database />}
       {owner && <DishPhotos />}
       <MyColors />
       <PaywallTest />

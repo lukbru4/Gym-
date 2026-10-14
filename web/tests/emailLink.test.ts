@@ -27,3 +27,13 @@ describe('Mail-Vorlagen', () => {
     expect(parseEmailLink('#/')).toBeNull();
   });
 });
+
+describe('Supabase-Links', async () => {
+  const { SUPABASE_REF, supabaseDashboardUrl } = await import('../src/data/config');
+  test('Projekt-ID und SQL-Editor-Link', () => {
+    expect(SUPABASE_REF).toBe('msyudbdzsmajdhbptfxw');
+    expect(supabaseDashboardUrl('sql/new')).toBe('https://supabase.com/dashboard/project/msyudbdzsmajdhbptfxw/sql/new');
+    const page = readFileSync(new URL('../einrichten.html', DIR), 'utf8');
+    expect(page).toContain(supabaseDashboardUrl('sql/new'));
+  });
+});

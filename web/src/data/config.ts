@@ -11,3 +11,8 @@ export const USE_CLOUD = import.meta.env.VITE_BACKEND !== 'local';
 /** Muss zu public.schema_version() am Ende von supabase/schema.sql passen (ein Test prüft das).
  *  Ist die Datenbank älter, zeigt die App dem Admin „Datenbank-Update nötig“. */
 export const SCHEMA_VERSION = 62;
+
+/** Projekt-ID aus der Project URL (z. B. „msyudbdzsmajdhbptfxw“) */
+export const SUPABASE_REF = /^https:\/\/([a-z0-9]+)\.supabase\.co/.exec(SUPABASE_URL)?.[1] ?? '';
+/** Seite im Supabase-Dashboard dieses Projekts, z. B. „sql/new“ für den SQL Editor */
+export const supabaseDashboardUrl = (path = '') => `https://supabase.com/dashboard/project/${SUPABASE_REF}${path ? `/${path}` : ''}`;
