@@ -1,6 +1,8 @@
 // Tab „Gerichte“: Gericht suchen, Zutaten und Portion anpassen, als eine Mahlzeit oder einzeln eintragen.
 import { useMemo, useState } from 'react';
-import { DISH_CATS, dishNutrition, searchDishes, sumIngredients, type Dish, type DishCat } from '../lib/dishes';
+import { DISH_BY_ID, dishNutrition, searchDishes, sumIngredients, type Dish } from '../lib/dishes';
+import { toggleFavorite, useFavorites } from '../lib/dishFavorites';
+import { coverOf, dishesOf, groupsIn, type DishGroup, type GroupSection } from '../lib/dishTags';
 import { fmt } from '../lib/format';
 import { FOOD_BY_KEY } from '../lib/foodDb';
 import { DishImage } from './DishImage';
@@ -30,7 +32,7 @@ export function DishDetail({ dish, onBack, onAdd, onAddMany, source = 'manual' }
     <div className="card" id="dish-detail" data-dish={dish.id}>
       <button type="button" className="btn small-btn" id="dish-back" onClick={onBack}>‹ Zurück</button>
       <DishImage dish={dish} className="dish-hero" />
-      <h3>{dish.name}</h3>
+      <div className="dish-title-row"><h3>{dish.name}</h3><FavButton id={dish.id} name={dish.name} /></div>
       <div className="nc-factors" role="group" aria-label="Portion">
         {FACTORS.map(([f, t]) => <button key={f} type="button" data-f={f} className={`picker-cat${factor === f ? ' active' : ''}`} aria-pressed={factor === f} onClick={() => setFactor(f)}>{t} {f <= 1 ? 'Portion' : 'Portionen'}</button>)}
       </div>
@@ -67,35 +69,94 @@ export function DishDetail({ dish, onBack, onAdd, onAddMany, source = 'manual' }
   );
 }
 
+/** Herz zum Merken eines Gerichts */
+function FavButton({ id, name }: { id: string; name: string }) {
+  const favs = useFavorites();
+  const on = favs.includes(id);
+  return (
+    <button type="button" className={`fav-btn${on ? ' on' : ''}`} data-fav={id} aria-pressed={on} aria-label={on ? `${name} aus Favoriten entfernen` : `${name} zu Favoriten`}
+      onClick={(e) => { e.stopPropagation(); toggleFavorite(id); }}>{on ? '♥' : '♡'}</button>
+  );
+}
+
+/** Listenzeile: Bild, Name, Nährwerte, Herz */
+function DishRow({ d, onOpen }: { d: Dish; onOpen: (d: Dish) => void }) {
+  const n = dishNutrition(d);
+  return (
+    <li className="dish-row">
+      <button type="button" className="picker-item dish-item" data-dish={d.id} onClick={() => onOpen(d)}>
+        <DishImage dish={d} />
+        <span className="dish-text">
+          <span className="picker-name">{d.name}</span>
+          <span className="picker-sub">{fmt(n.kcal, 0)} kcal · {fmt(n.protein, 0)} g Eiweiß{d.minutes ? ` · ${d.minutes} Min.` : d.ingredients.length === 1 ? ' · Fertiggericht' : ''}</span>
+        </span>
+      </button>
+      <FavButton id={d.id} name={d.name} />
+    </li>
+  );
+}
+
+function GroupTile({ g, big, onOpen }: { g: DishGroup; big?: boolean; onOpen: (g: DishGroup) => void }) {
+  const cover = big ? coverOf(g) : undefined;
+  return (
+    <button type="button" className={big ? 'dish-tile big' : 'dish-tile'} data-group={g.id} onClick={() => onOpen(g)}>
+      {cover ? <DishImage dish={cover} className="dish-tile-img" /> : <span className="dish-tile-emoji" aria-hidden="true">{g.emoji}</span>}
+      <span className="dish-tile-title">{g.title}</span>
+      <span className="dish-tile-count">{dishesOf(g).length} Gerichte{big ? ' ›' : ''}</span>
+    </button>
+  );
+}
+
+const SECTIONS: { id: GroupSection; title: string; kind: 'row' | 'big' | 'grid' }[] = [
+  { id: 'popular', title: 'Beliebte Kategorien', kind: 'row' },
+  { id: 'meal', title: 'Nach Mahlzeit', kind: 'big' },
+  { id: 'prep', title: 'Nach Zubereitung', kind: 'big' },
+  { id: 'diet', title: 'Nach Ernährungsart', kind: 'grid' },
+  { id: 'kcal', title: 'Nach Kalorien', kind: 'grid' },
+];
+
 export function Dishes({ onAdd, onAddMany }: { onAdd: (e: NewEntry) => Promise<void>; onAddMany: (e: NewEntry[]) => Promise<void> }) {
   const [q, setQ] = useState('');
-  const [cat, setCat] = useState<DishCat | 'alle'>('alle');
+  const [view, setView] = useState<'discover' | 'favs'>('discover');
+  const [group, setGroup] = useState<DishGroup | null>(null);
   const [open, setOpen] = useState<Dish | null>(null);
-  const list = useMemo(() => searchDishes(q, cat, 80), [q, cat]);
+  const favs = useFavorites();
+  const results = useMemo(() => (q.trim() ? searchDishes(q, 'alle', 80) : []), [q]);
   if (open) return <DishDetail dish={open} onBack={() => setOpen(null)} onAdd={onAdd} onAddMany={onAddMany} />;
+  const list = (items: Dish[]) => <ul className="picker-list dish-list" id="dish-list">{items.map((d) => <DishRow key={d.id} d={d} onOpen={setOpen} />)}</ul>;
   return (
     <div className="food-dishes">
-      <input id="dish-q" type="search" placeholder="Gericht oder Zutat suchen, z. B. Bolognese, Döner, Feta" value={q} onChange={(e) => setQ(e.target.value)} />
-      <div className="picker-cats" role="tablist" aria-label="Kategorie">
-        {DISH_CATS.map(([id, text]) => <button key={id} type="button" className="picker-cat" role="tab" data-cat={id} aria-selected={cat === id} onClick={() => setCat(id)}>{text}</button>)}
+      <div className="seg dish-seg" role="tablist" aria-label="Gerichte">
+        <button type="button" role="tab" id="dish-discover" aria-selected={view === 'discover'} className={`seg-tab${view === 'discover' ? ' active' : ''}`} onClick={() => { setView('discover'); setGroup(null); }}>Entdecken</button>
+        <button type="button" role="tab" id="dish-favs" aria-selected={view === 'favs'} className={`seg-tab${view === 'favs' ? ' active' : ''}`} onClick={() => { setView('favs'); setGroup(null); }}>Meine Favoriten{favs.length ? ` (${favs.length})` : ''}</button>
       </div>
-      <ul className="picker-list" id="dish-list">
-        {list.map((d) => {
-          const n = dishNutrition(d);
-          return (
-            <li key={d.id}>
-              <button type="button" className="picker-item dish-item" data-dish={d.id} onClick={() => setOpen(d)}>
-                <DishImage dish={d} />
-                <span className="dish-text">
-                <span className="picker-name">{d.name}</span>
-                <span className="picker-sub">{fmt(n.kcal, 0)} kcal · {fmt(n.protein, 0)} g Eiweiß · {d.ingredients.length === 1 ? 'Fertiggericht' : `${d.ingredients.length} Zutaten`}</span>
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      {!list.length && <p className="muted small">Kein Gericht gefunden. Versuche es mit „Beschreiben“ oder „Manuell“.</p>}
+      <input id="dish-q" type="search" placeholder="Gericht oder Zutat suchen, z. B. Bolognese, Döner, Feta" value={q} onChange={(e) => setQ(e.target.value)} />
+      {q.trim() ? (
+        results.length ? list(results) : <p className="muted small">Kein Gericht gefunden. Versuche es mit „Beschreiben“ oder „Manuell“.</p>
+      ) : view === 'favs' ? (
+        favs.length ? list(favs.map((id) => DISH_BY_ID.get(id)).filter((d): d is Dish => Boolean(d))) : <p className="muted" id="dish-favs-empty">Noch keine Favoriten. Tippe bei einem Gericht auf ♡, dann findest du es hier wieder.</p>
+      ) : group ? (
+        <div id="dish-group" data-group={group.id}>
+          <div className="dish-group-head">
+            <button type="button" className="btn small-btn" id="dish-group-back" onClick={() => setGroup(null)}>‹ Zurück</button>
+            <h3>{group.emoji} {group.title}</h3>
+          </div>
+          {list(dishesOf(group))}
+        </div>
+      ) : (
+        <div id="dish-discover-page">
+          {SECTIONS.map((sec) => {
+            const groups = groupsIn(sec.id);
+            if (!groups.length) return null;
+            return (
+              <section key={sec.id} className="dish-section" data-section={sec.id}>
+                <h3>{sec.title}</h3>
+                <div className={`dish-tiles dish-tiles-${sec.kind}`}>{groups.map((g) => <GroupTile key={g.id} g={g} big={sec.kind === 'big'} onOpen={setGroup} />)}</div>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -2041,3 +2041,31 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .dish-hero.photo { object-fit: cover; }
 .dish-photo-list li { display: flex; align-items: center; gap: 10px; }
 .dish-photo-list .dish-img { width: 48px; height: 48px; border-radius: 10px; }
+
+/* Gerichte: Entdecken-Seite */
+.dish-seg .seg-tab { border: 0; background: none; font: inherit; font-weight: 700; cursor: pointer; }
+.dish-seg .seg-tab.active { background: var(--accent); color: var(--accent-text); }
+.dish-section { margin: 18px 0 6px; }
+.dish-section h3 { margin: 0 0 10px; font-size: 1.15rem; }
+.dish-tiles-row, .dish-tiles-big { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 2px 8px; margin: 0 -2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.dish-tiles-row::-webkit-scrollbar, .dish-tiles-big::-webkit-scrollbar { display: none; }
+.dish-tiles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.dish-tile { scroll-snap-align: start; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 104px; padding: 12px 10px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; text-align: center; cursor: pointer; }
+.dish-tile:active { transform: scale(0.97); }
+.dish-tile-emoji { font-size: 2rem; line-height: 1.1; }
+.dish-tile-title { font-weight: 700; font-size: 0.92rem; line-height: 1.2; }
+.dish-tile-count { font-size: 0.72rem; color: var(--text-secondary); }
+.dish-tile.big { width: 168px; padding: 0 0 10px; align-items: stretch; text-align: left; overflow: hidden; }
+.dish-tile.big .dish-tile-title, .dish-tile.big .dish-tile-count { padding: 0 12px; }
+.dish-tile-img { display: block; width: 100%; height: 120px; object-fit: cover; background: radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--text) 9%, transparent), color-mix(in srgb, var(--text) 3%, transparent) 75%); margin-bottom: 6px; }
+.dish-row { display: flex; align-items: center; gap: 4px; }
+.dish-row .picker-item { flex: 1; min-width: 0; }
+.fav-btn { flex: none; width: 44px; height: 44px; border: 0; background: none; font-size: 1.5rem; line-height: 1; color: var(--text-secondary); cursor: pointer; }
+.fav-btn.on { color: var(--accent); }
+.dish-group-head { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.dish-group-head h3 { margin: 0; }
+.dish-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.food-dishes { min-width: 0; max-width: 100%; }
+.dish-section, .dish-tiles { min-width: 0; max-width: 100%; }
+.dish-seg .seg-tab { flex: 1 1 0; min-width: 0; width: auto; }
+.food-dishes { grid-template-columns: minmax(0, 1fr); }

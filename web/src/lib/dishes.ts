@@ -24,7 +24,13 @@ export interface Dish {
   steps: string[];
   /** Zubereitungszeit in Minuten (nur bei Rezepten) */
   minutes?: number;
+  /** Mahlzeit(en), zu denen das Gericht passt */
+  meals: DishMeal[];
+  /** Merkmale aus dem Rezept (schnell, eiweißreich …) */
+  recipeTags?: RawRecipe['tags'];
 }
+export type DishMeal = 'fruehstueck' | 'mittag' | 'abend' | 'snack';
+const mealsOfCat = (c: DishCat): DishMeal[] => (c === 'fruehstueck' ? ['fruehstueck'] : c === 'snack' ? ['snack'] : c === 'brot' ? ['fruehstueck', 'abend'] : ['mittag', 'abend']);
 
 const norm = (s: string) => s.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/\s+/g, ' ').trim();
 const labelOf = (key: string, grams: number) => `${grams} g ${FOOD_BY_KEY.get(key)?.name ?? key}`;
@@ -38,11 +44,13 @@ const fromRecipe = (r: RawRecipe): Dish => ({
   ingredients: fill(r.ingredients),
   steps: r.steps,
   minutes: r.minutes,
+  meals: r.meal === 'mittag' || r.meal === 'abend' ? ['mittag', 'abend'] : [r.meal],
+  recipeTags: r.tags,
 });
 
 export const DISHES: Dish[] = [
   ...[...CORE_RECIPES, ...MORE_RECIPES].map(fromRecipe),
-  ...MORE_DISHES.map(([id, name, aliases, cat, ingredients, steps]): Dish => ({ id, name, aliases: aliases.split('|'), cat, ingredients: fill(ingredients), steps: steps ?? [] })),
+  ...MORE_DISHES.map(([id, name, aliases, cat, ingredients, steps]): Dish => ({ id, name, aliases: aliases.split('|'), cat, ingredients: fill(ingredients), steps: steps ?? [], meals: mealsOfCat(cat) })),
 ];
 export const DISH_BY_ID = new Map(DISHES.map((d) => [d.id, d]));
 
