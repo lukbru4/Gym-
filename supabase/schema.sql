@@ -3313,10 +3313,80 @@ end
 $rt$;
 
 -- ===========================================================================
+-- Mein Gym: Aufstellung im Konto (Name, Objekte mit Position), Deko & Schilder im Shop (Kauf mit Credits).
+-- Welche Geräte man hat, berechnet die App aus den Trainings; hier steht nur, wo was steht.
+-- ===========================================================================
+alter table public.profiles add column if not exists gym jsonb;
+
+alter table public.shop_items drop constraint if exists shop_items_kind_check;
+alter table public.shop_items add constraint shop_items_kind_check check (kind in ('skin', 'scheme', 'accessory', 'title', 'gymdeco'));
+-- Gym-Deko (Preise müssen zu web/src/lib/gym.ts DECO_SHOP passen)
+insert into public.shop_items (id, kind, name, price) values
+  ('gym_sign_cali', 'gymdeco', 'Schild „Calisthenics-Bereich“', 150),
+  ('gym_sign_free', 'gymdeco', 'Schild „Free Weights“', 150),
+  ('gym_sign_cardio', 'gymdeco', 'Schild „Cardio-Zone“', 150),
+  ('gym_sign_legday', 'gymdeco', 'Schild „Leg Day“', 120),
+  ('gym_sign_nopain', 'gymdeco', 'Schild „No Pain No Gain“', 200),
+  ('gym_neon_beast', 'gymdeco', 'Neon „Beast Mode“', 250),
+  ('gym_plant', 'gymdeco', 'Pflanze', 80),
+  ('gym_bag', 'gymdeco', 'Boxsack', 220),
+  ('gym_dbrack', 'gymdeco', 'Kurzhantel-Ständer', 260),
+  ('gym_kettle', 'gymdeco', 'Kettlebell-Reihe', 180),
+  ('gym_water', 'gymdeco', 'Wasserspender', 120),
+  ('gym_mat', 'gymdeco', 'Sportmatte', 90),
+  ('gym_lamp', 'gymdeco', 'Neonlampe', 140),
+  ('gym_chalk', 'gymdeco', 'Kreidebox', 80),
+  ('gym_rings', 'gymdeco', 'Turnringe', 160)
+on conflict (id) do update set kind = excluded.kind, name = excluded.name, price = excluded.price;
+
+create or replace function public.my_gym()
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select p.gym from public.profiles p where p.id = auth.uid()
+$$;
+
+create or replace function public.set_my_gym(p_gym jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'Bitte melde dich an.'; end if;
+  if p_gym is null or jsonb_typeof(p_gym) <> 'object' or length(p_gym::text) > 8000 then raise exception 'Ungültige Gym-Daten.'; end if;
+  if jsonb_typeof(coalesce(p_gym->'objects', '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_gym->'objects', '[]'::jsonb)) > 80 then
+    raise exception 'Zu viele Objekte im Gym.';
+  end if;
+  if char_length(coalesce(p_gym->>'name', '')) > 24 then raise exception 'Der Gym-Name ist zu lang (höchstens 24 Zeichen).'; end if;
+  if public.is_offensive(coalesce(p_gym->>'name', '')) then raise exception 'Bitte wähle einen freundlichen Namen.'; end if;
+  perform public.my_profile(); -- legt das Profil an, falls es fehlt
+  update public.profiles set gym = jsonb_build_object('name', coalesce(p_gym->>'name', ''), 'objects', coalesce(p_gym->'objects', '[]'::jsonb))
+   where id = auth.uid();
+end;
+$$;
+revoke all on function public.my_gym(), public.set_my_gym(jsonb) from public, anon;
+grant execute on function public.my_gym(), public.set_my_gym(jsonb) to authenticated;
+
+-- Freundesprofil zeigt auch das Gym (gleiche Sichtbarkeit wie die Trainings)
+create or replace function public.friend_profile(p_user uuid)
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or not public.can_see(auth.uid(), p_user) then
+    raise exception 'Profil nicht sichtbar';
+  end if;
+  return jsonb_build_object(
+    'profile', (select jsonb_build_object('id', p.id, 'display_name', p.display_name, 'equipped', p.equipped, 'week_goal', p.week_goal, 'gym', p.gym) from public.profiles p where p.id = p_user),
+    'workouts', coalesce((select jsonb_agg(jsonb_build_object('id', w.id, 'date', w.date)) from public.workouts w where w.user_id = p_user), '[]'::jsonb),
+    'sets', coalesce((select jsonb_agg(jsonb_build_object(
+              'workout_id', s.workout_id, 'exercise_id', s.exercise_id, 'position', s.position, 'reps', s.reps,
+              'weight_kg', s.weight_kg, 'duration_min', s.duration_min, 'distance_km', s.distance_km, 'is_warmup', s.is_warmup, 'side', s.side))
+            from public.sets s where s.user_id = p_user), '[]'::jsonb),
+    'exercises', coalesce((select jsonb_agg(jsonb_build_object('id', e.id, 'name', e.name, 'type', e.type, 'user_id', e.user_id, 'muscles', e.muscles))
+            from public.exercises e where e.id in (select s.exercise_id from public.sets s where s.user_id = p_user)), '[]'::jsonb)
+  );
+end;
+$$;
+
+-- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 62 $$;
+returns integer language sql immutable set search_path = '' as $$ select 63 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

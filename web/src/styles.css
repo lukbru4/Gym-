@@ -2166,3 +2166,25 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .stone-box .stone-layer { position: absolute; inset: 0; }
 .stone-box .stone-layer .stone { width: 100%; height: 100%; }
 .gym-stone .stone-box, .gym-mini-row .stone-box { flex: none; }
+
+/* Mein Gym: frei gestalten */
+.gym-toolbar { display: flex; gap: 10px; align-items: flex-end; margin: 10px 0; }
+.gym-name-edit { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; font-weight: 700; }
+.gym-room { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.gym-room.editing { touch-action: none; outline: 2px dashed var(--accent); outline-offset: 2px; }
+.gym-railing { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+.gym-obj { position: absolute; display: flex; flex-direction: column; align-items: center; }
+.gym-obj .machine-art, .gym-obj .deco-art { width: 100%; }
+.gym-room.editing .gym-obj { cursor: grab; }
+.gym-obj.selected { filter: drop-shadow(0 0 6px var(--accent)); }
+.gym-obj-name { font-size: 0.5rem; font-weight: 800; color: #fff; background: rgba(0,0,0,0.6); border-bottom: 2px solid var(--rar); padding: 1px 4px; border-radius: 5px; white-space: nowrap; margin-top: -4px; pointer-events: none; }
+.deco-art { display: flex; align-items: flex-end; justify-content: center; }
+.deco-svg { height: 100%; width: auto; max-width: 100%; overflow: visible; }
+.gym-selbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.gym-selbar strong { flex: 1; }
+.gym-storage, .gym-shop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.gym-storage .gym-card, .gym-shop .gym-card { --rar: var(--border); border-width: 1px; font: inherit; font-size: 0.66rem; font-weight: 700; color: var(--text); cursor: pointer; gap: 4px; padding: 6px; }
+.gym-shop .gym-card .btn { width: 100%; }
+.chest { font-size: 5rem; display: inline-block; }
+.chest.shake { animation: stone-shake 0.12s linear infinite; }
+.gym-room.tier-garage { background: #55585c; }

@@ -45,7 +45,7 @@ export interface Challenge {
   bonus: number;
 }
 export interface Comment { id: number; user_id: string; display_name: string; body: string; created_at: string; is_mine: boolean; can_delete: boolean }
-export interface FriendProfileData { profile: { id: string; display_name: string; equipped?: Equipped; week_goal?: number }; workouts: Workout[]; sets: WorkoutSet[]; exercises: Exercise[] }
+export interface FriendProfileData { profile: { id: string; display_name: string; equipped?: Equipped; week_goal?: number; gym?: unknown }; workouts: Workout[]; sets: WorkoutSet[]; exercises: Exercise[] }
 
 export interface Social {
   myProfile(): Promise<Profile>;
@@ -87,6 +87,9 @@ export interface Social {
   /** Fotos zu Gerichten: Gericht-ID → Bild-Adresse (öffentlich); Hochladen/Entfernen nur Besitzer */
   dishPhotos(): Promise<Record<string, string>>;
   uploadDishPhoto(dishId: string, blob: Blob): Promise<void>;
+  /** Mein Gym: Aufstellung im Konto */
+  myGym(): Promise<unknown>;
+  setMyGym(gym: { name: string; objects: unknown[] }): Promise<void>;
   /** Live-Signale (Supabase Realtime, privater Kanal „user:<id>“); liefert eine Abmelde-Funktion */
   subscribeLive(onSignal: (s: LiveSignal) => void): Promise<() => void>;
   /** Mitteilungen (Glocke): Anfeuern, Kommentare, Freundschaften, Challenges */
@@ -233,6 +236,10 @@ export function createSocial(supabase: SupabaseClient): Social {
       const { error } = await supabase.storage.from('dish-photos').upload(dishPhotoFile(dishId), blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '86400' });
       if (error) throw error;
       await rpc('set_dish_photo', { p_dish: dishId, p_on: true });
+    },
+    myGym: () => rpc('my_gym'),
+    setMyGym: async (p_gym) => {
+      await rpc('set_my_gym', { p_gym });
     },
     subscribeLive: async (onSignal) => {
       const uid = (await supabase.auth.getSession()).data.session?.user.id;
