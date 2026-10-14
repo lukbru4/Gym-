@@ -35,6 +35,19 @@ const ROCK: Record<string, [string, string, string]> = {
   'episch': ['#c3a0e8', '#8a5cc2', '#5c3590'],
   'legendär': ['#f6d77a', '#d4a52a', '#9a7210'],
 };
+/** Stein, der mit jedem Schlag durchsichtiger wird – darin erkennt man nach und nach das Gerät */
+export function StoneWithMachine({ progress, rarity, pattern, size = 130 }: { progress: number; rarity: string; pattern: string; size?: number }) {
+  const p = Math.max(0, Math.min(1, progress));
+  return (
+    <div className="stone-box" style={{ width: size, height: size * 0.92 }}>
+      <div className="stone-inner" style={{ opacity: 0.15 + p * 0.85, filter: `grayscale(${Math.round((1 - p) * 100)}%) brightness(${0.55 + p * 0.45})` }}>
+        <MachineArt pattern={pattern} height={Math.round(size * 0.78)} />
+      </div>
+      <div className="stone-layer" style={{ opacity: 1 - p * 0.72 }}><Stone progress={p} rarity={rarity} /></div>
+    </div>
+  );
+}
+
 export function Stone({ progress, rarity, shake = false }: { progress: number; rarity: string; shake?: boolean }) {
   const [l, m, d] = ROCK[rarity] ?? ROCK['gewöhnlich'];
   const stage = Math.min(4, Math.floor(progress * 5));

@@ -67,8 +67,8 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
   const P = (v: V3) => project(v, cam, w, h);
   const items: Item[] = [];
 
-  // Boden: Gummimatte mit weichem Schatten unter Figur und Gerät (statt Gitter)
-  {
+  // Boden: Gummimatte mit weichem Schatten unter Figur und Gerät (statt Gitter) – ohne Figur (Gym-Raum) kein Bodenfleck
+  if (opts.figure !== false) {
     const fc = P([cam.target[0], 0, cam.target[2]]);
     const fr = 1.5 * fc.s, fy = fr * 0.32;
     const fg = ctx.createRadialGradient(fc.x, fc.y, 1, fc.x, fc.y, fr);
@@ -76,15 +76,13 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
     ctx.fillStyle = fg;
     ctx.save(); ctx.translate(fc.x, fc.y); ctx.scale(1, fy / fr); ctx.translate(-fc.x, -fc.y);
     ctx.beginPath(); ctx.arc(fc.x, fc.y, fr, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    if (opts.figure !== false) {
-      const sc = P([j.pelvis[0], 0, (j.pelvis[2] + (j.toeL[2] + j.toeR[2]) / 2) / 2]);
-      const rx = 0.55 * sc.s, ry = 0.17 * sc.s;
-      const sh = ctx.createRadialGradient(sc.x, sc.y, 1, sc.x, sc.y, rx);
-      sh.addColorStop(0, 'rgba(0,0,0,0.28)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = sh;
-      ctx.save(); ctx.translate(sc.x, sc.y); ctx.scale(1, ry / rx); ctx.translate(-sc.x, -sc.y);
-      ctx.beginPath(); ctx.arc(sc.x, sc.y, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    }
+    const sc = P([j.pelvis[0], 0, (j.pelvis[2] + (j.toeL[2] + j.toeR[2]) / 2) / 2]);
+    const rx = 0.55 * sc.s, ry = 0.17 * sc.s;
+    const sh = ctx.createRadialGradient(sc.x, sc.y, 1, sc.x, sc.y, rx);
+    sh.addColorStop(0, 'rgba(0,0,0,0.28)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = sh;
+    ctx.save(); ctx.translate(sc.x, sc.y); ctx.scale(1, ry / rx); ctx.translate(-sc.x, -sc.y);
+    ctx.beginPath(); ctx.arc(sc.x, sc.y, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
   }
 
   // ---- Figur: verjüngte, schattierte Körperteile mit Muskelbäuchen ----

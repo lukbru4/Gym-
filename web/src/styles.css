@@ -2130,11 +2130,13 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .rarity { font-weight: 800; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; margin: 0; }
 .r-gewöhnlich { --rar: #9aa1a9; } .r-selten { --rar: #4f8fe0; } .r-episch { --rar: #a66be8; } .r-legendär { --rar: #e6b325; }
 .rarity { color: var(--rar); }
-.gym-room { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; border-radius: 18px; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--text) 7%, transparent) 0 2px, transparent 2px 33.33%), linear-gradient(180deg, color-mix(in srgb, var(--text) 10%, var(--bg)), color-mix(in srgb, var(--text) 4%, var(--bg))); border: 1px solid var(--border); }
-.gym-slot { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; min-height: 118px; padding: 4px 4px 6px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--rar, var(--border)) 60%, transparent); background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--text); font: inherit; font-size: 0.7rem; font-weight: 700; line-height: 1.15; text-align: center; cursor: pointer; }
-.gym-slot.empty { border-style: dashed; border-color: var(--border); justify-content: center; }
+.gym-room { position: relative; width: 100%; aspect-ratio: 400 / 360; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); background: #15171a; }
+.gym-room-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gym-slot { position: absolute; transform: translateY(-100%); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 0; border: 0; background: none; color: #fff; font: inherit; cursor: pointer; }
+.gym-slot-name { hyphens: auto; font-size: 0.52rem; font-weight: 800; line-height: 1.1; text-align: center; padding: 1px 5px; border-radius: 6px; background: rgba(0,0,0,0.55); border-bottom: 2px solid var(--rar); max-width: 115%; margin-top: -4px; }
+.gym-slot.empty { aspect-ratio: 2 / 1; justify-content: center; border-radius: 50%; border: 2px dashed rgba(255,255,255,0.18); transform: translateY(-80%); }
 .gym-slot .machine-art { width: 100%; }
-.gym-plus { font-size: 1.8rem; color: var(--text-secondary); }
+.gym-plus { font-size: 1.4rem; color: rgba(255,255,255,0.55); }
 .gym-collection { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .gym-card { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; border-radius: 10px; border: 2px solid var(--rar); background: var(--surface); font-size: 0.62rem; font-weight: 700; text-align: center; line-height: 1.1; min-height: 92px; justify-content: flex-end; }
 .gym-card.locked { opacity: 0.6; justify-content: center; }
@@ -2158,3 +2160,9 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .gym-mini.fresh { border-color: var(--accent); }
 .gym-fresh { margin: 0 0 8px; font-weight: 800; color: var(--accent); }
 .friend-gym-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stone-box { position: relative; flex: none; }
+.stone-box .stone-inner { position: absolute; inset: 8% 10% 12%; display: grid; place-items: center; }
+.stone-box .stone-inner .machine-art { width: 100%; }
+.stone-box .stone-layer { position: absolute; inset: 0; }
+.stone-box .stone-layer .stone { width: 100%; height: 100%; }
+.gym-stone .stone-box, .gym-mini-row .stone-box { flex: none; }
