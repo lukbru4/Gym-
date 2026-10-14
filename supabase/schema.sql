@@ -3141,10 +3141,80 @@ revoke all on function public.my_meals_list(), public.my_meal_save(bigint, text,
 grant execute on function public.my_meals_list(), public.my_meal_save(bigint, text, jsonb), public.my_meal_delete(bigint) to authenticated;
 
 -- ===========================================================================
+-- Mitteilungen (Glocke): Was Freunde mit mir gemacht haben – Anfeuern, Kommentare, Freundschaften, Challenges.
+-- Kommt aus den vorhandenen Tabellen; Zeitpunkt von Annahme/Antwort per Trigger. Gelesen-Stand pro Profil.
+-- ===========================================================================
+alter table public.friendships add column if not exists accepted_at timestamptz;
+alter table public.challenges add column if not exists responded_at timestamptz;
+alter table public.profiles add column if not exists notif_seen_at timestamptz;
+
+create or replace function public.tg_friendship_accepted()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.status = 'accepted' and old.status is distinct from 'accepted' then new.accepted_at := now(); end if;
+  return new;
+end;
+$$;
+drop trigger if exists friendship_accepted on public.friendships;
+create trigger friendship_accepted before update on public.friendships for each row execute function public.tg_friendship_accepted();
+
+create or replace function public.tg_challenge_responded()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.status in ('active', 'declined') and old.status = 'pending' then new.responded_at := now(); end if;
+  return new;
+end;
+$$;
+drop trigger if exists challenge_responded on public.challenges;
+create trigger challenge_responded before update on public.challenges for each row execute function public.tg_challenge_responded();
+
+-- Letzte Ereignisse (max. 50, höchstens 30 Tage alt); unread = neuer als notif_seen_at
+create or replace function public.my_notifications()
+returns table (kind text, at timestamptz, actor uuid, actor_name text, workout_id bigint, challenge_id bigint, body text, unread boolean)
+language sql stable security definer set search_path = '' as $$
+  with me as (select auth.uid() as id),
+  seen as (select coalesce((select p.notif_seen_at from public.profiles p where p.id = (select id from me)), '-infinity'::timestamptz) as t),
+  ev as (
+    select 'like'::text as kind, l.created_at as at, l.user_id as actor, w.id as workout_id, null::bigint as challenge_id, null::text as body
+      from public.likes l join public.workouts w on w.id = l.workout_id
+     where w.user_id = (select id from me) and l.user_id <> w.user_id
+    union all
+    select 'comment', c.created_at, c.user_id, w.id, null, left(c.body, 120)
+      from public.comments c join public.workouts w on w.id = c.workout_id
+     where w.user_id = (select id from me) and c.user_id <> w.user_id
+    union all
+    select 'friend_request', f.created_at, f.requester, null, null, null
+      from public.friendships f where f.addressee = (select id from me) and f.status = 'pending'
+    union all
+    select 'friend_accepted', f.accepted_at, f.addressee, null, null, null
+      from public.friendships f where f.requester = (select id from me) and f.status = 'accepted' and f.accepted_at is not null
+    union all
+    select 'challenge_invite', h.created_at, h.creator, null, h.id, h.metric
+      from public.challenges h where h.opponent = (select id from me) and h.status = 'pending'
+    union all
+    select case when h.status = 'active' then 'challenge_accepted' else 'challenge_declined' end, h.responded_at, h.opponent, null, h.id, h.metric
+      from public.challenges h where h.creator = (select id from me) and h.responded_at is not null
+  )
+  select e.kind, e.at, e.actor, coalesce(p.display_name, 'Jemand'), e.workout_id, e.challenge_id, e.body, e.at > (select t from seen)
+    from ev e left join public.profiles p on p.id = e.actor
+   where (select id from me) is not null and e.at > now() - interval '30 days'
+     and not public.is_blocked((select id from me), e.actor)
+   order by e.at desc
+   limit 50
+$$;
+
+create or replace function public.mark_notifications_seen()
+returns void language sql security definer set search_path = '' as $$
+  update public.profiles set notif_seen_at = now() where id = auth.uid()
+$$;
+revoke all on function public.my_notifications(), public.mark_notifications_seen() from public, anon;
+grant execute on function public.my_notifications(), public.mark_notifications_seen() to authenticated;
+
+-- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 60 $$;
+returns integer language sql immutable set search_path = '' as $$ select 61 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

@@ -87,6 +87,9 @@ export interface Social {
   /** Fotos zu Gerichten: Gericht-ID → Bild-Adresse (öffentlich); Hochladen/Entfernen nur Besitzer */
   dishPhotos(): Promise<Record<string, string>>;
   uploadDishPhoto(dishId: string, blob: Blob): Promise<void>;
+  /** Mitteilungen (Glocke): Anfeuern, Kommentare, Freundschaften, Challenges */
+  notifications(): Promise<AppNotification[]>;
+  markNotificationsSeen(): Promise<void>;
   /** Eigene Mahlzeiten (nur eigenes Konto; Speichern mit Pro) */
   myMeals(): Promise<MyMeal[]>;
   saveMyMeal(id: number | null, name: string, items: MealItem[]): Promise<number>;
@@ -122,6 +125,8 @@ export interface Social {
   setWeekGoal(goal: number): Promise<void>;
 }
 
+export type NotificationKind = 'like' | 'comment' | 'friend_request' | 'friend_accepted' | 'challenge_invite' | 'challenge_accepted' | 'challenge_declined';
+export interface AppNotification { kind: NotificationKind; at: string; actor: string; actor_name: string; workout_id: number | null; challenge_id: number | null; body: string | null; unread: boolean }
 export interface CatalogRow { id: string; kind: string; name: string; price: number; palette: CustomPalette | null }
 export interface AdminEntry { user_id: string; display_name: string | null; email: string | null; since: string; is_owner: boolean }
 export interface AdminReport {
@@ -225,6 +230,10 @@ export function createSocial(supabase: SupabaseClient): Social {
       const { error } = await supabase.storage.from('dish-photos').upload(dishPhotoFile(dishId), blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '86400' });
       if (error) throw error;
       await rpc('set_dish_photo', { p_dish: dishId, p_on: true });
+    },
+    notifications: async () => (await rpc<AppNotification[]>('my_notifications')).map((n) => ({ ...n, workout_id: n.workout_id == null ? null : Number(n.workout_id), challenge_id: n.challenge_id == null ? null : Number(n.challenge_id) })),
+    markNotificationsSeen: async () => {
+      await rpc('mark_notifications_seen');
     },
     myMeals: async () => (await rpc<MyMeal[]>('my_meals_list')).map((m) => ({ ...m, id: Number(m.id) })),
     saveMyMeal: async (p_id, p_name, p_items) => Number(await rpc('my_meal_save', { p_id, p_name, p_items })),

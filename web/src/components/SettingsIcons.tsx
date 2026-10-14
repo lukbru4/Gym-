@@ -11,6 +11,7 @@ const P: Record<string, string> = {
   faq: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zm-2.5-11a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7m0 3h.01',
   news: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zm0-13v5l3 2',
   recht: 'M7 3h8l4 4v14H7zM15 3v4h4M10 12h6m-6 4h6',
+  erinnerungen: 'M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0',
   logout: 'M10 4H5v16h5m4-4l4-4-4-4m4 4H9',
   shop: 'M4 9l1-5h14l1 5M5 9v11h14V9M9 20v-6h6v6',
 };

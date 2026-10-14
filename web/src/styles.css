@@ -2075,3 +2075,20 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 #meal-items .food-name { flex: 1; min-width: 0; }
 .nc-save-meal { display: block; margin: 2px 0 8px auto; border: 0; background: none; color: var(--accent); font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer; padding: 4px 0; }
 #meal-items .food-name small, #meal-detail .food-name small { display: block; }
+
+/* Glocke & Mitteilungen */
+.hud-bell { position: relative; display: grid; place-items: center; width: 38px; height: 38px; color: var(--text); text-decoration: none; }
+.hud-badge { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: var(--accent-text); font-size: 0.7rem; font-weight: 800; display: grid; place-items: center; line-height: 1; }
+.notif-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.notif-list a { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); color: var(--text); text-decoration: none; }
+.notif-list li.unread a { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.notif-icon { font-size: 1.5rem; flex: none; }
+.notif-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.notif-text small { color: var(--text-secondary); font-size: 0.78rem; }
+.rem-days { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.rem-days .picker-cat { min-width: 44px; }
+.rem-times { display: flex; flex-wrap: wrap; gap: 10px; }
+.rem-time { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--text-secondary); }
+.rem-time input, .rem-time select { min-width: 110px; }
+.reminder-hint { display: block; text-decoration: none; color: var(--text); font-weight: 700; }
+.rem-days .picker-cat[aria-pressed='true'] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }

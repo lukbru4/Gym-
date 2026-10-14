@@ -1,4 +1,6 @@
 // Rahmen der App: Kopfzeile (Level, Serie, Credits, Menü), Reiter unter „Ränge“, untere Leiste, Update-Hinweis.
+import { useNotifications } from '../lib/notifications';
+import type { Social } from '../data/social';
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../app/context';
 import { displayName } from '../app/profile';
@@ -62,6 +64,7 @@ export function Header({ game }: { game: Game | null }) {
         <Coin />
         <strong>{fmt(game?.balance ?? 0, 0)}</strong>
       </a>
+      {api.social && <Bell social={api.social} />}
       <button
         className="menu-btn"
         id="menu-btn"
@@ -228,3 +231,15 @@ export function DbUpdateBanner() {
   );
 }
 const WAS_ADMIN_KEY = 'gym-tracker-was-admin';
+
+/** Glocke mit Zahl der neuen Mitteilungen */
+function Bell({ social }: { social: Social }) {
+  const list = useNotifications(social);
+  const n = list?.filter((x) => x.unread).length ?? 0;
+  return (
+    <a className="hud-bell" id="hud-bell" href="#/mitteilungen" aria-label={n ? `Mitteilungen, ${n} neu` : 'Mitteilungen'}>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0" /></svg>
+      {n > 0 && <span className="hud-badge" id="hud-bell-count">{n > 9 ? '9+' : n}</span>}
+    </a>
+  );
+}

@@ -1,4 +1,5 @@
 // Wurzel der App: startet das Backend, verwaltet Login und Übungen, wählt die Seite zur Adresse (#/…).
+import { Notifications } from '../pages/Notifications';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { BottomNav, DbUpdateBanner, Header, SubNav, UpdateBanner } from '../components/Chrome';
 import { PreviewBar } from '../components/PreviewBar';
@@ -27,7 +28,8 @@ import { loadQuiz, saveQuiz, setQuizSyncer } from '../lib/plan';
 import { Food } from '../pages/Food';
 import { Animations } from '../pages/Animations';
 import { ProPage } from '../components/Pro';
-import { setPro } from '../lib/pro';
+import { setPro, usePro } from '../lib/pro';
+import { applyReminders, listenReminderTaps } from '../lib/reminders';
 import { clearAvatars, refreshAvatars } from '../lib/avatars';
 import { History, WorkoutDetail } from '../pages/Workout';
 import { StartFromTemplate, Workouts } from '../pages/Workouts';
@@ -70,6 +72,7 @@ const ROUTES: Route[] = [
   [/^#\/medaillen$/, () => <Medals />],
   [/^#\/shop$/, () => <Shop />],
   [/^#\/admin$/, () => <Admin />],
+  [/^#\/mitteilungen$/, () => <Notifications />],
   [/^#\/animationen$/, () => <Animations />],
   [/^#\/animationen\/gross$/, () => <Animations big />],
 ];
@@ -92,6 +95,14 @@ function Shell() {
   const lastGame = useRef(game.status === 'ok' ? game.data : null);
   if (game.status === 'ok') lastGame.current = game.data;
   useEffect(() => window.scrollTo(0, 0), [hash]);
+  // Erinnerungen (nur App fürs Handy): nach jedem neuen Spielstand neu planen – z. B. heute schon trainiert
+  const proState = usePro();
+  const gameNow = game.status === 'ok' ? game.data : null;
+  useEffect(() => {
+    if (!gameNow) return;
+    void applyReminders({ trainedToday: gameNow.workouts.some((w) => w.date === gameNow.today), weekDone: gameNow.weekDone, weekGoal: gameNow.weekGoal, pro: proState.pro });
+  }, [gameNow, proState.pro]);
+  useEffect(() => void listenReminderTaps(navigate), []);
   // Gekaufte/ausgerüstete Shop-Artikel einmal laden (fehlt das SQL noch, bleibt alles beim Standard)
   // Danach gilt: Farbschemata nur, wenn gekauft (Admin: alle)
   useEffect(() => {

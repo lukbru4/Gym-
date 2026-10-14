@@ -1,4 +1,5 @@
 // Konto & Einstellungen sowie Backup (nur lokaler Modus).
+import { ReminderSettingsCard } from '../components/ReminderSettings';
 import { ask, askText } from '../components/Dialog';
 import { useState, type ChangeEvent, type ReactNode } from 'react';
 import { useAsync } from '../app/useAsync';
@@ -208,6 +209,7 @@ export function Account({ section }: { section?: string }) {
   };
 
   const sections: Record<string, ReactNode> = {
+    erinnerungen: <ReminderSettingsCard />,
     konto: (
       <>
       <div className="card account">
@@ -360,7 +362,7 @@ export function Account({ section }: { section?: string }) {
   sections.alles = <><h2>Konto &amp; Einstellungen</h2>{sections.konto}{sections.profil}{sections.ziele}{sections.pro}{sections.themen}{sections.app}{sections.daten}{sections.recht}</>;
   const MENU: [string, [string, string, string][]][] = [
     ['Benutzer', [['profil', 'Profil', '#/konto/profil'], ['konto', 'Konto', '#/konto/konto'], ['pro', 'Pro', '#/konto/pro'], ['ziele', 'Ziele & Trainingsplan', '#/konto/ziele'], ['statistik', 'Statistiken', '#/fortschritt']]],
-    ['Einstellungen', [['themen', 'Themen & Farben', '#/konto/themen'], ['daten', 'Daten & Backup', '#/konto/daten'], ['app', 'App & Version', '#/konto/app']]],
+    ['Einstellungen', [['erinnerungen', 'Erinnerungen', '#/konto/erinnerungen'], ['themen', 'Themen & Farben', '#/konto/themen'], ['daten', 'Daten & Backup', '#/konto/daten'], ['app', 'App & Version', '#/konto/app']]],
     ['Ressourcen', [['faq', 'Häufig gestellte Fragen', '#/konto/faq'], ['news', 'Neuigkeiten', '#/konto/news']]],
     ['Rechtliches', [['recht', 'Datenschutz, Bedingungen, Lizenzen', '#/konto/recht']]],
   ];
