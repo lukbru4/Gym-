@@ -1,4 +1,6 @@
+import { notify } from '../components/Dialog';
 // Wurzel der App: startet das Backend, verwaltet Login und Übungen, wählt die Seite zur Adresse (#/…).
+import { EMAIL_LINK_DONE, parseEmailLink } from '../lib/emailLink';
 import { Notifications } from '../pages/Notifications';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { BottomNav, DbUpdateBanner, Header, SubNav, UpdateBanner } from '../components/Chrome';
@@ -203,6 +205,8 @@ function Shell() {
   );
 }
 
+let linkOnce: Promise<void> | undefined;
+
 export function App() {
   const [api, setApi] = useState<Backend | null>(null);
   const [startError, setStartError] = useState<Error | null>(null);
@@ -210,6 +214,7 @@ export function App() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   // Link „Passwort zurücksetzen“ aus der Mail: vor dem Start merken (Supabase entfernt den Hash danach)
+  const [emailLink] = useState(() => parseEmailLink(location.hash));
   const [recovery, setRecovery] = useState(() => /type=recovery/.test(location.hash));
   const toastTimer = useRef<number>(undefined);
 
@@ -225,6 +230,25 @@ export function App() {
     let alive = true;
     (async () => {
       const backend = await createBackend();
+      // Link aus unseren Mails (Konto bestätigen, Passwort zurücksetzen …) einlösen
+      if (emailLink && backend.verifyEmailLink) {
+        try {
+          // nur einmal einlösen (React startet Effekte in der Entwicklung doppelt; ein Link gilt nur einmal)
+          linkOnce ??= backend.verifyEmailLink(emailLink.tokenHash, emailLink.type);
+          await linkOnce;
+          if (!alive) return;
+          if (EMAIL_LINK_DONE[emailLink.type]) void notify(EMAIL_LINK_DONE[emailLink.type], { title: 'Geschafft' });
+        } catch {
+          if (!alive) return;
+          setRecovery(false);
+          void notify(
+            emailLink.type === 'recovery'
+              ? 'Dieser Link ist abgelaufen oder wurde schon benutzt. Tippe bei der Anmeldung auf „Passwort vergessen?“, dann bekommst du einen neuen.'
+              : 'Dieser Link ist abgelaufen oder wurde schon benutzt. Ist dein Konto schon bestätigt, melde dich einfach an. Sonst registriere dich mit derselben E-Mail noch einmal – dann kommt eine neue Mail.',
+            { title: 'Link funktioniert nicht' },
+          );
+        }
+      }
       const u = await backend.getUser();
       // Beim Öffnen der App immer auf Home starten (erst nach getUser(), damit Supabase
       // einen Login-Link mit #access_token=… schon ausgewertet hat).

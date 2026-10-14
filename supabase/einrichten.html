@@ -18,6 +18,12 @@
   #admin-status { font-weight: 700; overflow-wrap: anywhere; }
   textarea { width: 100%; box-sizing: border-box; height: 220px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: 12px/1.4 ui-monospace, monospace; padding: 8px; }
   .muted { color: var(--muted); font-size: 0.9rem; }
+  button.small { width: auto; min-height: 40px; padding: 0 14px; font-size: 0.95rem; border-radius: 10px; }
+  .row2 { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin: 10px 0; }
+  .mail-card h3 { margin: 0 0 4px; font-size: 1rem; }
+  .mail-card iframe { width: 100%; height: 520px; border: 0; border-radius: 10px; background: #f2f2f0; margin-top: 8px; }
+  code { overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -44,6 +50,25 @@
   <p></p>
   <button id="admin-copy">Admin-Befehl kopieren</button>
   <p id="admin-status" role="status"></p>
+
+  <h2 id="mails">E-Mails einrichten (einmalig, ca. 5 Minuten)</h2>
+  <p>Danach bekommen neue Nutzer eine deutsche Mail im Level-Up-Look mit einem großen Knopf, und der Link führt direkt in die App – nicht mehr auf supabase.co.</p>
+  <ol>
+    <li>Supabase → <strong>Authentication</strong> → <strong>URL Configuration</strong>: bei <strong>Site URL</strong> eintragen:<br><code id="site-url">https://lukbru4.github.io/Gym-/</code> <button class="small" data-copy-text="https://lukbru4.github.io/Gym-/">Kopieren</button><br>Bei <strong>Redirect URLs</strong> dieselbe Adresse hinzufügen → <strong>Save</strong>.</li>
+    <li>Supabase → <strong>Authentication</strong> → <strong>Emails</strong> (bzw. Email Templates). Für jede Vorlage unten: Reiter in Supabase öffnen, <strong>Betreff kopieren</strong> → bei „Subject“ einfügen, <strong>Text kopieren</strong> → bei „Message body“ alles ersetzen → <strong>Save</strong>.</li>
+  </ol>
+  <div id="mail-list"></div>
+  <p class="muted">Test: Registriere dich mit einer zweiten E-Mail-Adresse – die Mail sollte jetzt so aussehen wie in der Vorschau.</p>
+
+  <h2 id="absender">Später: eigener Absender (braucht eigene Domain)</h2>
+  <p>Bis dahin steht als Absender noch „Supabase Auth“. Außerdem verschickt Supabase ohne eigenen Mail-Dienst nur sehr wenige Mails pro Stunde – bei vielen neuen Nutzern auf einmal kommen manche Mails dann nicht an.</p>
+  <ol>
+    <li>Domain kaufen, z. B. bei IONOS, Strato oder Cloudflare (ca. 1 € pro Monat), etwa <em>levelup-app.de</em>.</li>
+    <li>Kostenloses Konto bei einem Mail-Dienst anlegen, z. B. <strong>Brevo</strong> (300 Mails/Tag gratis) oder <strong>Resend</strong>.</li>
+    <li>Dort die Domain hinzufügen und die angezeigten DNS-Einträge beim Domain-Anbieter eintragen (dauert bis zu einem Tag).</li>
+    <li>Supabase → <strong>Authentication</strong> → <strong>SMTP Settings</strong> → „Enable custom SMTP“: Absender <em>hallo@deine-domain.de</em>, Name <strong>Level Up</strong>, dazu Server, Port, Benutzer und Passwort vom Mail-Dienst → Save.</li>
+  </ol>
+  <p class="muted">Die Zugangsdaten trägst nur du in Supabase ein – nirgends sonst und nicht im Chat.</p>
 </main>
 <script>
   const btn = document.getElementById('copy');
@@ -89,6 +114,31 @@
     const ok = () => { out.textContent = '✓ Kopiert! Jetzt in Supabase einfügen und Run tippen.'; out.className = 'ok'; };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(cmd).then(ok, () => { out.textContent = cmd; });
     else out.textContent = cmd;
+  });
+
+  // Mail-Vorlagen: Betreff/Text kopieren, kleine Vorschau
+  const MAILS = [['bestaetigen', 'Confirm signup – Registrierung bestätigen'], ['passwort', 'Reset password – Passwort zurücksetzen'], ['email-aendern', 'Change email address – E-Mail ändern'], ['magic-link', 'Magic link – Anmelde-Link'], ['einladung', 'Invite user – Einladung']];
+  const copyText = (text, el) => {
+    const ok = () => { el.textContent = '✓ Kopiert'; setTimeout(() => (el.textContent = el.dataset.label), 1800); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, () => prompt('Kopieren:', text));
+    else prompt('Kopieren:', text);
+  };
+  document.querySelectorAll('[data-copy-text]').forEach((b) => { b.dataset.label = b.textContent; b.addEventListener('click', () => copyText(b.dataset.copyText, b)); });
+  fetch('email-templates/betreff.json', { cache: 'no-cache' }).then((r) => r.json()).then((subjects) => {
+    const box = document.getElementById('mail-list');
+    for (const [id, label] of MAILS) {
+      const card = document.createElement('div');
+      card.className = 'mail-card';
+      card.innerHTML = `<h3>${label}</h3><p class="muted">Betreff: <strong>${subjects[id]}</strong></p><div class="row2"><button class="small" data-subj>Betreff kopieren</button><button class="small" data-body>Text kopieren</button></div><details><summary>Vorschau</summary><iframe title="Vorschau" loading="lazy"></iframe></details>`;
+      box.appendChild(card);
+      const subj = card.querySelector('[data-subj]'), body = card.querySelector('[data-body]');
+      subj.dataset.label = subj.textContent; body.dataset.label = body.textContent;
+      subj.addEventListener('click', () => copyText(subjects[id], subj));
+      fetch(`email-templates/${id}.html`, { cache: 'no-cache' }).then((r) => r.text()).then((html) => {
+        body.addEventListener('click', () => copyText(html, body));
+        card.querySelector('iframe').srcdoc = html.replaceAll('{{ .SiteURL }}', 'https://lukbru4.github.io/Gym-/').replaceAll('{{ .TokenHash }}', 'beispiel').replaceAll('{{ .NewEmail }}', 'neu@beispiel.de');
+      });
+    }
   });
 </script>
 </body>

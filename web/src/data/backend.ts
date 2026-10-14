@@ -26,6 +26,8 @@ export interface Backend {
   resetPassword?(email: string): Promise<void>;
   /** Bestätigungs-Mail nach der Registrierung erneut senden */
   resendConfirmation?(email: string): Promise<void>;
+  /** Link aus unseren Mails (#/bestaetigen?token_hash=…) einlösen → angemeldet */
+  verifyEmailLink?(tokenHash: string, type: import('../lib/emailLink').EmailLinkType): Promise<void>;
   /** Neues Passwort für den angemeldeten Nutzer (nach dem Link aus der Mail) */
   updatePassword?(password: string): Promise<void>;
 

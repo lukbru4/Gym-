@@ -76,6 +76,10 @@ function backend(supabase: SupabaseClient): Backend {
     resetPassword: async (email) => {
       check(await supabase.auth.resetPasswordForEmail(email, { redirectTo: publicUrl() }));
     },
+    verifyEmailLink: async (token_hash, type) => {
+      const { error } = await supabase.auth.verifyOtp({ token_hash, type });
+      if (error) throw error;
+    },
     updatePassword: async (password) => {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
