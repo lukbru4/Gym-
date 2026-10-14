@@ -2069,3 +2069,9 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .dish-section, .dish-tiles { min-width: 0; max-width: 100%; }
 .dish-seg .seg-tab { flex: 1 1 0; min-width: 0; width: auto; }
 .food-dishes { grid-template-columns: minmax(0, 1fr); }
+.my-meal-icon { width: 56px; height: 56px; flex: none; display: grid; place-items: center; font-size: 1.8rem; border-radius: 14px; background: color-mix(in srgb, var(--accent) 14%, transparent); }
+#meal-editor label input { width: 100%; }
+#meal-items li { display: flex; align-items: center; gap: 8px; }
+#meal-items .food-name { flex: 1; min-width: 0; }
+.nc-save-meal { display: block; margin: 2px 0 8px auto; border: 0; background: none; color: var(--accent); font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer; padding: 4px 0; }
+#meal-items .food-name small, #meal-detail .food-name small { display: block; }

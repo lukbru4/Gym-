@@ -53,7 +53,7 @@ export function AddFood({ onClose, onAdd, onAddMany }: { onClose: () => void; on
 }
 
 
-function Barcode({ onPick, onError }: { onPick: (i: FoodItem) => void; onError: (e: unknown) => void }) {
+export function Barcode({ onPick, onError }: { onPick: (i: FoodItem) => void; onError: (e: unknown) => void }) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -190,7 +190,7 @@ function ItemRow({ item, onPick }: { item: FoodItem; onPick: (i: FoodItem) => vo
   );
 }
 
-function Search({ onPick, onError }: { onPick: (i: FoodItem) => void; onError: (e: unknown) => void }) {
+export function Search({ onPick, onError }: { onPick: (i: FoodItem) => void; onError: (e: unknown) => void }) {
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<FoodItem[] | null>(null);

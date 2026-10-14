@@ -2,6 +2,7 @@
 // die selbst prüfen, wer was sehen darf.
 import { FoodAiError, type ChatMsg, type ChatTurn, type FoodEntry, type Meal, type PhotoAnalysis } from '../lib/food';
 import { dishPhotoFile } from '../lib/dishPhotos';
+import type { MealItem, MyMeal } from '../lib/myMeals';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { publicUrl } from '../lib/platform';
 import type { Equipped } from '../lib/shop';
@@ -86,6 +87,10 @@ export interface Social {
   /** Fotos zu Gerichten: Gericht-ID → Bild-Adresse (öffentlich); Hochladen/Entfernen nur Besitzer */
   dishPhotos(): Promise<Record<string, string>>;
   uploadDishPhoto(dishId: string, blob: Blob): Promise<void>;
+  /** Eigene Mahlzeiten (nur eigenes Konto; Speichern mit Pro) */
+  myMeals(): Promise<MyMeal[]>;
+  saveMyMeal(id: number | null, name: string, items: MealItem[]): Promise<number>;
+  deleteMyMeal(id: number): Promise<void>;
   removeDishPhoto(dishId: string): Promise<void>;
   /** Essen tracken (Hinzufügen nur mit Pro, prüft der Server) */
   foodList(date: string): Promise<FoodEntry[]>;
@@ -220,6 +225,11 @@ export function createSocial(supabase: SupabaseClient): Social {
       const { error } = await supabase.storage.from('dish-photos').upload(dishPhotoFile(dishId), blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '86400' });
       if (error) throw error;
       await rpc('set_dish_photo', { p_dish: dishId, p_on: true });
+    },
+    myMeals: async () => (await rpc<MyMeal[]>('my_meals_list')).map((m) => ({ ...m, id: Number(m.id) })),
+    saveMyMeal: async (p_id, p_name, p_items) => Number(await rpc('my_meal_save', { p_id, p_name, p_items })),
+    deleteMyMeal: async (p_id) => {
+      await rpc('my_meal_delete', { p_id });
     },
     removeDishPhoto: async (dishId) => {
       await supabase.storage.from('dish-photos').remove([dishPhotoFile(dishId)]);

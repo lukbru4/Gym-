@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
 import { LoadError, Loading } from '../components/Bits';
-import { ask } from '../components/Dialog';
+import { ask, askText, notify } from '../components/Dialog';
+import { itemsFromEntries } from '../lib/myMeals';
 import { AddFood } from '../components/FoodAdd';
 import { DISCLAIMER, FoodSetup, PlanResultView } from '../components/FoodSetup';
 import { Paywall } from '../components/Pro';
@@ -198,6 +199,18 @@ export function Food() {
                 </div>
               ))}
               {!rows.length && <p className="nc-empty">–</p>}
+              {rows.length > 0 && pro.pro && (
+                <button type="button" className="nc-save-meal" data-save-meal={meal} onClick={async () => {
+                  const name = await askText(`Die ${rows.length === 1 ? 'Zutat' : `${rows.length} Einträge`} von „${MEAL_LABEL[meal]}“ als eigene Mahlzeit speichern. Danach findest du sie unter Hinzufügen → Gerichte → Eigene.`, { title: 'Als Mahlzeit speichern', ok: 'Speichern', placeholder: 'Name, z. B. Mein Frühstück' });
+                  if (!name?.trim()) return;
+                  try {
+                    await social.saveMyMeal(null, name.trim().slice(0, 80), itemsFromEntries(rows.slice(0, 40)));
+                    await notify(`„${name.trim()}“ ist gespeichert.`);
+                  } catch (err) {
+                    showError(err);
+                  }
+                }}>☆ Als eigene Mahlzeit speichern</button>
+              )}
             </section>
           );
         })}

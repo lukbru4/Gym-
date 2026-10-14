@@ -3081,10 +3081,70 @@ create policy "dish-photos: Besitzer sieht" on storage.objects for select to aut
   using (bucket_id = 'dish-photos' and public.is_owner());
 
 -- ===========================================================================
+-- Eigene Mahlzeiten: Nutzer speichern Zusammenstellungen (Zutaten mit Gramm und Nährwerten pro 100 g)
+-- und tragen sie später mit einem Tipp ins Ernährungstagebuch ein. Nur für das eigene Konto sichtbar.
+-- items: [{"n": Name, "b": Marke|null, "g": Gramm, "p": {"kcal","protein","carbs","fat"} pro 100 g}]
+-- ===========================================================================
+create table if not exists public.my_meals (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  name       text not null check (length(trim(name)) between 1 and 80),
+  items      jsonb not null check (jsonb_typeof(items) = 'array' and jsonb_array_length(items) between 1 and 40 and length(items::text) <= 20000),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists my_meals_user on public.my_meals (user_id, updated_at desc);
+alter table public.my_meals enable row level security;
+revoke all on public.my_meals from anon, authenticated;
+
+create or replace function public.my_meals_list()
+returns table (id bigint, name text, items jsonb, updated_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select m.id, m.name, m.items, m.updated_at from public.my_meals m where m.user_id = auth.uid() order by m.updated_at desc, m.id desc
+$$;
+
+-- Neu anlegen (p_id null) oder ändern; liefert die ID
+create or replace function public.my_meal_save(p_id bigint, p_name text, p_items jsonb)
+returns bigint language plpgsql security definer set search_path = '' as $$
+declare new_id bigint; it jsonb;
+begin
+  if auth.uid() is null then raise exception 'Bitte melde dich an.'; end if;
+  if not public.has_pro() then raise exception 'Eigene Mahlzeiten gibt es mit Pro.'; end if;
+  if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) not between 1 and 40 then
+    raise exception 'Eine Mahlzeit braucht 1 bis 40 Zutaten.';
+  end if;
+  for it in select * from jsonb_array_elements(p_items) loop
+    if jsonb_typeof(it) <> 'object' or length(coalesce(it->>'n', '')) not between 1 and 120
+       or coalesce((it->>'g')::numeric, -1) not between 0.1 and 10000
+       or jsonb_typeof(it->'p') <> 'object'
+       or coalesce((it->'p'->>'kcal')::numeric, -1) not between 0 and 9000 then
+      raise exception 'Ungültige Zutat.';
+    end if;
+  end loop;
+  if p_id is null then
+    if (select count(*) from public.my_meals m where m.user_id = auth.uid()) >= 300 then raise exception 'Du hast schon 300 eigene Mahlzeiten.'; end if;
+    insert into public.my_meals (user_id, name, items) values (auth.uid(), trim(p_name), p_items) returning id into new_id;
+    return new_id;
+  end if;
+  update public.my_meals m set name = trim(p_name), items = p_items, updated_at = now()
+  where m.id = p_id and m.user_id = auth.uid() returning m.id into new_id;
+  if new_id is null then raise exception 'Mahlzeit nicht gefunden.'; end if;
+  return new_id;
+end;
+$$;
+
+create or replace function public.my_meal_delete(p_id bigint)
+returns void language sql security definer set search_path = '' as $$
+  delete from public.my_meals where id = p_id and user_id = auth.uid()
+$$;
+revoke all on function public.my_meals_list(), public.my_meal_save(bigint, text, jsonb), public.my_meal_delete(bigint) from public, anon;
+grant execute on function public.my_meals_list(), public.my_meal_save(bigint, text, jsonb), public.my_meal_delete(bigint) to authenticated;
+
+-- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 59 $$;
+returns integer language sql immutable set search_path = '' as $$ select 60 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;
