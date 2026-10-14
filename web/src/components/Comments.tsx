@@ -1,4 +1,5 @@
 // Kommentare unter einem Training: lesen, schreiben (mit Wortfilter), löschen, melden.
+import { useLive } from '../lib/live';
 import { useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
@@ -19,13 +20,14 @@ function timeAgo(iso: string) {
 export function Comments({ social, workoutId, onCount }: { social: Social; workoutId: number; onCount?: (n: number) => void }) {
   const { showError } = useApp();
   const [version, setVersion] = useState(0);
+  const live = useLive(`comment:${workoutId}`, 'resume');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const list = useAsync(async () => {
     const rows = await social.comments(workoutId);
     onCount?.(rows.length);
     return rows;
-  }, [social, workoutId, version]);
+  }, [social, workoutId, version, live]);
   const reload = () => setVersion((v) => v + 1);
 
   const send = async (e: FormEvent) => {

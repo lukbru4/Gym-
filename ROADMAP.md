@@ -164,6 +164,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 117: Erinnerungen (Training an Plantagen, Essen eintragen, Wasser, Serie retten) als Benachrichtigung in der Handy-App, im Browser als Hinweis auf der Startseite; Glocke mit Mitteilungen (Anfeuern, Kommentare, Freundschaften, Challenges) (Datenbank-Update 61)
 - [x] Schritt 118: Deutsche Mail-Vorlagen im Level-Up-Look (Konto bestätigen, Passwort, E-Mail ändern, Anmelde-Link, Einladung); Links führen direkt in die App statt auf supabase.co; Einrichtungsseite mit Kopier-Knöpfen und Vorschau
 - [ ] Mail-Vorlagen in Supabase einfügen + Site URL setzen (**Lukas**, siehe einrichten.html → „E-Mails einrichten“)
+- [x] Schritt 119: Live-Aktualisierung über Supabase Realtime – neue Kommentare, Anfeuern, Freundes-Trainings, Freundschaftsanfragen und Challenges erscheinen sofort (privater Kanal pro Person, nur Signale, Inhalte weiter über geprüfte Funktionen) (Datenbank-Update 62)
 - [ ] Echte Push-Nachrichten von Freunden, wenn die App zu ist (braucht Apple-Push-Schlüssel / Firebase, **Lukas**: Apple-Developer-Konto)
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [ ] Onboarding nach der Registrierung + Pro-Abo/Bezahlseite (Demo zur Abstimmung)

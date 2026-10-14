@@ -1,3 +1,4 @@
+import { useLiveConnection } from '../lib/live';
 import { notify } from '../components/Dialog';
 // Wurzel der App: startet das Backend, verwaltet Login und Übungen, wählt die Seite zur Adresse (#/…).
 import { EMAIL_LINK_DONE, parseEmailLink } from '../lib/emailLink';
@@ -105,6 +106,8 @@ function Shell() {
     void applyReminders({ trainedToday: gameNow.workouts.some((w) => w.date === gameNow.today), weekDone: gameNow.weekDone, weekGoal: gameNow.weekGoal, pro: proState.pro });
   }, [gameNow, proState.pro]);
   useEffect(() => void listenReminderTaps(navigate), []);
+  // Live: neue Kommentare, Anfeuern, Freundes-Trainings sofort anzeigen
+  useLiveConnection(api.social);
   // Gekaufte/ausgerüstete Shop-Artikel einmal laden (fehlt das SQL noch, bleibt alles beim Standard)
   // Danach gilt: Farbschemata nur, wenn gekauft (Admin: alle)
   useEffect(() => {

@@ -3211,10 +3211,112 @@ revoke all on function public.my_notifications(), public.mark_notifications_seen
 grant execute on function public.my_notifications(), public.mark_notifications_seen() to authenticated;
 
 -- ===========================================================================
+-- Live-Aktualisierung (Supabase Realtime, „Broadcast aus der Datenbank“): Bei neuen Kommentaren, Anfeuern,
+-- Freundes-Trainings, Anfragen und Challenges bekommt jeder Betroffene ein kurzes Signal auf seinem privaten
+-- Kanal „user:<id>“. Das Signal enthält nur die Art (und ggf. die Trainings-ID) – die App lädt die Inhalte danach
+-- wie gewohnt über die geprüften Funktionen. Nur man selbst kann seinen Kanal abhören (Regel unten).
+-- ===========================================================================
+create or replace function public.rt_send(p_user uuid, p_kind text, p_workout bigint default null)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if p_user is null or to_regprocedure('realtime.send(jsonb,text,text,boolean)') is null then return; end if;
+  perform realtime.send(jsonb_build_object('kind', p_kind, 'workout_id', p_workout), p_kind, 'user:' || p_user::text, true);
+exception when others then
+  null; -- Live-Signal darf nie das eigentliche Speichern verhindern
+end;
+$$;
+revoke all on function public.rt_send(uuid, text, bigint) from public, anon, authenticated;
+
+-- Freunde, die die Trainings von p_owner sehen dürfen
+create or replace function public.rt_viewers(p_owner uuid)
+returns setof uuid language sql stable security definer set search_path = '' as $$
+  select case when f.requester = p_owner then f.addressee else f.requester end
+    from public.friendships f
+   where f.status = 'accepted' and (f.requester = p_owner or f.addressee = p_owner)
+     and public.can_see(case when f.requester = p_owner then f.addressee else f.requester end, p_owner)
+$$;
+revoke all on function public.rt_viewers(uuid) from public, anon, authenticated;
+
+create or replace function public.tg_rt_workout()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare v uuid;
+begin
+  for v in select public.rt_viewers(new.user_id) loop perform public.rt_send(v, 'feed', new.id); end loop;
+  return null;
+end;
+$$;
+drop trigger if exists rt_workout on public.workouts;
+create trigger rt_workout after insert on public.workouts for each row execute function public.tg_rt_workout();
+
+create or replace function public.tg_rt_like()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare owner uuid; wid bigint := coalesce(new.workout_id, old.workout_id); actor uuid := coalesce(new.user_id, old.user_id);
+begin
+  select w.user_id into owner from public.workouts w where w.id = wid;
+  if owner is not null and owner <> actor then perform public.rt_send(owner, 'like', wid); end if;
+  return null;
+end;
+$$;
+drop trigger if exists rt_like on public.likes;
+create trigger rt_like after insert or delete on public.likes for each row execute function public.tg_rt_like();
+
+create or replace function public.tg_rt_comment()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare owner uuid; wid bigint := coalesce(new.workout_id, old.workout_id); actor uuid := coalesce(new.user_id, old.user_id); v uuid;
+begin
+  select w.user_id into owner from public.workouts w where w.id = wid;
+  if owner is null then return null; end if;
+  if owner <> actor then perform public.rt_send(owner, 'comment', wid); end if;
+  -- Freunde, die das Training gerade offen haben könnten, sehen den neuen Kommentar ebenfalls sofort
+  for v in select public.rt_viewers(owner) loop
+    if v <> actor then perform public.rt_send(v, 'comment', wid); end if;
+  end loop;
+  return null;
+end;
+$$;
+drop trigger if exists rt_comment on public.comments;
+create trigger rt_comment after insert or delete on public.comments for each row execute function public.tg_rt_comment();
+
+create or replace function public.tg_rt_friendship()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then perform public.rt_send(new.addressee, 'friend');
+  elsif tg_op = 'UPDATE' and new.status = 'accepted' and old.status <> 'accepted' then perform public.rt_send(new.requester, 'friend'); perform public.rt_send(new.addressee, 'friend');
+  end if;
+  return null;
+end;
+$$;
+drop trigger if exists rt_friendship on public.friendships;
+create trigger rt_friendship after insert or update on public.friendships for each row execute function public.tg_rt_friendship();
+
+create or replace function public.tg_rt_challenge()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then perform public.rt_send(new.opponent, 'challenge');
+  elsif new.status is distinct from old.status then perform public.rt_send(new.creator, 'challenge'); perform public.rt_send(new.opponent, 'challenge');
+  end if;
+  return null;
+end;
+$$;
+drop trigger if exists rt_challenge on public.challenges;
+create trigger rt_challenge after insert or update on public.challenges for each row execute function public.tg_rt_challenge();
+
+-- Regel: privaten Kanal „user:<id>“ darf nur die Person selbst abhören (nur, wenn Realtime im Projekt vorhanden ist)
+do $rt$
+begin
+  if to_regclass('realtime.messages') is not null then
+    execute 'drop policy if exists "levelup: eigener Live-Kanal" on realtime.messages';
+    execute $p$create policy "levelup: eigener Live-Kanal" on realtime.messages for select to authenticated
+      using (realtime.topic() = 'user:' || (select auth.uid())::text)$p$;
+  end if;
+end
+$rt$;
+
+-- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 61 $$;
+returns integer language sql immutable set search_path = '' as $$ select 62 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

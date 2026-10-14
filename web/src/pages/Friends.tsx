@@ -1,5 +1,6 @@
 // Freunde: eigener Code/Einladungslink, Freund hinzufügen, Anfragen, Freundesliste, Rangliste,
 // Profil eines Freundes, Feed der Freunde (auf Home) und Einladungslinks (#/freunde/add/CODE).
+import { useLive } from '../lib/live';
 import { AvatarDot } from '../components/AvatarDot';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
@@ -77,11 +78,12 @@ export function Friends() {
   const { showError, dataVersion, dataChanged } = useApp();
   const [code, setCode] = useState('');
   const [note, setNote] = useState('');
+  const live = useLive('friend', 'feed', 'resume');
   const [busy, setBusy] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const data = useAsync(
     async () => (social ? Promise.all([social.myProfile(), social.friends(), social.leaderboard()]) : null),
-    [social, dataVersion],
+    [social, dataVersion, live],
   );
   if (!social) return (<><h2>Freunde</h2><NeedsAccount /></>);
   if (data.status === 'loading') return <Loading />;
@@ -316,7 +318,8 @@ function FeedCard({ item, social, onChange }: { item: FeedItem; social: Social; 
 export function FriendsFeed() {
   const social = useSocial();
   const { dataVersion } = useApp();
-  const feed = useAsync(async () => (social ? social.feed() : []), [social, dataVersion]);
+  const live = useLive('feed', 'like', 'comment', 'resume');
+  const feed = useAsync(async () => (social ? social.feed() : []), [social, dataVersion, live]);
   const [items, setItems] = useState<FeedItem[] | null>(null);
   useEffect(() => {
     if (feed.status === 'ok') setItems(feed.data);

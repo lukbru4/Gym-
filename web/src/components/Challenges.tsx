@@ -1,4 +1,5 @@
 // Challenges mit Freunden: herausfordern, annehmen/ablehnen, Punktestand, Ergebnis mit Bonus-Credits.
+import { useLive } from '../lib/live';
 import { ChoiceField } from './ChoiceSheet';
 import { useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
@@ -77,7 +78,8 @@ function ChallengeItem({ c, social, onChange }: { c: Challenge; social: Social; 
 
 export function Challenges({ social, friends, heading = true }: { social: Social; friends: Friend[]; /** false: Überschrift steht schon über der Karte */ heading?: boolean }) {
   const { showError, dataVersion, dataChanged } = useApp();
-  const list = useAsync(() => social.challenges(), [social, dataVersion]);
+  const live = useLive('challenge', 'resume');
+  const list = useAsync(() => social.challenges(), [social, dataVersion, live]);
   const [open, setOpen] = useState(false);
   const accepted = friends.filter((f) => f.status === 'friend');
   const [opponent, setOpponent] = useState('');

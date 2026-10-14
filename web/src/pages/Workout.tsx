@@ -1,4 +1,5 @@
 // Verlauf und Detailansicht eines gespeicherten Trainings.
+import { useLive } from '../lib/live';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
 import { navigate } from '../app/router';
@@ -36,7 +37,8 @@ export function History() {
 
 /** Reaktionen der Freunde auf das eigene Training (nur Cloud) */
 function WorkoutSocial({ social, id }: { social: Social; id: number }) {
-  const info = useAsync(() => social.workoutSocial(id).catch(() => null), [social, id]);
+  const live = useLive(`like:${id}`, `comment:${id}`, 'resume');
+  const info = useAsync(() => social.workoutSocial(id).catch(() => null), [social, id, live]);
   if (info.status !== 'ok' || !info.data) return null;
   return (
     <div className="card" id="workout-social">

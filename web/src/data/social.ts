@@ -87,6 +87,8 @@ export interface Social {
   /** Fotos zu Gerichten: Gericht-ID → Bild-Adresse (öffentlich); Hochladen/Entfernen nur Besitzer */
   dishPhotos(): Promise<Record<string, string>>;
   uploadDishPhoto(dishId: string, blob: Blob): Promise<void>;
+  /** Live-Signale (Supabase Realtime, privater Kanal „user:<id>“); liefert eine Abmelde-Funktion */
+  subscribeLive(onSignal: (s: LiveSignal) => void): Promise<() => void>;
   /** Mitteilungen (Glocke): Anfeuern, Kommentare, Freundschaften, Challenges */
   notifications(): Promise<AppNotification[]>;
   markNotificationsSeen(): Promise<void>;
@@ -125,6 +127,7 @@ export interface Social {
   setWeekGoal(goal: number): Promise<void>;
 }
 
+export interface LiveSignal { kind: string; workout_id: number | null }
 export type NotificationKind = 'like' | 'comment' | 'friend_request' | 'friend_accepted' | 'challenge_invite' | 'challenge_accepted' | 'challenge_declined';
 export interface AppNotification { kind: NotificationKind; at: string; actor: string; actor_name: string; workout_id: number | null; challenge_id: number | null; body: string | null; unread: boolean }
 export interface CatalogRow { id: string; kind: string; name: string; price: number; palette: CustomPalette | null }
@@ -230,6 +233,19 @@ export function createSocial(supabase: SupabaseClient): Social {
       const { error } = await supabase.storage.from('dish-photos').upload(dishPhotoFile(dishId), blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '86400' });
       if (error) throw error;
       await rpc('set_dish_photo', { p_dish: dishId, p_on: true });
+    },
+    subscribeLive: async (onSignal) => {
+      const uid = (await supabase.auth.getSession()).data.session?.user.id;
+      if (!uid) return () => {};
+      await supabase.realtime.setAuth();
+      const channel = supabase
+        .channel(`user:${uid}`, { config: { private: true } })
+        .on('broadcast', { event: '*' }, (msg) => {
+          const p = (msg.payload ?? {}) as Partial<LiveSignal>;
+          if (typeof p.kind === 'string') onSignal({ kind: p.kind, workout_id: typeof p.workout_id === 'number' ? p.workout_id : null });
+        })
+        .subscribe();
+      return () => void supabase.removeChannel(channel);
     },
     notifications: async () => (await rpc<AppNotification[]>('my_notifications')).map((n) => ({ ...n, workout_id: n.workout_id == null ? null : Number(n.workout_id), challenge_id: n.challenge_id == null ? null : Number(n.challenge_id) })),
     markNotificationsSeen: async () => {
