@@ -9,6 +9,7 @@ import { toMaxJpeg } from '../lib/image';
 import { foodItemOf, guessFood, photoModelReady, type PhotoGuess } from '../lib/photoGuess';
 import { usePro } from '../lib/pro';
 import { ask } from './Dialog';
+import { DishImage } from './DishImage';
 import { DishDetail } from './FoodDishes';
 import { pickNumber } from './NumberPicker';
 import type { NewEntry } from './FoodAdd';
@@ -170,9 +171,12 @@ export function FoodPhoto({ onAdd, onAddMany, onPickFood, onSearch }: {
           <ul className="picker-list">
             {guesses.map((g) => (
               <li key={g.target}>
-                <button type="button" className="picker-item" data-guess={g.target} onClick={() => choose(g)}>
-                  <span className="picker-name">{g.name}</span>
-                  <span className="picker-sub">ca. {fmt(g.kcal, 0)} kcal pro Portion ({fmt(g.grams, 0)} g) · {Math.round(g.score * 100)} % sicher</span>
+                <button type="button" className="picker-item dish-item" data-guess={g.target} onClick={() => choose(g)}>
+                  {(() => { const d = g.target.startsWith('dish:') ? DISH_BY_ID.get(g.target.slice(5)) : undefined; return d ? <DishImage dish={d} /> : null; })()}
+                  <span className="dish-text">
+                    <span className="picker-name">{g.name}</span>
+                    <span className="picker-sub">ca. {fmt(g.kcal, 0)} kcal pro Portion ({fmt(g.grams, 0)} g) · {Math.round(g.score * 100)} % sicher</span>
+                  </span>
                 </button>
               </li>
             ))}

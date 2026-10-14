@@ -3028,10 +3028,63 @@ revoke all on function public.my_plan_answers(), public.set_plan_answers(jsonb) 
 grant execute on function public.my_plan_answers(), public.set_plan_answers(jsonb) to authenticated;
 
 -- ===========================================================================
+-- Fotos zu Gerichten: Der Besitzer lädt echte Fotos hoch, alle sehen sie (öffentliche Bilder, keine persönlichen Daten).
+-- Ohne Foto zeigt die App eine gezeichnete Teller-Illustration. Dateiname = Gericht-ID ohne Umlaute + „.jpg“.
+-- ===========================================================================
+create table if not exists public.dish_photos (
+  dish_id text primary key check (char_length(dish_id) between 1 and 80),
+  v integer not null default 1,
+  updated_at timestamptz not null default now()
+);
+alter table public.dish_photos enable row level security;
+revoke all on public.dish_photos from anon, authenticated;
+grant select on public.dish_photos to anon, authenticated;
+drop policy if exists "dish_photos: alle lesen" on public.dish_photos;
+create policy "dish_photos: alle lesen" on public.dish_photos for select to anon, authenticated using (true);
+
+-- Foto gesetzt (p_on) oder entfernt; liefert die neue Versionsnummer (0 = kein Foto). Nur der Besitzer.
+create or replace function public.set_dish_photo(p_dish text, p_on boolean)
+returns integer language plpgsql security definer set search_path = '' as $$
+declare nv integer;
+begin
+  if not public.is_owner() then raise exception 'Nur der Besitzer darf Fotos von Gerichten ändern.'; end if;
+  if p_dish is null or char_length(p_dish) not between 1 and 80 then raise exception 'Unbekanntes Gericht.'; end if;
+  if p_on then
+    insert into public.dish_photos as d (dish_id) values (p_dish)
+    on conflict (dish_id) do update set v = d.v + 1, updated_at = now()
+    returning d.v into nv;
+    return nv;
+  end if;
+  delete from public.dish_photos where dish_id = p_dish;
+  return 0;
+end;
+$$;
+revoke all on function public.set_dish_photo(text, boolean) from public, anon;
+grant execute on function public.set_dish_photo(text, boolean) to authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('dish-photos', 'dish-photos', true, 716800, array['image/jpeg'])
+on conflict (id) do update set public = true, file_size_limit = 716800, allowed_mime_types = array['image/jpeg'];
+drop policy if exists "dish-photos: Besitzer lädt hoch" on storage.objects;
+create policy "dish-photos: Besitzer lädt hoch" on storage.objects for insert to authenticated
+  with check (bucket_id = 'dish-photos' and public.is_owner() and name ~ '^[a-z0-9-]{1,90}\.jpg$');
+drop policy if exists "dish-photos: Besitzer ersetzt" on storage.objects;
+create policy "dish-photos: Besitzer ersetzt" on storage.objects for update to authenticated
+  using (bucket_id = 'dish-photos' and public.is_owner())
+  with check (bucket_id = 'dish-photos' and public.is_owner() and name ~ '^[a-z0-9-]{1,90}\.jpg$');
+drop policy if exists "dish-photos: Besitzer löscht" on storage.objects;
+create policy "dish-photos: Besitzer löscht" on storage.objects for delete to authenticated
+  using (bucket_id = 'dish-photos' and public.is_owner());
+-- Zum Ersetzen (upsert) muss der Besitzer die alte Datei auch lesen dürfen; ansehen geht ohnehin über die öffentliche Adresse
+drop policy if exists "dish-photos: Besitzer sieht" on storage.objects;
+create policy "dish-photos: Besitzer sieht" on storage.objects for select to authenticated
+  using (bucket_id = 'dish-photos' and public.is_owner());
+
+-- ===========================================================================
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 58 $$;
+returns integer language sql immutable set search_path = '' as $$ select 59 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

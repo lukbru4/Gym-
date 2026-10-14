@@ -2032,3 +2032,12 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .recovery-banner { border-radius: 14px; padding: 10px 12px; margin: 10px 0; font-size: 0.9rem; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); }
 .recovery-banner.low { background: color-mix(in srgb, #f59e0b 14%, transparent); border-color: color-mix(in srgb, #f59e0b 45%, transparent); }
 .recovery-banner.high { background: color-mix(in srgb, #22c55e 12%, transparent); border-color: color-mix(in srgb, #22c55e 40%, transparent); }
+
+/* Gerichte mit Bild (Foto oder gezeichneter Teller) */
+.picker-item.dish-item { display: flex; align-items: center; gap: 12px; text-align: left; }
+.dish-item .dish-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dish-img { width: 72px; height: 72px; flex: none; border-radius: 14px; object-fit: cover; background: color-mix(in srgb, var(--text) 6%, transparent); }
+.dish-hero { display: block; width: 100%; max-height: 240px; aspect-ratio: 4 / 3; object-fit: contain; border-radius: 16px; margin: 8px 0 4px; background: radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--text) 10%, transparent), color-mix(in srgb, var(--text) 3%, transparent) 75%); }
+.dish-hero.photo { object-fit: cover; }
+.dish-photo-list li { display: flex; align-items: center; gap: 10px; }
+.dish-photo-list .dish-img { width: 48px; height: 48px; border-radius: 10px; }

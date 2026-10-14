@@ -1,6 +1,7 @@
 // Freunde & Community (nur Cloud). Alle Abfragen laufen über Server-Funktionen in supabase/schema.sql,
 // die selbst prüfen, wer was sehen darf.
 import { FoodAiError, type ChatMsg, type ChatTurn, type FoodEntry, type Meal, type PhotoAnalysis } from '../lib/food';
+import { dishPhotoFile } from '../lib/dishPhotos';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { publicUrl } from '../lib/platform';
 import type { Equipped } from '../lib/shop';
@@ -82,6 +83,10 @@ export interface Social {
   uploadAvatar(blob: Blob): Promise<void>;
   removeAvatar(): Promise<void>;
   avatarUrls(userIds: string[]): Promise<Record<string, string>>;
+  /** Fotos zu Gerichten: Gericht-ID → Bild-Adresse (öffentlich); Hochladen/Entfernen nur Besitzer */
+  dishPhotos(): Promise<Record<string, string>>;
+  uploadDishPhoto(dishId: string, blob: Blob): Promise<void>;
+  removeDishPhoto(dishId: string): Promise<void>;
   /** Essen tracken (Hinzufügen nur mit Pro, prüft der Server) */
   foodList(date: string): Promise<FoodEntry[]>;
   foodAdd(e: { date: string; meal: Meal; name: string; brand?: string | null; amount_g?: number | null; kcal: number; protein: number; carbs: number; fat: number; barcode?: string | null; source: FoodEntry['source'] }): Promise<number>;
@@ -203,6 +208,22 @@ export function createSocial(supabase: SupabaseClient): Social {
       const out: Record<string, string> = {};
       for (const row of data ?? []) if (row.signedUrl && row.path) out[row.path.split('/')[0]] = row.signedUrl;
       return out;
+    },
+    dishPhotos: async () => {
+      const { data, error } = await supabase.from('dish_photos').select('dish_id, v');
+      if (error) throw error;
+      const out: Record<string, string> = {};
+      for (const row of (data ?? []) as { dish_id: string; v: number }[]) out[row.dish_id] = `${supabase.storage.from('dish-photos').getPublicUrl(dishPhotoFile(row.dish_id)).data.publicUrl}?v=${row.v}`;
+      return out;
+    },
+    uploadDishPhoto: async (dishId, blob) => {
+      const { error } = await supabase.storage.from('dish-photos').upload(dishPhotoFile(dishId), blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '86400' });
+      if (error) throw error;
+      await rpc('set_dish_photo', { p_dish: dishId, p_on: true });
+    },
+    removeDishPhoto: async (dishId) => {
+      await supabase.storage.from('dish-photos').remove([dishPhotoFile(dishId)]);
+      await rpc('set_dish_photo', { p_dish: dishId, p_on: false });
     },
     foodList: async (p_date) => (await rpc<FoodEntry[]>('food_list', { p_date })).map((e) => ({ ...e, kcal: Number(e.kcal), protein: Number(e.protein), carbs: Number(e.carbs), fat: Number(e.fat), amount_g: e.amount_g == null ? null : Number(e.amount_g) })),
     foodAdd: (e) =>

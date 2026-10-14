@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { DISH_CATS, dishNutrition, searchDishes, sumIngredients, type Dish, type DishCat } from '../lib/dishes';
 import { fmt } from '../lib/format';
 import { FOOD_BY_KEY } from '../lib/foodDb';
+import { DishImage } from './DishImage';
 import { pickNumber } from './NumberPicker';
 import type { NewEntry } from './FoodAdd';
 
@@ -28,6 +29,7 @@ export function DishDetail({ dish, onBack, onAdd, onAddMany, source = 'manual' }
   return (
     <div className="card" id="dish-detail" data-dish={dish.id}>
       <button type="button" className="btn small-btn" id="dish-back" onClick={onBack}>‹ Zurück</button>
+      <DishImage dish={dish} className="dish-hero" />
       <h3>{dish.name}</h3>
       <div className="nc-factors" role="group" aria-label="Portion">
         {FACTORS.map(([f, t]) => <button key={f} type="button" data-f={f} className={`picker-cat${factor === f ? ' active' : ''}`} aria-pressed={factor === f} onClick={() => setFactor(f)}>{t} {f <= 1 ? 'Portion' : 'Portionen'}</button>)}
@@ -82,9 +84,12 @@ export function Dishes({ onAdd, onAddMany }: { onAdd: (e: NewEntry) => Promise<v
           const n = dishNutrition(d);
           return (
             <li key={d.id}>
-              <button type="button" className="picker-item" data-dish={d.id} onClick={() => setOpen(d)}>
+              <button type="button" className="picker-item dish-item" data-dish={d.id} onClick={() => setOpen(d)}>
+                <DishImage dish={d} />
+                <span className="dish-text">
                 <span className="picker-name">{d.name}</span>
                 <span className="picker-sub">{fmt(n.kcal, 0)} kcal · {fmt(n.protein, 0)} g Eiweiß · {d.ingredients.length === 1 ? 'Fertiggericht' : `${d.ingredients.length} Zutaten`}</span>
+                </span>
               </button>
             </li>
           );

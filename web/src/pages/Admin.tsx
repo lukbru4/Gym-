@@ -6,9 +6,13 @@ import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
 import { LoadError, Loading } from '../components/Bits';
+import { DishImage } from '../components/DishImage';
 import type { AdminEntry, AdminReport } from '../data/social';
 import { useCosmetics } from '../lib/cosmetics';
+import { DISHES, searchDishes, type Dish } from '../lib/dishes';
+import { setDishPhotoLocal, useDishPhotos } from '../lib/dishPhotos';
 import { fmt } from '../lib/format';
+import { toMaxJpeg } from '../lib/image';
 import { paywallPreview, setPaywallPreview, usePro } from '../lib/pro';
 import { setServerCatalog, useShopItems } from '../lib/shop';
 import {
@@ -348,6 +352,63 @@ function Admins() {
   );
 }
 
+/** Echte Fotos für Gerichte hochladen (nur Besitzer). Ohne Foto zeigt die App den gezeichneten Teller. */
+function DishPhotos() {
+  const { api, showError } = useApp();
+  const photos = useDishPhotos(api.social);
+  const [q, setQ] = useState('');
+  const [onlyMissing, setOnlyMissing] = useState(false);
+  const [busy, setBusy] = useState('');
+  const list = (q.trim() ? searchDishes(q, 'alle', 40) : DISHES).filter((d) => !onlyMissing || !photos[d.id]).slice(0, 12);
+  const upload = async (d: Dish, file: File | undefined) => {
+    if (!file) return;
+    setBusy(d.id);
+    try {
+      const jpg = await toMaxJpeg(file, 1024, 0.82);
+      await api.social!.uploadDishPhoto(d.id, jpg);
+      setDishPhotoLocal(d.id, URL.createObjectURL(jpg));
+    } catch (err) {
+      showError(err);
+    } finally {
+      setBusy('');
+    }
+  };
+  const remove = async (d: Dish) => {
+    if (!(await ask(`Das Foto von „${d.name}“ wird gelöscht. Danach sieht man wieder den gezeichneten Teller.`, { title: 'Foto entfernen?', ok: 'Entfernen', danger: true }))) return;
+    setBusy(d.id);
+    try {
+      await api.social!.removeDishPhoto(d.id);
+      setDishPhotoLocal(d.id, null);
+    } catch (err) {
+      showError(err);
+    } finally {
+      setBusy('');
+    }
+  };
+  const count = DISHES.filter((d) => photos[d.id]).length;
+  return (
+    <div className="card" id="admin-dish-photos">
+      <h3>Fotos für Gerichte</h3>
+      <p className="muted small">Lade zu einem Gericht ein eigenes Foto hoch – alle Nutzer sehen es dann statt des gezeichneten Tellers. Nimm nur Fotos, die du selbst gemacht hast oder frei verwenden darfst. <span id="dish-photo-count">{count} von {DISHES.length} Gerichten haben ein Foto.</span></p>
+      <input id="dish-photo-q" type="search" placeholder="Gericht suchen" value={q} onChange={(e) => setQ(e.target.value)} />
+      <label className="check-row"><input type="checkbox" id="dish-photo-missing" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} /><span>Nur Gerichte ohne Foto</span></label>
+      <ul className="admin-list dish-photo-list">
+        {list.map((d) => (
+          <li key={d.id} data-dish-photo={d.id}>
+            <DishImage dish={d} />
+            <div className="grow"><strong>{d.name}</strong>{photos[d.id] && <span className="muted small"> · Foto</span>}</div>
+            <label className={`btn small-btn${busy ? ' disabled' : ''}`}>
+              {busy === d.id ? '…' : photos[d.id] ? 'Ersetzen' : 'Foto'}
+              <input type="file" accept="image/*" hidden disabled={Boolean(busy)} onChange={(e) => { void upload(d, e.target.files?.[0]); e.target.value = ''; }} />
+            </label>
+            {photos[d.id] && <button type="button" className="btn small-btn danger" disabled={Boolean(busy)} onClick={() => remove(d)}>✕</button>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function PaywallTest() {
   const [on, setOn] = useState(paywallPreview());
   return (
@@ -377,6 +438,7 @@ export function Admin() {
     <>
       <h2>🛠 Admin-Menü</h2>
       {owner && <Admins />}
+      {owner && <DishPhotos />}
       <MyColors />
       <PaywallTest />
       <Designer />
