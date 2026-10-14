@@ -1,10 +1,11 @@
 // Testseite für alle Bewegungsmuster (nur für Admins im Menü verlinkt): Start, Mitte und Ende mit hervorgehobenen Muskeln.
+// #/animationen/gross zeigt je Muster ein großes Bild (Mitte der Bewegung) zum genauen Prüfen.
 import { ExerciseAnim, focusFor } from '../components/ExerciseAnim';
 import { PATTERN_IDS, PATTERNS } from '../lib/animations';
 import { animIdFor } from '../lib/animMap';
 import { CATALOG } from '../lib/exerciseCatalog';
 
-export function Animations() {
+export function Animations({ big = false }: { big?: boolean }) {
   return (
     <>
       <h2>Animationen</h2>
@@ -16,8 +17,10 @@ export function Animations() {
           return (
             <div className="card" key={id} data-pattern={id}>
               <h3>{PATTERNS[id].name}</h3>
-              <div className="anim-trio">
-                {[0, 0.25, 0.5].map((u) => <ExerciseAnim key={u} id={id} height={190} fixedU={u} compact highlight={focus} />)}
+              <div className={big ? "anim-big" : "anim-trio"}>
+                {big
+                  ? <ExerciseAnim id={id} height={420} fixedU={0.25} compact highlight={focus} />
+                  : [0, 0.25, 0.5].map((u) => <ExerciseAnim key={u} id={id} height={190} fixedU={u} compact highlight={focus} />)}
               </div>
             </div>
           );

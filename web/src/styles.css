@@ -1708,6 +1708,7 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .anim-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 700px) { .anim-grid { grid-template-columns: repeat(2, 1fr); } }
 .anim-trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.anim-big { display: block; }
 
 /* Übungsseite */
 .picker-list li { position: relative; }
@@ -1841,9 +1842,7 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .muscle-legend i.p { background: #a8402f; } .muscle-legend i.s { background: #d99a8a; }
 .ex-thumb-wrap { display: block; width: calc(100% + 20px); margin: 0 -10px 6px; background: #ffffff; overflow: hidden; }
 .ex-thumb-wrap .ex-thumb { margin: 0; width: 100%; }
-.ex-thumb-wrap.fig .bodygraph-panel { background: none; border: 0; padding: 0; margin: 0; height: 100%; }
-.ex-thumb-wrap.fig .bodygraph { width: 100%; height: 100%; max-width: none; }
-.ex-thumb-wrap:not(.fig) { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.ex-thumb-wrap { background: radial-gradient(ellipse at 50% 55%, color-mix(in srgb, var(--text) 22%, transparent), color-mix(in srgb, var(--text) 8%, transparent) 75%); }
 .picker-list.cards .ex-thumb-wrap .ex-thumb { width: 100%; margin: 0; }
 .anim-canvas { background: #ffffff; border-radius: 14px; }
 

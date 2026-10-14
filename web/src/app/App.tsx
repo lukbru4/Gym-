@@ -71,6 +71,7 @@ const ROUTES: Route[] = [
   [/^#\/shop$/, () => <Shop />],
   [/^#\/admin$/, () => <Admin />],
   [/^#\/animationen$/, () => <Animations />],
+  [/^#\/animationen\/gross$/, () => <Animations big />],
 ];
 
 function Toast({ message }: { message: string | null }) {

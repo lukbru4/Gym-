@@ -51,12 +51,13 @@ describe('Übungen → Bewegungsmuster', () => {
     const id = (n: string) => animIdFor(n, []);
     expect(id('Bankdrücken')).toBe('bench');
     expect(id('Kurzhantel-Bankdrücken')).toBe('bench-db');
-    expect(id('Schulterdrücken (Maschine)')).toBe('ohp-seated');
+    expect(id('Schulterdrücken (Maschine)')).toBe('ohp-machine');
     expect(id('Schulterdrücken (Langhantel, sitzend)')).toBe('ohp-seated');
-    expect(id('Scott-Curls (Maschine)')).toBe('preacher');
-    expect(id('Wadenheben (Beinpresse)')).toBe('calf');
+    expect(id('Scott-Curls (Maschine)')).toBe('curl-machine');
+    expect(id('Scott-Curls (Langhantel)')).toBe('preacher');
+    expect(id('Wadenheben (Beinpresse)')).toBe('calf-machine');
     expect(id('Beinpresse (sitzend)')).toBe('legpress');
-    expect(id('Klimmzug-Maschine (unterstützt)')).toBe('pulldown');
+    expect(id('Klimmzug-Maschine (unterstützt)')).toBe('assist-pullup');
     expect(id('Klimmzüge (Untergriff)')).toBe('pullup');
     expect(id('Bizepscurls (Kabel)')).toBe('curl-cable');
     expect(id('Beinheben (hängend)')).toBe('legraise');
@@ -84,6 +85,7 @@ describe('Muster passen zu den Muskeln der Übung', () => {
     curl: ['bizeps'], 'curl-bar': ['bizeps'], 'curl-cable': ['bizeps'], preacher: ['bizeps'], triceps: ['trizeps'], 'triceps-rope': ['trizeps'], skull: ['trizeps'], overhead: ['trizeps'],
     lateral: ['schultern'], front: ['schultern'], reversefly: ['schultern', 'oberer_ruecken'], shrug: ['oberer_ruecken'], ohp: ['schultern', 'trizeps'], 'ohp-seated': ['schultern'],
     squat: ['quadrizeps', 'gesaess'], legpress: ['quadrizeps', 'gesaess'], legext: ['quadrizeps'], legcurl: ['beinbeuger'], calf: ['waden'], glute: ['gesaess', 'quadrizeps'], lunge: ['quadrizeps', 'gesaess'],
+    'ohp-machine': ['schultern'], 'ohp-smith': ['schultern'], rowmachine: ['oberer_ruecken', 'lat', 'schultern'], 'calf-machine': ['waden'], 'curl-machine': ['bizeps'], 'bench-smith': ['brust', 'trizeps'], 'incline-smith': ['brust', 'schultern'], 'squat-smith': ['quadrizeps', 'gesaess'], hack: ['quadrizeps', 'gesaess'], 'hipthrust-machine': ['gesaess'], 'assist-pullup': ['lat'], cablefly: ['brust'], abmachine: ['bauch'], abductor: ['gesaess', 'quadrizeps'], adductor: ['quadrizeps', 'gesaess'], dipmachine: ['trizeps', 'brust'], 'legcurl-seated': ['beinbeuger'],
     hinge: ['unterer_ruecken', 'gesaess', 'beinbeuger'], backext: ['unterer_ruecken'], crunch: ['bauch'], situp: ['bauch'], legraise: ['bauch', 'quadrizeps'], twist: ['bauch'], plank: ['bauch', 'schultern'],
   };
   test('kein Muster bei einer Übung ohne passenden Muskel', () => {

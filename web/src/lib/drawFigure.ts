@@ -1,6 +1,8 @@
 // Zeichnet die 3D-Figur und ihre Hilfsmittel auf eine Canvas-Fläche (2D-Kontext mit eigener Perspektive).
 import { LEN, NEUTRAL, poseAt, project, solve, type Camera, type Joints, type Pose, type V3 } from './rig';
 import type { Pattern, Prop, Segment } from './animations';
+import { boundsKit, makeKit, MAT, type Kit } from './gymKit';
+import { drawMachine, weightTower } from './machines';
 
 export interface Colors { body: string; bodyDark: string; accent: string; accent2: string; prop: string; propDark: string; floor: string; text: string }
 
@@ -40,14 +42,16 @@ export function frameOf(p: Pattern): { target: V3; size: number } {
     for (const k of Object.values(j) as V3[]) for (let i = 0; i < 3; i++) { min[i] = Math.min(min[i], k[i]); max[i] = Math.max(max[i], k[i]); }
   }
   min[1] = Math.min(min[1], 0);
-  // Maschinen/Kabelturm gehören mit ins Bild
-  const pz = solve({ ...NEUTRAL, ...patternPose(p, 0) }, p.anchor).pelvis[2];
-  for (const prop of p.props) {
-    if (prop.kind === 'stack') { if (prop.front) max[2] = Math.max(max[2], pz + 1.0 + (prop.dz ?? 0)); else min[2] = Math.min(min[2], pz - 0.95 - (prop.dz ?? 0)); max[1] = Math.max(max[1], 1.95); }
-    if (prop.kind === 'cable') { max[1] = Math.max(max[1], 2.3); const zf = p.id === 'seatedrow' ? prop.from[2] : pz + prop.from[2]; max[2] = Math.max(max[2], zf + 0.6); }
+  // Geräte gehören mit ins Bild: ihre Punkte werden ohne Zeichnen gesammelt
+  const pts: V3[] = [];
+  for (const u of [0, 0.5]) {
+    const pose = { ...NEUTRAL, ...patternPose(p, u) };
+    const jj = solve(pose, p.anchor);
+    for (const prop of p.props) drawProp(boundsKit(pts), prop, jj, pose, p);
   }
+  for (const v of pts) for (let i = 0; i < 3; i++) { min[i] = Math.min(min[i], v[i]); max[i] = Math.max(max[i], v[i]); }
   const target: V3 = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2 + 0.05, (min[2] + max[2]) / 2];
-  const size = Math.max(max[1] - min[1], (max[2] - min[2]) * 0.9, 1.3) * 1.15;
+  const size = Math.max(max[1] - min[1], (max[2] - min[2]) * 0.9, (max[0] - min[0]) * 0.75, 1.3) * 1.12;
   return { target, size };
 }
 
@@ -62,23 +66,33 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
   const P = (v: V3) => project(v, cam, w, h);
   const items: Item[] = [];
 
-  // Boden: Gitter + Schatten
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = c.floor;
-  for (let i = -3; i <= 3; i++) {
-    const a = P([i * 0.25, 0, cam.target[2] - 0.75]), b = P([i * 0.25, 0, cam.target[2] + 0.75]);
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-    const d = P([-0.75, 0, cam.target[2] + i * 0.25]), e = P([0.75, 0, cam.target[2] + i * 0.25]);
-    ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(e.x, e.y); ctx.stroke();
+  // Boden: Gummimatte mit weichem Schatten unter Figur und Gerät (statt Gitter)
+  {
+    const fc = P([cam.target[0], 0, cam.target[2]]);
+    const fr = 1.5 * fc.s, fy = fr * 0.32;
+    const fg = ctx.createRadialGradient(fc.x, fc.y, 1, fc.x, fc.y, fr);
+    fg.addColorStop(0, 'rgba(70,74,82,0.22)'); fg.addColorStop(0.7, 'rgba(70,74,82,0.10)'); fg.addColorStop(1, 'rgba(70,74,82,0)');
+    ctx.fillStyle = fg;
+    ctx.save(); ctx.translate(fc.x, fc.y); ctx.scale(1, fy / fr); ctx.translate(-fc.x, -fc.y);
+    ctx.beginPath(); ctx.arc(fc.x, fc.y, fr, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    const sc = P([j.pelvis[0], 0, (j.pelvis[2] + (j.toeL[2] + j.toeR[2]) / 2) / 2]);
+    const rx = 0.55 * sc.s, ry = 0.17 * sc.s;
+    const sh = ctx.createRadialGradient(sc.x, sc.y, 1, sc.x, sc.y, rx);
+    sh.addColorStop(0, 'rgba(0,0,0,0.28)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = sh;
+    ctx.save(); ctx.translate(sc.x, sc.y); ctx.scale(1, ry / rx); ctx.translate(-sc.x, -sc.y);
+    ctx.beginPath(); ctx.arc(sc.x, sc.y, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
   }
 
   // ---- Figur: verjüngte, schattierte Körperteile mit Muskelbäuchen ----
-  const T = tones(c);
+  // Menschliche Figur: Hautton, dunkles Shirt, Shorts, helle Schuhe (Muskeln werden rot darübergelegt)
+  const SKIN: Tone = { light: '#f0c9ad', mid: '#d9a585', dark: '#a8735a', edge: '#8a5c46' }, SHIRT = toneOf('#3b4554'), SHOE = toneOf('#4b525e'), SOLE = toneOf('#eceef1'), SHORTS_T = toneOf('#2a2d34');
+  const T = { ...tones(c), body: SKIN };
   const roleOf = (seg?: Segment) => (seg ? hi.get(seg) : undefined);
   const toneFor = (seg?: Segment): Tone => (roleOf(seg) === 'p' ? T.primary : roleOf(seg) === 's' ? T.secondary : T.body);
   const lerp3 = (a2: V3, b2: V3, t: number): V3 => [a2[0] + (b2[0] - a2[0]) * t, a2[1] + (b2[1] - a2[1]) * t, a2[2] + (b2[2] - a2[2]) * t];
   const LIGHT = [-0.55, -0.83];
-  const taper = (a2: V3, b2: V3, ra: number, rb: number, tone: Tone, bias = 0) => {
+  const taper = (a2: V3, b2: V3, ra: number, rb: number, tone: Tone, bias = 0, caps = true) => {
     const pa = P(a2), pb = P(b2);
     items.push({
       depth: (pa.depth + pb.depth) / 2 + bias,
@@ -97,14 +111,17 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
         ctx.lineTo(pb.x - nx * r2, pb.y - ny * r2);
         ctx.lineTo(pa.x - nx * r1, pa.y - ny * r1);
         ctx.closePath(); ctx.fill();
-        for (const [q, r] of [[pa, r1], [pb, r2]] as const) {
-          const rg = ctx.createRadialGradient(q.x - r * 0.3, q.y - r * 0.35, r * 0.1, q.x, q.y, r);
-          rg.addColorStop(0, tone.light); rg.addColorStop(0.6, tone.mid); rg.addColorStop(1, tone.dark);
-          ctx.fillStyle = rg;
+        // Gelenk-Enden mit derselben Schattierung wie das Glied → durchgehender Arm/Bein statt Kugelgelenk
+        if (caps) for (const [q, r] of [[pa, r1], [pb, r2]] as const) {
+          const cg = ctx.createLinearGradient(q.x + nx * sgn * r, q.y + ny * sgn * r, q.x - nx * sgn * r, q.y - ny * sgn * r);
+          cg.addColorStop(0, tone.light); cg.addColorStop(0.45, tone.mid); cg.addColorStop(1, tone.dark);
+          ctx.fillStyle = cg;
           ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fill();
         }
+        ctx.globalAlpha = 0.45; ctx.lineWidth = 0.8;
         ctx.beginPath(); ctx.moveTo(pa.x + nx * r1, pa.y + ny * r1); ctx.lineTo(pb.x + nx * r2, pb.y + ny * r2);
         ctx.moveTo(pa.x - nx * r1, pa.y - ny * r1); ctx.lineTo(pb.x - nx * r2, pb.y - ny * r2); ctx.stroke();
+        ctx.globalAlpha = 1;
       },
     });
   };
@@ -144,293 +161,225 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
   };
   const upperSeg: Segment | undefined = roleOf('chest') ? 'chest' : roleOf('upperBack') ? 'upperBack' : undefined;
   const lowerSeg: Segment | undefined = roleOf('abs') ? 'abs' : roleOf('lowerBack') ? 'lowerBack' : undefined;
-  quad(j.shL, j.shR, wr, wl, toneFor(upperSeg));
-  quad(wl, wr, j.hipR, j.hipL, toneFor(lowerSeg));
-  taper(hpMid, waist, 0.115, 0.1, toneFor(lowerSeg), -0.006);
-  taper(waist, shMid, 0.11, 0.15, toneFor(upperSeg), -0.006);
+  const shirtOr = (seg?: Segment) => (seg && roleOf(seg) ? toneFor(seg) : SHIRT);
+  quad(j.shL, j.shR, wr, wl, shirtOr(upperSeg));
+  quad(wl, wr, j.hipR, j.hipL, shirtOr(lowerSeg));
+  taper(hpMid, waist, 0.118, 0.104, shirtOr(lowerSeg), -0.006);
+  taper(waist, shMid, 0.112, 0.155, shirtOr(upperSeg), -0.006);
 
   // Beine
   for (const side of ['L', 'R'] as const) {
     const hip = j[`hip${side}` as 'hipL'], kn = j[`kn${side}` as 'knL'], an = j[`an${side}` as 'anL'], toe = j[`toe${side}` as 'toeL'], heel = j[`heel${side}` as 'heelL'];
     part(hip, kn, 0.112, 0.074, 'thighs', [0.08, 0.95, 1.14]);
     part(kn, an, 0.066, 0.042, 'calves', [0.04, 0.62, 1.26]);
-    taper(an, toe, 0.036, 0.028, T.body);
-    taper(an, heel, 0.036, 0.03, T.body);
-    sphere(hip, roleOf('glutes') ? 0.105 : 0.092, toneFor('glutes'), -0.01);
-    sphere(kn, 0.062, T.body, -0.004);
+    // Schuhe mit dunkler Sohle
+    // Schuh: helle Sohle unten, dunkles Obermaterial, vorne flacher als an der Ferse
+    taper(lerp3(heel, an, -0.1), toe, 0.034, 0.03, SOLE, 0.004);
+    taper(an, toe, 0.05, 0.036, SHOE, -0.002);
+    taper(an, heel, 0.05, 0.044, SHOE, -0.002);
+    if (roleOf('glutes')) sphere(hip, 0.1, toneFor('glutes'), -0.01);
+    else sphere(hip, 0.07, SHORTS_T, -0.004);
   }
   // Arme
   for (const side of ['L', 'R'] as const) {
     const sh = j[`sh${side}` as 'shL'], el = j[`el${side}` as 'elL'], wr2 = j[`wr${side}` as 'wrL'], hd = j[`hand${side}` as 'handL'];
     part(sh, el, 0.07, 0.054, 'upperArms', [0.12, 0.92, 1.18]);
     part(el, wr2, 0.054, 0.036, 'forearms', [0.06, 0.8, 1.16]);
-    taper(wr2, hd, 0.034, 0.026, T.body);
-    sphere(sh, roleOf('shoulders') ? 0.1 : 0.082, toneFor('shoulders'), -0.01);
-    sphere(el, 0.046, T.body, -0.004);
+    taper(wr2, hd, 0.034, 0.03, T.body);
+    sphere(hd, 0.034, T.body, -0.006);
+    // kurzer Ärmel über der Schulter
+    taper(sh, lerp3(sh, el, 0.4), 0.08, 0.07, roleOf('shoulders') ? toneFor('shoulders') : SHIRT, -0.006, false);
+    sphere(sh, roleOf('shoulders') ? 0.088 : 0.072, roleOf('shoulders') ? toneFor('shoulders') : SHIRT, -0.01);
   }
-  taper(j.chest, j.neckTop, 0.06, 0.05, T.body);
+  taper(j.chest, j.neckTop, 0.068, 0.056, T.body);
   sphere(j.head, 0.105, T.body, 0);
   // kurze dunkle Haare und dunkle Shorts
   const HAIR = toneOf('#3b2a22'), SHORTS = toneOf('#2a2d34');
   sphere([j.head[0], j.head[1] + 0.045, j.head[2] - 0.012], 0.1, HAIR, -0.004);
   for (const side of ['L', 'R'] as const) {
     const hip = j[`hip${side}` as 'hipL'], kn = j[`kn${side}` as 'knL'];
-    taper(hip, lerp3(hip, kn, 0.46), 0.122, 0.104, SHORTS, -0.012);
+    taper(hip, lerp3(hip, kn, 0.46), 0.118, 0.1, SHORTS, -0.012, false);
   }
-  taper(hpMid, waist, 0.125, 0.11, SHORTS, -0.012);
+  taper(hpMid, lerp3(hpMid, waist, 0.6), 0.13, 0.118, SHORTS, -0.012, false);
 
-  // Hilfsmittel
-  const H: PropHelpers = {
-    line: (a, b, wpx, color = c.prop, bias = 0) => {
-      const pa = P(a), pb = P(b);
-      items.push({ depth: (pa.depth + pb.depth) / 2 + bias, draw: () => {
-        ctx.lineCap = 'round'; ctx.strokeStyle = color; ctx.lineWidth = wpx;
-        ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
-      } });
-    },
-    poly: (pts, fill, bias = 0) => {
-      const q = pts.map(P);
-      items.push({ depth: q.reduce((sum, v) => sum + v.depth, 0) / q.length + bias, draw: () => {
-        ctx.fillStyle = fill; ctx.strokeStyle = c.propDark; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
-        ctx.beginPath(); ctx.moveTo(q[0].x, q[0].y); for (const v of q.slice(1)) ctx.lineTo(v.x, v.y); ctx.closePath(); ctx.fill(); ctx.stroke();
-      } });
-    },
-    P,
-    c,
-  };
-  for (const prop of p.props) drawProp(H, prop, j, pose, p);
+  // Hilfsmittel und Geräte (realistische Bausteine aus gymKit)
+  const kit = makeKit(ctx, P, items, cam);
+  for (const prop of p.props) drawProp(kit, prop, j, pose, p);
 
   items.sort((a, b) => b.depth - a.depth);
   for (const it of items) it.draw();
 }
 
 
-interface PropHelpers {
-  line: (a: V3, b: V3, wpx: number, color?: string, bias?: number) => void;
-  poly: (pts: V3[], fill: string, bias?: number) => void;
-  P: (v: V3) => { x: number; y: number; s: number; depth: number };
-  c: Colors;
-}
 
-function ring(center: V3, axis: 'x' | 'y' | 'z', r: number, n = 16): V3[] {
-  const pts: V3[] = [];
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2, ca = Math.cos(a) * r, sa = Math.sin(a) * r;
-    pts.push(axis === 'x' ? [center[0], center[1] + ca, center[2] + sa] : axis === 'y' ? [center[0] + ca, center[1], center[2] + sa] : [center[0] + ca, center[1] + sa, center[2]]);
+const mid3 = (a: V3, b: V3): V3 => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+const X: V3 = [1, 0, 0], Y: V3 = [0, 1, 0], Z: V3 = [0, 0, 1];
+const seatOf = (pat: Pattern) => (pat.anchor && pat.anchor.on === 'surface' ? pat.anchor.y : 0.42);
+
+/** Langhantel: verchromte Stange mit Hülsen, Scheiben und Klemmen */
+function barbell(k: Kit, center: V3, half = 0.62, plates = 2, plateR = 0.2) {
+  k.tube([center[0] - half, center[1], center[2]], [center[0] + half, center[1], center[2]], 0.014, MAT.chrome, -0.02);
+  for (const sx of [-1, 1]) {
+    const sleeve = center[0] + sx * (half - 0.2);
+    k.tube([sleeve, center[1], center[2]], [center[0] + sx * (half + 0.08), center[1], center[2]], 0.024, MAT.chrome, -0.02);
+    for (let i = 0; i < plates; i++) k.disc([sleeve + sx * (0.04 + i * 0.05), center[1], center[2]], X, i === 0 ? plateR : plateR * 0.8, 0.04, MAT.plate, -0.02);
+    k.tube([sleeve + sx * (0.04 + plates * 0.05), center[1], center[2]], [sleeve + sx * (0.07 + plates * 0.05), center[1], center[2]], 0.032, MAT.red, -0.03);
   }
-  return pts;
 }
-const box = (h: PropHelpers, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, fill: string) => {
-  // sechs Flächen, hinten zuerst (Tiefenordnung übernimmt die Sortierung grob)
-  const v = (x: number, y: number, z: number): V3 => [x, y, z];
-  const faces: V3[][] = [
-    [v(x0, y1, z0), v(x1, y1, z0), v(x1, y1, z1), v(x0, y1, z1)], // oben
-    [v(x0, y0, z0), v(x1, y0, z0), v(x1, y1, z0), v(x0, y1, z0)], // hinten
-    [v(x0, y0, z1), v(x1, y0, z1), v(x1, y1, z1), v(x0, y1, z1)], // vorn
-    [v(x0, y0, z0), v(x0, y0, z1), v(x0, y1, z1), v(x0, y1, z0)], // links
-    [v(x1, y0, z0), v(x1, y0, z1), v(x1, y1, z1), v(x1, y1, z0)], // rechts
-  ];
-  for (const f of faces) h.poly(f, fill, 0.05);
-};
-
-/** Gewichtsblock: gestapelte Platten, eine mit Stift (Orange) markiert; top = Oberkante */
-function weightStack(h: PropHelpers, c: Colors, z: number, top: number, pinned: number) {
-  const n = 11, ph = 0.11, gap = 0.02;
-  for (let i = 0; i < n; i++) {
-    const y1 = top - 0.1 - i * (ph + gap), y0 = y1 - ph;
-    box(h, -0.19, 0.19, y0, y1, z - 0.13, z + 0.13, i === pinned ? c.accent2 : c.prop);
+/** Kurzhantel: Griff mit runden Gewichten */
+function dumbbell(k: Kit, h: V3) {
+  k.tube([h[0] - 0.07, h[1], h[2]], [h[0] + 0.07, h[1], h[2]], 0.016, MAT.chrome, -0.03);
+  for (const sx of [-1, 1]) k.disc([h[0] + sx * 0.1, h[1], h[2]], X, 0.065, 0.06, MAT.plate, -0.03, 0);
+}
+/** Hantelbank mit Rahmen; für Bankdrücken mit Ablage-Ständern */
+function benchProp(k: Kit, j: Joints, pat: Pattern, angle: number) {
+  const y = seatOf(pat);
+  const p = j.pelvis;
+  if (pat.id === 'dbrow') {
+    k.pad([0, 0.42, 0.5], X, Y, Z, 0.16, 0.04, 0.32, 0.35);
+    for (const z of [0.25, 0.75]) k.tube([0, 0.05, z], [0, 0.38, z], 0.035, MAT.frame, 0.05);
+    k.tube([0, 0.04, 0.15], [0, 0.04, 0.85], 0.035, MAT.frame, 0.08);
+    return;
   }
-  h.line([0, 0.05, z], [0, top, z], 3, c.propDark, 0.12);
-}
-
-const PAD = '#26282f';
-const FRAME = '#8c93a1';
-
-function drawProp(h: PropHelpers, prop: Prop, j: Joints, pose: Pose, pat: Pattern) {
-  const c = h.c;
-  const hands = mid(j.handL, j.handR);
-  const shift = j.pelvis[2];
-  const plateAt = (cx: number, hy: number, hz: number, r: number) => h.poly(ring([cx, hy, hz], 'x', r), c.propDark);
-  switch (prop.kind) {
-    case 'barbell': {
-      const a: V3 = [hands[0] - 0.62, hands[1], hands[2]], b: V3 = [hands[0] + 0.62, hands[1], hands[2]];
-      h.line(a, b, 5, c.prop, -0.02);
-      for (const x of [-0.56, -0.5, 0.5, 0.56]) plateAt(hands[0] + x, hands[1], hands[2], 0.16 - Math.abs(Math.abs(x) - 0.53) * 0.4);
-      break;
+  if (pat.id === 'glute') {
+    k.pad([0, 0.42, p[2] - 0.5], X, Y, Z, 0.32, 0.04, 0.13, 0.35);
+    k.aabb(-0.28, 0.28, 0.04, 0.38, p[2] - 0.6, p[2] - 0.4, MAT.frame, 0.03);
+    return;
+  }
+  if (pat.id === 'backext') {
+    k.pad([0, 0.62, p[2] + 0.01], X, norm2([0, 1, -0.6]), norm2([0, 0.6, 1]), 0.2, 0.05, 0.13, 0.35);
+    for (const z of [p[2] - 0.25, p[2] + 0.12]) k.tube([0, 0.04, z], [0, 0.56, z], 0.04, MAT.frame, 0.05);
+    k.tube([0, 0.04, p[2] - 0.5], [0, 0.04, p[2] + 0.4], 0.04, MAT.frame, 0.08);
+    return;
+  }
+  const a = (angle * Math.PI) / 180;
+  // Sitzteil und Lehne als Polster
+  k.pad([0, y - 0.045, p[2] + 0.2], X, Y, Z, 0.15, 0.045, 0.22, 0.35);
+  const dir: V3 = [0, Math.sin(a), -Math.cos(a)];
+  const up: V3 = [0, Math.cos(a), Math.sin(a)];
+  k.pad([0, y - 0.045 + dir[1] * 0.45 + (angle ? 0.02 : 0), p[2] + dir[2] * 0.45 - 0.02], X, up, dir, 0.15, 0.045, 0.45, 0.35);
+  // Gestell: Füße und Mittelträger
+  k.tube([0, 0.05, p[2] + 0.38], [0, y - 0.09, p[2] + 0.3], 0.035, MAT.frame, 0.05);
+  k.tube([0, 0.05, p[2] - 0.6], [0, y - 0.09, p[2] - 0.45], 0.035, MAT.frame, 0.05);
+  k.tube([0, 0.05, p[2] - 0.65], [0, 0.05, p[2] + 0.45], 0.035, MAT.frame, 0.08);
+  for (const z of [p[2] - 0.65, p[2] + 0.42]) k.tube([-0.22, 0.03, z], [0.22, 0.03, z], 0.03, MAT.frame, 0.08);
+  // Ablage-Ständer beim Bankdrücken mit Langhantel
+  if ((pat.id === 'bench' || pat.id === 'incline') && pat.props.some((q) => q.kind === 'barbell')) {
+    const head = j.head;
+    for (const sx of [-0.55, 0.55]) {
+      k.tube([sx, 0.04, head[2] - 0.15], [sx, 1.25, head[2] - 0.15], 0.035, MAT.frame, 0.08);
+      k.aabb(sx - 0.04, sx + 0.04, 1.12, 1.16, head[2] - 0.15, head[2] - 0.05, MAT.frame, 0.07);
+      k.tube([sx, 0.03, head[2] - 0.35], [sx, 0.03, head[2] + 0.05], 0.03, MAT.frame, 0.09);
     }
+  }
+}
+const norm2 = (v: V3): V3 => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+
+function drawProp(k: Kit, prop: Prop, j: Joints, pose: Pose, pat: Pattern) {
+  const hands = mid3(j.handL, j.handR);
+  const shift = j.pelvis[2];
+  switch (prop.kind) {
+    case 'machine':
+      drawMachine(prop.type, { k, j, shift, seatY: seatOf(pat), trunk: pose.trunk, from: prop.from ? [prop.from[0], prop.from[1], shift + prop.from[2]] : undefined });
+      break;
+    case 'barbell':
+    {
+      // Curl-/French-Press-Stange kurz mit kleinen Scheiben, sonst Olympia-Stange
+      const short = pat.id.startsWith('curl') || pat.id === 'preacher' || pat.id === 'skull';
+      barbell(k, hands, short ? 0.42 : 0.62, short ? 1 : 2, short ? 0.12 : 0.2);
+    }
+      break;
     case 'dumbbells':
-      for (const hd of [j.handL, j.handR]) {
-        h.line([hd[0] - 0.07, hd[1], hd[2]], [hd[0] + 0.07, hd[1], hd[2]], 5, c.prop, -0.02);
-        plateAt(hd[0] - 0.07, hd[1], hd[2], 0.065); plateAt(hd[0] + 0.07, hd[1], hd[2], 0.065);
-      }
+      dumbbell(k, j.handL); dumbbell(k, j.handR);
       break;
     case 'kettlebell': {
-      const k: V3 = [hands[0], hands[1] - 0.06, hands[2]];
-      h.poly(ring(k, 'x', 0.11), c.propDark, -0.02);
-      h.poly(ring(k, 'y', 0.11), c.prop, -0.02);
-      h.line([k[0], k[1] + 0.09, k[2] - 0.03], [k[0], k[1] + 0.09, k[2] + 0.03], 4, c.propDark, -0.03);
+      const c: V3 = [hands[0], hands[1] - 0.12, hands[2]];
+      k.ball(c, 0.1, MAT.plate, -0.02);
+      k.tube([c[0] - 0.06, hands[1], c[2]], [c[0] + 0.06, hands[1], c[2]], 0.016, MAT.plate, -0.03);
+      for (const sx of [-1, 1]) k.tube([c[0] + sx * 0.06, hands[1], c[2]], [c[0] + sx * 0.07, c[1] + 0.06, c[2]], 0.016, MAT.plate, -0.03);
       break;
     }
-    case 'bench': {
-      const angle = prop.angle ?? 0;
-      const y = (pat.anchor && pat.anchor.on === 'surface' ? pat.anchor.y : 0.42);
-      if (pat.id === 'dbrow') {
-        box(h, -0.16, 0.16, 0.31, 0.38, 0.2, 0.8, c.prop);
-        h.line([-0.12, 0, 0.25], [-0.12, y - 0.07, 0.25], 4, c.propDark); h.line([0.12, 0, 0.7], [0.12, y - 0.07, 0.7], 4, c.propDark);
-        break;
-      }
-      if (pat.id === 'legcurl') { box(h, -0.16, 0.16, y - 0.08, y, shift - 0.35, shift + 0.55, c.prop); break; }
-      if (pat.id === 'glute') { box(h, -0.22, 0.22, 0, 0.4, shift - 0.62, shift - 0.38, c.prop); break; }
-      if (pat.id === 'backext') { box(h, -0.2, 0.2, 0.45, 0.62, shift - 0.12, shift + 0.14, c.prop); h.line([0, 0, shift - 0.3], [0, 0.45, shift - 0.3], 5, c.propDark); h.line([0, 0, shift + 0.1], [0, 0.45, shift + 0.1], 5, c.propDark); break; }
-      const seatLen = 0.35, backLen = 0.85, a = (angle * Math.PI) / 180;
-      box(h, -0.16, 0.16, y - 0.07, y, shift, shift + seatLen, PAD);
-      const back0: V3 = [0, y, shift];
-      const back1: V3 = [0, y + Math.sin(a) * backLen, shift - Math.cos(a) * backLen];
-      h.poly([[-0.16, back0[1], back0[2]], [0.16, back0[1], back0[2]], [0.16, back1[1], back1[2]], [-0.16, back1[1], back1[2]]], c.prop, 0.05);
-      for (const z of [shift + 0.05, shift - 0.35]) h.line([0, 0, z], [0, y - 0.07, z], 5, c.propDark);
+    case 'bench':
+      benchProp(k, j, pat, prop.angle ?? 0);
       break;
-    }
     case 'seat': {
-      const y = pat.anchor && pat.anchor.on === 'surface' ? pat.anchor.y : 0.42;
-      const back = ((prop.back ?? 0) * Math.PI) / 180;
-      box(h, -0.2, 0.2, y - 0.07, y, shift - 0.22, shift + 0.22, PAD);
-      const b0: V3 = [0, y, shift - 0.22];
-      const b1: V3 = [0, y + Math.cos(back) * 0.8, shift - 0.22 - Math.sin(back) * 0.8];
-      h.poly([[-0.2, b0[1], b0[2]], [0.2, b0[1], b0[2]], [0.2, b1[1], b1[2]], [-0.2, b1[1], b1[2]]], PAD, 0.05);
-      h.line([0, 0, shift], [0, y - 0.07, shift], 6, c.propDark);
-      h.line([-0.25, 0, shift - 0.2], [0.25, 0, shift - 0.2], 5, c.propDark);
+      // einfache Hantelbank mit senkrechter Lehne (sitzende Übungen mit freien Gewichten)
+      const y = seatOf(pat);
+      k.pad([0, y - 0.045, shift + 0.05], X, Y, Z, 0.17, 0.045, 0.2, 0.35);
+      k.pad([0, y + 0.42, shift - 0.2], X, Y, Z, 0.16, 0.4, 0.04, 0.35);
+      k.tube([0, 0.05, shift + 0.05], [0, y - 0.09, shift + 0.05], 0.035, MAT.frame, 0.05);
+      k.tube([0, 0.05, shift - 0.3], [0, y + 0.3, shift - 0.25], 0.035, MAT.frame, 0.06);
+      k.tube([0, 0.04, shift - 0.45], [0, 0.04, shift + 0.35], 0.035, MAT.frame, 0.08);
       break;
     }
-    case 'plate': {
-      // Beinpresse (45°): zwei Schienen, Schlitten mit Fußplatte senkrecht zur Druckrichtung, Gewichtsscheiben seitlich
-      const f = mid(j.toeL, j.toeR);
-      const r: V3 = [0, 0.7, 0.7], pdir: V3 = [0, 0.7, -0.7]; // Druckrichtung und Richtung in der Plattenebene
-      const at = (x: number, k: number, m: number): V3 => [x, f[1] + r[1] * k + pdir[1] * m, f[2] + r[2] * k + pdir[2] * m];
-      for (const x of [-0.34, 0.34]) {
-        h.line([x, Math.max(0.05, f[1] - 1.5 * 0.7), f[2] - 1.5 * 0.7], [x, f[1] + 0.9 * 0.7, f[2] + 0.9 * 0.7], 6, FRAME, 0.1);
-        h.line([x, f[1] - 0.2, f[2] - 0.4], [x, 0.02, f[2] - 0.4], 5, FRAME, 0.1);
-        plateAt(x * 1.28, f[1] + 0.12, f[2] + 0.08, 0.2);
-      }
-      for (const dk of [0, 0.05]) h.poly([at(-0.36, dk, 0.26), at(0.36, dk, 0.26), at(0.36, dk, -0.26), at(-0.36, dk, -0.26)], dk ? PAD : c.prop, -0.1 + dk);
-      h.line(at(-0.36, 0.06, 0), at(0.36, 0.06, 0), 3, c.propDark, -0.12);
+    case 'cable':
+      drawMachine('cabletower', { k, j, shift, seatY: seatOf(pat), trunk: pose.trunk, from: [prop.from[0], prop.from[1], pat.id === 'seatedrow' ? prop.from[2] : shift + prop.from[2]] });
       break;
-    }
-    case 'pecpads': {
-      // Butterfly-Maschine: schwarze Polster an den Unterarmen, Hebelarme zur Drehachse hinter dem Kopf
-      for (const [el, wr, x] of [[j.elL, j.wrL, -1], [j.elR, j.wrR, 1]] as const) {
-        const top: V3 = [x * 0.3, Math.max(el[1], wr[1]) + 0.12, shift - 0.25];
-        h.line([el[0], el[1], el[2] + 0.02], [wr[0], wr[1], wr[2] + 0.02], 15, PAD, -0.04);
-        h.line([wr[0], wr[1], wr[2]], top, 5, FRAME, 0.02);
-        h.poly(ring(top, 'y', 0.05, 8), FRAME, 0.03);
-      }
+    case 'stack':
+      weightTower(k, 0, prop.front ? shift + 0.7 + (prop.dz ?? 0) : shift - 0.62 - (prop.dz ?? 0), 1.9, 0.05);
       break;
-    }
-    case 'cable': {
-      // Kabelturm: Rahmen, Umlenkrolle, Gewichtsblock dahinter, Kabel zu den Händen
-      const from: V3 = [prop.from[0], prop.from[1], pat.id === 'seatedrow' ? prop.from[2] : shift + prop.from[2]];
-      const zf = from[2];
-      // Der Gewichtsblock steht immer auf der Seite des Turms, die vom Trainierenden abgewandt ist
-      const sg = zf >= shift ? 1 : -1;
-      const zs = zf + sg * 0.36;
-      for (const x of [-0.3, 0.3]) { h.line([x, 0, zf], [x, 2.3, zf], 7, FRAME, 0.1); h.line([x, 0, zs], [x, 2.3, zs], 7, FRAME, 0.1); h.line([x, 2.3, zf], [x, 2.3, zs], 7, FRAME, 0.1); h.line([x, 0.03, zf], [x, 0.03, zs + sg * 0.2], 6, FRAME, 0.1); }
-      h.line([-0.3, 2.3, zf], [0.3, 2.3, zf], 7, FRAME, 0.1);
-      weightStack(h, c, zs, 2.05, 5);
-      h.line([0, 2.3, zs], [0, 2.3, zf], 2, c.propDark, 0.05);
-      h.line(from, hands, 2.5, c.propDark, -0.05);
-      h.poly(ring(from, 'x', 0.07, 14), c.prop, -0.06);
-      h.poly(ring([from[0] - 0.04, from[1], from[2]], 'x', 0.025, 8), c.propDark, -0.07);
+    case 'plate':
+      drawMachine('legpress', { k, j, shift, seatY: seatOf(pat), trunk: pose.trunk });
       break;
-    }
-    case 'stack': {
-      // Maschine: Gewichtsblock mit Rahmen hinter dem Sitz; optional Druckhebel zu den Händen
-      const z = prop.front ? shift + 0.7 + (prop.dz ?? 0) : shift - 0.62 - (prop.dz ?? 0);
-      for (const x of [-0.32, 0.32]) h.line([x, 0, z], [x, 1.95, z], 7, FRAME, 0.1);
-      h.line([-0.32, 1.95, z], [0.32, 1.95, z], 7, FRAME, 0.1);
-      if (prop.front) h.line([-0.32, 0.03, z], [-0.32, 0.03, shift - 0.1], 6, FRAME, 0.1), h.line([0.32, 0.03, z], [0.32, 0.03, shift - 0.1], 6, FRAME, 0.1);
-      weightStack(h, c, z, 1.7, 0);
-      // Führungsstangen im Block, Abdeckplatte oben, Bodenschienen und (hinten liegender Block) Stützholm hinter dem Rückenpolster
-      for (const x of [-0.09, 0.09]) h.line([x, 0.05, z], [x, 1.9, z], 2, c.propDark, 0.13);
-      box(h, -0.23, 0.23, 1.74, 1.8, z - 0.15, z + 0.15, FRAME);
-      for (const x of [-0.32, 0.32]) h.line([x, 0.03, z], [x, 0.03, prop.front ? shift - 0.1 : shift + 0.3], 7, FRAME, 0.1);
-      if (!prop.front) {
-        h.line([0, 0.03, shift - 0.4], [0, 1.05, shift - 0.4], 7, FRAME, 0.1);
-        h.line([0, 1.05, shift - 0.4], [0, 1.95, z], 5, FRAME, 0.1);
-      }
-      if (prop.lever) {
-        for (const hd of [j.handL, j.handR]) { h.line([hd[0] * 1.1, 1.18, shift - 0.3], hd, 5, c.prop, -0.04); h.poly(ring([hd[0] * 1.1, 1.18, shift - 0.3], 'x', 0.035, 8), c.propDark, -0.05); }
-      }
+    case 'pecpads':
+      drawMachine('pecdeck', { k, j, shift, seatY: seatOf(pat), trunk: pose.trunk });
       break;
-    }
-    case 'legpad': {
-      // Beinstrecker/-beuger: schwarze Rolle an den Unterschenkeln, Hebelarm zur Drehachse am Sitz
-      const a = mid(j.anL, j.anR), piv: V3 = [0, 0.42, shift + 0.22];
-      h.line([a[0] - 0.14, a[1] + 0.07, a[2]], [a[0] + 0.14, a[1] + 0.07, a[2]], 15, PAD, -0.03);
-      for (const x of [-0.16, 0.16]) h.line([x, a[1] + 0.07, a[2]], [x, piv[1], piv[2]], 5, FRAME, 0.02);
-      h.poly(ring([0, piv[1], piv[2]], 'x', 0.06, 10), FRAME, 0.03);
+    case 'legpad':
+    case 'kneepad':
       break;
-    }
-    case 'kneepad': {
-      // Latziehen: Knierolle über den Oberschenkeln
-      const y = (pat.anchor && pat.anchor.on === 'surface' ? pat.anchor.y : 0.4) + 0.2;
-      for (const x of [-0.15, 0.15]) h.line([x, y - 0.1, shift + 0.4], [x, y, shift + 0.4], 12, PAD, -0.03);
-      h.line([-0.2, y - 0.1, shift + 0.42], [0.2, y - 0.1, shift + 0.42], 5, FRAME, 0.02);
+    case 'pullbar':
+      drawMachine('latpull', { k, j, shift, seatY: seatOf(pat), trunk: pose.trunk });
       break;
-    }
     case 'bar': {
       const z = shift;
-      h.line([-0.55, prop.y, z], [0.55, prop.y, z], 6, c.prop, -0.03);
-      h.line([-0.55, 0, z], [-0.55, prop.y, z], 5, c.propDark); h.line([0.55, 0, z], [0.55, prop.y, z], 5, c.propDark);
-      break;
-    }
-    case 'pullbar': {
-      // Zugstange am Kabel: Seil läuft über eine Umlenkrolle am Ausleger des Geräts nach vorn zum Gewichtsblock
-      h.line([hands[0] - 0.5, hands[1], hands[2]], [hands[0] + 0.5, hands[1], hands[2]], 5, c.prop, -0.02);
-      h.line([hands[0] - 0.5, hands[1], hands[2]], [hands[0] - 0.42, hands[1] - 0.09, hands[2]], 4, c.prop, -0.02);
-      h.line([hands[0] + 0.5, hands[1], hands[2]], [hands[0] + 0.42, hands[1] - 0.09, hands[2]], 4, c.prop, -0.02);
-      const top: V3 = [0, 2.3, shift + 0.28];
-      h.line(top, hands, 2.5, c.propDark, -0.05);
-      h.line([0, 2.3, shift + 0.28], [0, 2.2, shift + 0.7], 5, FRAME, 0.02);
-      h.line([0, 2.1, shift + 0.7], [0, 2.2, shift + 0.7], 9, FRAME, 0.02);
-      h.poly(ring(top, 'x', 0.06, 12), c.prop, -0.06);
+      k.tube([-0.6, prop.y, z], [0.6, prop.y, z], 0.018, MAT.chrome, -0.03);
+      for (const sx of [-0.62, 0.62]) {
+        k.tube([sx, 0.04, z], [sx, prop.y + 0.05, z], 0.045, MAT.frame, 0.06);
+        k.tube([sx, 0.04, z - 0.4], [sx, 0.04, z + 0.4], 0.04, MAT.frame, 0.08);
+      }
       break;
     }
     case 'dipbars': {
       const z0 = shift - 0.35, z1 = shift + 0.35;
-      for (const x of [-0.24, 0.24]) {
-        h.line([x, prop.y, z0], [x, prop.y, z1], 6, c.prop);
-        h.line([x, 0, z0], [x, prop.y, z0], 5, c.propDark); h.line([x, 0, z1], [x, prop.y, z1], 5, c.propDark);
+      for (const x of [-0.26, 0.26]) {
+        k.tube([x, prop.y, z0], [x, prop.y, z1], 0.022, MAT.grip, -0.02);
+        k.tube([x, 0.04, z0], [x, prop.y, z0], 0.04, MAT.frame, 0.05);
+        k.tube([x, 0.04, z1], [x, prop.y, z1], 0.04, MAT.frame, 0.05);
+        k.tube([x, 0.04, z0 - 0.15], [x, 0.04, z1 + 0.15], 0.04, MAT.frame, 0.08);
       }
       break;
     }
     case 'step':
-      box(h, -0.25, 0.25, -0.1, 0, shift - 0.05, shift + 0.45, c.prop);
+      k.aabb(-0.28, 0.28, 0, 0.1, shift - 0.08, shift + 0.42, MAT.rubber, 0.02);
       break;
     case 'treadmill':
-      box(h, -0.25, 0.25, -0.08, 0, shift - 0.6, shift + 0.6, c.prop);
-      h.line([-0.28, 0, shift + 0.55], [-0.28, 1.0, shift + 0.55], 4, c.propDark); h.line([0.28, 0, shift + 0.55], [0.28, 1.0, shift + 0.55], 4, c.propDark);
+      k.aabb(-0.32, 0.32, 0, 0.1, shift - 0.75, shift + 0.75, MAT.frame, 0.06);
+      k.aabb(-0.26, 0.26, 0.1, 0.11, shift - 0.7, shift + 0.7, MAT.rubber, 0.05);
+      for (const sx of [-0.3, 0.3]) k.tube([sx, 0.1, shift + 0.7], [sx, 1.15, shift + 0.6], 0.03, MAT.frame, 0.04);
+      k.aabb(-0.3, 0.3, 1.1, 1.22, shift + 0.55, shift + 0.68, MAT.frame, 0.03);
       break;
     case 'bike': {
       const sad: V3 = [0, 0.86, shift - 0.04], bb: V3 = [0, 0.27, shift + 0.2], bar: V3 = [0, 1.0, shift + 0.6];
-      h.poly(ring([0, bb[1], bb[2]], 'x', 0.17, 16), c.propDark, 0.08);
-      h.line(sad, bb, 5, c.prop); h.line(bb, bar, 5, c.prop); h.line(sad, bar, 4, c.prop);
-      h.line([-0.07, sad[1], sad[2]], [0.07, sad[1], sad[2]], 7, c.propDark);
-      h.line([-0.2, bar[1], bar[2]], [0.2, bar[1], bar[2]], 5, c.propDark);
-      for (const z of [shift - 0.45, shift + 0.8]) h.poly(ring([0, 0.33, z], 'x', 0.33, 22), 'rgba(0,0,0,0)', 0.2);
+      k.disc([0, 0.38, shift + 0.55], X, 0.3, 0.06, MAT.frame, 0.06);
+      k.tube(sad, bb, 0.03, MAT.frame, 0.02); k.tube(bb, bar, 0.03, MAT.frame, 0.02); k.tube([0, 0.04, shift - 0.3], [0, 0.04, shift + 0.8], 0.035, MAT.frame, 0.06);
+      k.box(sad, X, Y, Z, 0.07, 0.025, 0.12, MAT.pad, -0.01);
+      k.tube([-0.22, bar[1], bar[2]], [0.22, bar[1], bar[2]], 0.02, MAT.grip, -0.01);
       break;
     }
     case 'erg': {
-      h.line([0, 0.2, shift - 0.8], [0, 0.2, shift + 1.0], 6, c.prop);
-      h.poly(ring([0, 0.4, shift + 1.05], 'x', 0.22, 18), c.propDark);
-      h.line(hands, [0, 0.4, shift + 1.0], 2.5, c.propDark);
+      k.tube([0, 0.2, shift - 0.9], [0, 0.2, shift + 1.0], 0.035, MAT.chrome, 0.05);
+      k.box([0, 0.24, shift], X, Y, Z, 0.13, 0.03, 0.15, MAT.pad, 0.0);
+      k.disc([0, 0.45, shift + 1.1], X, 0.26, 0.12, MAT.frame, 0.05);
+      k.cable(hands, [0, 0.45, shift + 1.05], -0.02);
+      k.tube(add3(hands, [-0.15, 0, 0]), add3(hands, [0.15, 0, 0]), 0.018, MAT.grip, -0.03);
       break;
     }
     case 'rope': {
-      const pl = hands;
-      h.line([j.wrL[0], j.wrL[1], j.wrL[2]], [j.wrL[0] - 0.12, 0.02, j.wrL[2] + 0.02], 2, c.prop);
-      h.line([j.wrR[0], j.wrR[1], j.wrR[2]], [j.wrR[0] + 0.12, 0.02, j.wrR[2] + 0.02], 2, c.prop);
-      h.line([-0.12 + j.wrL[0], 0.02, pl[2] + 0.02], [0.12 + j.wrR[0], 0.02, pl[2] + 0.02], 2, c.prop);
+      for (const [w, sx] of [[j.wrL, -1], [j.wrR, 1]] as const) k.cable(w, [w[0] + sx * 0.12, 0.02, w[2] + 0.02], -0.01);
+      k.cable([j.wrL[0] - 0.12, 0.02, hands[2] + 0.02], [j.wrR[0] + 0.12, 0.02, hands[2] + 0.02], -0.01);
       break;
     }
   }
-  void pose; void LEN;
+  void LEN;
 }
+const add3 = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];

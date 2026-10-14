@@ -1,6 +1,7 @@
 // Bewegungsmuster für die 3D-Figur: Schlüsselbilder (Winkel), Hilfsmittel, Hinweise zur Ausführung.
 // Jede Übung des Katalogs wird einem Muster zugeordnet (animIdFor); Varianten (Kurzhantel, Maschine, Kabel …)
 // unterscheiden sich in den Hilfsmitteln, die gezeichnet werden.
+import type { MachineType } from './machines';
 import type { Anchor, Keyframe, Pose, V3 } from './rig';
 
 export type Segment = 'chest' | 'abs' | 'upperBack' | 'lowerBack' | 'shoulders' | 'upperArms' | 'forearms' | 'glutes' | 'thighs' | 'calves';
@@ -24,7 +25,8 @@ export type Prop =
   | { kind: 'erg' }
   | { kind: 'treadmill' }
   | { kind: 'step' }
-  | { kind: 'plate'; machine?: boolean };              // Beinpresse-Schlitten
+  | { kind: 'plate'; machine?: boolean }               // Beinpresse-Schlitten
+  | { kind: 'machine'; type: MachineType; from?: V3 };  // echtes Studiogerät (machines.ts); from = Seilrolle relativ zum Becken
 
 export interface Pattern {
   id: string;
@@ -93,21 +95,21 @@ def({
   mistakes: ['Das Knie kippt nach innen.', 'Der Schritt ist zu kurz.', 'Der Oberkörper fällt nach vorn.'],
 });
 def({
-  id: 'legpress', name: 'Beinpresse', seconds: 3.2, azimuth: 85, anchor: SURFACE, props: [{ kind: 'seat', back: 40 }, { kind: 'plate', machine: true }],
+  id: 'legpress', name: 'Beinpresse', seconds: 3.2, azimuth: 85, anchor: SURFACE, props: [{ kind: 'machine', type: 'legpress' }],
   base: { trunk: -50, ...arms(10, 0, 40, 0) },
   frames: [F({ ...legs(120, 110), shift: 0.0 }), F({ ...legs(78, 10), shift: 0.0 })],
   cues: ['Rücken und Becken bleiben fest an der Lehne.', 'Füße schulterbreit auf der Platte.', 'Beine fast strecken, Knie nicht durchdrücken.', 'Kontrolliert zurück, die Knie zeigen nach außen.'],
   mistakes: ['Das Becken hebt sich unten ab (Rücken rundet).', 'Knie komplett durchgedrückt.', 'Zu wenig Tiefe.'],
 });
 def({
-  id: 'legext', name: 'Beinstrecker', seconds: 2.8, azimuth: 85, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 8 }, { kind: 'stack' }, { kind: 'legpad' }],
+  id: 'legext', name: 'Beinstrecker', seconds: 2.8, azimuth: 85, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'machine', type: 'legext' }],
   base: { trunk: -8, ...arms(10, 0, 40, 0), hipL: 80, hipR: 80 },
   frames: [F({ kneeL: 95, kneeR: 95 }), F({ kneeL: 4, kneeR: 4 })],
   cues: ['Kniegelenk auf Höhe der Drehachse der Maschine.', 'Oben kurz anspannen.', 'Langsam senken.'],
   mistakes: ['Schwung statt Muskelkraft.', 'Das Gesäß hebt vom Sitz ab.'],
 });
 def({
-  id: 'legcurl', name: 'Beinbeuger', seconds: 2.8, azimuth: 80, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'bench' }, { kind: 'stack', dz: 0.25 }, { kind: 'legpad' }],
+  id: 'legcurl', name: 'Beinbeuger', seconds: 2.8, azimuth: 80, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'machine', type: 'legcurl' }],
   base: { trunk: 90, hipL: 0, hipR: 0, ...arms(70, 0, 95, 0) },
   frames: [F({ hipL: -92, hipR: -92, kneeL: 0, kneeR: 0 }), F({ hipL: -92, hipR: -92, kneeL: 115, kneeR: 115 })],
   cues: ['Hüfte bleibt auf der Auflage.', 'Fersen zum Gesäß ziehen.', 'Langsam wieder strecken.'],
@@ -162,14 +164,14 @@ def({
   mistakes: ['Zu tiefes Absenken (Schulter überdehnt).', 'Die Ellbogen strecken oder beugen sich ständig.'],
 });
 def({
-  id: 'pecdeck', name: 'Butterfly (Maschine)', seconds: 3, azimuth: 35, anchor: { on: 'surface', y: 0.42 }, props: [{ kind: 'seat', back: 0 }, { kind: 'stack' }, { kind: 'pecpads' }],
+  id: 'pecdeck', name: 'Butterfly (Maschine)', seconds: 3, azimuth: 35, anchor: { on: 'surface', y: 0.42 }, props: [{ kind: 'machine', type: 'pecdeck' }],
   base: { trunk: -2, ...legs(85, 85) },
   frames: [F({ armL: 92, armR: 92, armPlaneL: 78, armPlaneR: 78, foreL: 172, foreR: 172, forePlaneL: 0, forePlaneR: 0 }), F({ armL: 92, armR: 92, armPlaneL: 12, armPlaneR: 12, foreL: 172, foreR: 172, forePlaneL: 0, forePlaneR: 0 })],
   cues: ['Sitzhöhe so einstellen, dass die Ellbogen auf Schulterhöhe sind.', 'Unterarme liegen an den Polstern, Rücken fest an der Lehne.', 'Die Arme vor der Brust zusammenführen, kurz halten.', 'Kontrolliert öffnen, nicht über die Schulterlinie hinaus.'],
   mistakes: ['Schultern ziehen nach vorn.', 'Zu weit nach hinten öffnen (Schulter überdehnt).', 'Mit Schwung arbeiten.'],
 });
 def({
-  id: 'chestpress', name: 'Brustpresse (Maschine)', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.42 }, props: [{ kind: 'seat', back: 0 }, { kind: 'stack', lever: true }],
+  id: 'chestpress', name: 'Brustpresse (Maschine)', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.42 }, props: [{ kind: 'machine', type: 'chestpress' }],
   base: { trunk: -2, ...legs(85, 85) },
   frames: [F({ ...arms(72, 45, 92, 5) }), F({ ...arms(88, 3, 90, 0) })],
   cues: ['Sitzhöhe so, dass die Griffe auf Brusthöhe sind.', 'Rücken fest an der Lehne.', 'Nach vorn drücken, Arme nicht komplett durchstrecken.'],
@@ -240,7 +242,7 @@ def({
   mistakes: ['Schwungvoll mit dem Oberkörper mitziehen.', 'Runder Rücken.'],
 });
 def({
-  id: 'seatedrow', name: 'Rudern sitzend (Kabel / Maschine)', seconds: 3, azimuth: 75, anchor: { on: 'surface', y: 0.38 }, props: [{ kind: 'seat', back: 0 }, { kind: 'cable', from: [0, 0.4, 1.2] }],
+  id: 'seatedrow', name: 'Rudern sitzend (Kabel / Maschine)', seconds: 3, azimuth: 75, anchor: { on: 'surface', y: 0.38 }, props: [{ kind: 'machine', type: 'cablerow' }],
   base: { ...legs(75, 10), trunk: 2 },
   frames: [F({ ...arms(88, 0, 90, 0), shift: 0.05, trunk: 12 }), F({ ...arms(20, 0, 120, 0), shift: -0.02, trunk: -4 })],
   cues: ['Aufrecht sitzen, Brust raus.', 'Ellbogen dicht am Körper nach hinten ziehen.', 'Schulterblätter am Ende zusammendrücken.', 'Kontrolliert zurück, ohne den Rücken zu runden.'],
@@ -254,7 +256,7 @@ def({
   mistakes: ['Der Oberkörper dreht auf.', 'Zu viel Schwung.'],
 });
 def({
-  id: 'pulldown', name: 'Latziehen', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 0 }, { kind: 'stack', front: true, dz: 0.05 }, { kind: 'kneepad' }, { kind: 'pullbar' }],
+  id: 'pulldown', name: 'Latziehen', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'machine', type: 'latpull' }],
   base: { ...legs(88, 88), trunk: -8 },
   frames: [F({ ...arms(172, 25, 176, 20) }), F({ ...arms(55, 70, 170, 35), trunk: -14 })],
   cues: ['Leicht zurücklehnen, Brust raus.', 'Stange zur oberen Brust ziehen, nicht in den Nacken.', 'Schulterblätter nach unten-hinten ziehen.', 'Arme oben nicht komplett durchhängen lassen.'],
@@ -284,14 +286,14 @@ def({
   mistakes: ['Mit dem Rücken schwingen.', 'Die Ellbogen wandern nach vorn.'],
 });
 def({
-  id: 'preacher', name: 'Scott-Curl (Preacher)', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'seat', back: 0 }, { kind: 'barbell' }],
+  id: 'preacher', name: 'Scott-Curl (Preacher)', seconds: 3, azimuth: 70, anchor: { on: 'surface', y: 0.4 }, props: [{ kind: 'machine', type: 'preacher' }, { kind: 'barbell' }],
   base: { ...legs(88, 88), trunk: 10 },
   frames: [F({ ...arms(55, 0, 40, 0) }), F({ ...arms(55, 0, 160, 0) })],
   cues: ['Oberarme liegen fest auf dem Polster.', 'Nicht ganz strecken – die Spannung bleibt.', 'Langsam senken.'],
   mistakes: ['Das Gewicht fällt unten.', 'Der Po hebt ab.'],
 });
 def({
-  id: 'triceps', name: 'Trizepsdrücken (Kabel)', seconds: 2.8, azimuth: 55, props: [{ kind: 'cable', from: [0, 2.0, 0.25] }],
+  id: 'triceps', name: 'Trizepsdrücken (Kabel)', seconds: 2.8, azimuth: 55, props: [{ kind: 'machine', type: 'cabletower', from: [0, 2.0, 0.42] }],
   base: { ...legs(0, 0), trunk: 8 },
   frames: [F({ ...arms(10, 0, 100, 0) }), F({ ...arms(8, 0, 6, 0) })],
   cues: ['Ellbogen bleiben seitlich am Körper.', 'Arme unten ganz strecken, kurz anspannen.', 'Nur die Unterarme bewegen sich.'],
@@ -407,11 +409,60 @@ variant('row', 'row-db', 'Rudern vorgebeugt mit Kurzhanteln', [{ kind: 'dumbbell
 variant('squat', 'squat-bw', 'Kniebeuge ohne Gewicht', [], { frames: [{ pose: { ...legs(0, 0), ...arms(10, 0, 20, 0) } }, { pose: { ...legs(90, 115), trunk: 30, ...arms(85, 0, 90, 0) } }] });
 variant('hinge', 'hinge-db', 'Rumänisches Kreuzheben mit Kurzhanteln', [{ kind: 'dumbbells' }]);
 variant('curl', 'curl-bar', 'Bizepscurl mit Stange', [{ kind: 'barbell' }]);
-variant('curl', 'curl-cable', 'Bizepscurl am Kabel', [{ kind: 'cable', from: [0, 0.3, 0.9] }]);
-variant('triceps', 'triceps-rope', 'Trizepsdrücken mit Seil', [{ kind: 'cable', from: [0, 2.0, 0.25] }]);
+variant('curl', 'curl-cable', 'Bizepscurl am Kabel', [{ kind: 'machine', type: 'cabletower', from: [0, 0.3, 0.55] }]);
+variant('triceps', 'triceps-rope', 'Trizepsdrücken mit Seil', [{ kind: 'machine', type: 'cabletower', from: [0, 2.0, 0.42] }]);
 variant('run', 'cross', 'Crosstrainer', [], { seconds: 1.2 });
 variant('lunge', 'lunge-bw', 'Ausfallschritt ohne Gewicht', []);
 variant('crunch', 'situp', 'Sit-up', [], { frames: [{ pose: { trunk: -90 } }, { pose: { trunk: -8, neck: 5 } }] });
+
+// ---- Maschinen-Varianten (echte Studiogeräte, machines.ts) ----
+variant('ohp-seated', 'ohp-machine', 'Schulterpresse (Maschine)', [{ kind: 'machine', type: 'shoulderpress' }]);
+variant('ohp-seated', 'ohp-smith', 'Schulterdrücken an der Smith-Maschine', [{ kind: 'seat' }, { kind: 'machine', type: 'smith' }, { kind: 'barbell' }]);
+variant('seatedrow', 'rowmachine', 'Rudermaschine mit Brustpolster', [{ kind: 'machine', type: 'rowmachine' }], { frames: [{ pose: { ...arms(88, 0, 90, 0), shift: 0.02, trunk: 6 } }, { pose: { ...arms(20, 0, 120, 0), shift: 0.02, trunk: 4 } }] });
+variant('calf', 'calf-machine', 'Wadenheben an der Maschine', [{ kind: 'machine', type: 'calf' }], { frames: [{ pose: { ...legs(0, 0), ...arms(150, 30, 30, 120), footL: -10, footR: -10 } }, { pose: { ...legs(0, 0), ...arms(150, 30, 30, 120), footL: 55, footR: 55 } }] });
+variant('preacher', 'curl-machine', 'Bizepsmaschine (Scott)', [{ kind: 'machine', type: 'curlmachine' }]);
+variant('bench', 'bench-smith', 'Bankdrücken an der Smith-Maschine', [{ kind: 'bench' }, { kind: 'machine', type: 'smith' }, { kind: 'barbell' }]);
+variant('incline', 'incline-smith', 'Schrägbankdrücken an der Smith-Maschine', [{ kind: 'bench', angle: 35 }, { kind: 'machine', type: 'smith' }, { kind: 'barbell' }]);
+variant('squat', 'squat-smith', 'Kniebeuge an der Smith-Maschine', [{ kind: 'machine', type: 'smith' }, { kind: 'barbell' }]);
+variant('squat', 'hack', 'Hackenschmidt-Kniebeuge (Maschine)', [{ kind: 'machine', type: 'hack' }], { frames: [{ pose: { ...legs(0, 0), trunk: -12, ...arms(150, 60, 60, 80) } }, { pose: { ...legs(95, 110), trunk: -14, shift: -0.06, ...arms(150, 60, 60, 80) } }] });
+variant('glute', 'hipthrust-machine', 'Hip Thrust an der Maschine', [{ kind: 'machine', type: 'hipthrust' }]);
+variant('pullup', 'assist-pullup', 'Klimmzug-Maschine (unterstützt)', [{ kind: 'machine', type: 'assist' }], { base: { ...legs(-5, 95), trunk: -4 } });
+def({
+  id: 'cablefly', name: 'Cable Crossover (Kabelzug)', seconds: 3, azimuth: 30, props: [{ kind: 'machine', type: 'crossover' }],
+  base: { ...legs(6, 8), trunk: 14 },
+  frames: [F({ armL: 95, armR: 95, armPlaneL: 88, armPlaneR: 88, foreL: 105, foreR: 105, forePlaneL: 82, forePlaneR: 82 }), F({ armL: 62, armR: 62, armPlaneL: 18, armPlaneR: 18, foreL: 70, foreR: 70, forePlaneL: 8, forePlaneR: 8 })],
+  cues: ['Leicht vorgebeugt, ein Fuß vor dem anderen für einen festen Stand.', 'Arme in einem Bogen vor dem Körper zusammenführen.', 'Ellbogen bleiben leicht gebeugt.', 'Kontrolliert öffnen, bis eine Dehnung in der Brust spürbar ist.'],
+  mistakes: ['Mit den Armen drücken statt einen Bogen zu ziehen.', 'Zu viel Gewicht – der Oberkörper schwingt mit.'],
+});
+def({
+  id: 'abmachine', name: 'Bauchmaschine', seconds: 2.6, azimuth: 70, anchor: { on: 'surface', y: 0.45 }, props: [{ kind: 'machine', type: 'abmachine' }],
+  base: { ...legs(85, 85), ...arms(150, 35, 40, 140) },
+  frames: [F({ trunk: 0 }), F({ trunk: 38, neck: -10 })],
+  cues: ['Sitzhöhe so, dass das Polster auf der Brust liegt.', 'Den Oberkörper einrollen – Rippen zum Becken.', 'Langsam zurück, Spannung halten.'],
+  mistakes: ['Mit den Armen ziehen.', 'Mit Schwung arbeiten.'],
+});
+def({
+  id: 'abductor', name: 'Abduktoren (Maschine)', seconds: 2.6, azimuth: 20, anchor: { on: 'surface', y: 0.45 }, props: [{ kind: 'machine', type: 'abductor' }],
+  base: { ...legs(80, 82), trunk: -14, ...arms(30, 20, 45, 20) },
+  frames: [F({ abdL: 4, abdR: 4 }), F({ abdL: 32, abdR: 32 })],
+  cues: ['Rücken an der Lehne, Becken fest im Sitz.', 'Beine kontrolliert nach außen drücken.', 'Kurz halten und langsam zurück.'],
+  mistakes: ['Mit Schwung arbeiten.', 'Der Oberkörper beugt sich nach vorn.'],
+});
+variant('abductor', 'adductor', 'Adduktoren (Maschine)', [{ kind: 'machine', type: 'abductor' }], { frames: [{ pose: { abdL: 32, abdR: 32 } }, { pose: { abdL: 4, abdR: 4 } }] });
+def({
+  id: 'dipmachine', name: 'Dip-/Trizepsmaschine', seconds: 2.6, azimuth: 60, anchor: { on: 'surface', y: 0.45 }, props: [{ kind: 'machine', type: 'dipmachine' }],
+  base: { ...legs(85, 85), trunk: 2 },
+  frames: [F({ ...arms(-30, 0, 70, 0) }), F({ ...arms(4, 0, 6, 0) })],
+  cues: ['Rücken an der Lehne, Schultern unten.', 'Griffe nach unten drücken, bis die Arme gestreckt sind.', 'Ellbogen bleiben eng am Körper.'],
+  mistakes: ['Schultern ziehen hoch.', 'Ellbogen gehen weit nach außen.'],
+});
+def({
+  id: 'legcurl-seated', name: 'Beinbeuger (sitzend)', seconds: 2.8, azimuth: 80, anchor: { on: 'surface', y: 0.45 }, props: [{ kind: 'machine', type: 'legcurlseated' }],
+  base: { trunk: -10, ...arms(25, 20, 40, 20), hipL: 85, hipR: 85 },
+  frames: [F({ kneeL: 5, kneeR: 5 }), F({ kneeL: 105, kneeR: 105 })],
+  cues: ['Kniegelenk auf Höhe der Drehachse.', 'Oberschenkelpolster fest einstellen.', 'Fersen nach unten-hinten ziehen, langsam zurück.'],
+  mistakes: ['Das Gesäß hebt ab.', 'Zu schnelles Zurückfedern.'],
+});
 
 export const PATTERN_IDS = Object.keys(PATTERNS);
 void L;
