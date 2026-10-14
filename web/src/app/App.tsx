@@ -1,3 +1,5 @@
+import { Welcome } from '../pages/Welcome';
+import { welcomeSeen } from '../lib/onboarding';
 import { useLiveConnection } from '../lib/live';
 import { notify } from '../components/Dialog';
 // Wurzel der App: startet das Backend, verwaltet Login und Übungen, wählt die Seite zur Adresse (#/…).
@@ -76,6 +78,7 @@ const ROUTES: Route[] = [
   [/^#\/shop$/, () => <Shop />],
   [/^#\/admin$/, () => <Admin />],
   [/^#\/mitteilungen$/, () => <Notifications />],
+  [/^#\/willkommen$/, () => <Welcome />],
   [/^#\/animationen$/, () => <Animations />],
   [/^#\/animationen\/gross$/, () => <Animations big />],
 ];
@@ -147,7 +150,7 @@ function Shell() {
     setQuizSyncer((answers) => void social.setPlanAnswers(answers).catch(() => {}));
     let alive = true;
     const offer = () => {
-      if (!alive || loadQuiz() || /^#\/(freunde\/add|trainingsplan|fragen)/.test(location.hash)) return;
+      if (!alive || loadQuiz() || /^#\/(freunde\/add|trainingsplan|fragen|willkommen)/.test(location.hash)) return;
       const key = `gym-tracker-plan-offered:${userId}`;
       try {
         if (localStorage.getItem(key)) return;
@@ -155,7 +158,7 @@ function Shell() {
       } catch {
         return;
       }
-      navigate('#/trainingsplan');
+      navigate(welcomeSeen(userId) ? '#/trainingsplan' : '#/willkommen');
     };
     social.myPlanAnswers().then(
       (remote) => {

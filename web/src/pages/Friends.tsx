@@ -1,5 +1,6 @@
 // Freunde: eigener Code/Einladungslink, Freund hinzufügen, Anfragen, Freundesliste, Rangliste,
 // Profil eines Freundes, Feed der Freunde (auf Home) und Einladungslinks (#/freunde/add/CODE).
+import { FirstTip } from '../components/FirstTip';
 import { useLive } from '../lib/live';
 import { AvatarDot } from '../components/AvatarDot';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -163,6 +164,7 @@ export function Friends() {
     <>
       <section className="card recap" id="friends-recap" aria-label="Diese Woche unter Freunden">
         <div className="recap-head"><h2>Freunde</h2></div>
+        <FirstTip id="friends" title="Freunde hinzufügen">Teile deinen <strong>Freundescode</strong> (Karte „Freunde einladen“ → „Einladungslink teilen“) oder gib den Code eines Freundes ein. Sobald ihr befreundet seid, seht ihr eure Trainings, könnt anfeuern, kommentieren und Challenges starten.</FirstTip>
         <p className="recap-line" id="friends-headline">{headline}</p>
         {accepted.length > 0 && (
           <ul className="recap-facts">

@@ -1,4 +1,5 @@
 // Workouts: Vorlagen auswählen und starten, Startvorlagen übernehmen, Standard-Pause einstellen.
+import { FirstTip } from '../components/FirstTip';
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../app/context';
 import { navigate, redirect } from '../app/router';
@@ -54,6 +55,7 @@ export function Workouts() {
   return (
     <>
       <h2>Workouts</h2>
+      <FirstTip id="workouts" title="So trainierst du">Tippe auf <strong>„Leeres Training“</strong> oder starte eine Vorlage. Übungen fügst du mit „+ Übung hinzufügen“ hinzu – jede Karte zeigt dir die Bewegung. Trag pro Satz Gewicht und Wiederholungen ein und hake ihn ab; am Ende „Beenden &amp; speichern“.</FirstTip>
       <CycleCard />
       {(() => {
         const plan = loadQuiz()?.plan;

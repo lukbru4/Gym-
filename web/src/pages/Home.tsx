@@ -1,4 +1,5 @@
 // Home: Umschalter „Mein Feed | Freunde“, Begrüßung mit Rückblick (laufendes Training: Zeile über der Leiste), Aufgaben, Körpergraph, Wochenstatistik.
+import { StartChecklist } from '../components/StartChecklist';
 import { dueHint, getReminders, planWeek } from '../lib/reminders';
 import { isNative } from '../lib/platform';
 import { CycleCard } from '../components/CycleCard';
@@ -117,6 +118,7 @@ export function Home() {
         return hint ? <a className="card notice reminder-hint" id="reminder-hint" href={hint.route}>⏰ {hint.text} – los geht’s!</a> : null;
       })()}
       <MigrateCard />
+      <StartChecklist workoutCount={g.workouts.length} />
       <CycleCard compact />
       {api.mode === 'local' && (
         <p className="notice small">
