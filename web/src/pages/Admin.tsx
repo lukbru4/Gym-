@@ -469,8 +469,8 @@ export function Admin() {
   return (
     <>
       <h2>🛠 Admin-Menü</h2>
+      <Database />
       {owner && <Admins />}
-      {owner && <Database />}
       {owner && <DishPhotos />}
       <MyColors />
       <PaywallTest />
