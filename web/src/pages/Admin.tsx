@@ -1,10 +1,11 @@
 // Admin-Menü (nur für den Besitzer; der Server prüft jede Aktion selbst):
 // alle Farben frei wählen, eigene Farbschemata entwerfen und im Shop anbieten, Meldungen bearbeiten.
 // Der Besitzer kann weitere Admins hinzufügen und entfernen – die haben alles aus Pro, aber kein Admin-Menü.
+import { checkDbVersion, useDbVersion } from '../lib/dbVersion';
 import { SCHEMA_VERSION, SUPABASE_REF, supabaseDashboardUrl } from '../data/config';
 import { WEB_URL } from '../lib/platform';
 import { ask } from '../components/Dialog';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
 import { LoadError, Loading } from '../components/Bits';
@@ -415,8 +416,8 @@ function DishPhotos() {
 function Database() {
   const { api } = useApp();
   const [check, setCheck] = useState(0);
-  const v = useAsync(() => api.social!.schemaVersion().catch(() => 0), [api, check]);
-  const have = v.status === 'ok' ? Number(v.data) || 0 : null;
+  useEffect(() => void checkDbVersion(api.social!), [api, check]);
+  const have = useDbVersion();
   const ok = have !== null && have >= SCHEMA_VERSION;
   return (
     <div className="card" id="admin-db">

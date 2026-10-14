@@ -1,4 +1,5 @@
 // Rahmen der App: Kopfzeile (Level, Serie, Credits, Menü), Reiter unter „Ränge“, untere Leiste, Update-Hinweis.
+import { checkDbVersion, useDbVersion } from '../lib/dbVersion';
 import { useNotifications } from '../lib/notifications';
 import type { Social } from '../data/social';
 import { useEffect, useRef, useState } from 'react';
@@ -202,9 +203,11 @@ export function UpdateBanner() {
 export function DbUpdateBanner() {
   const { api } = useApp();
   const { admin } = useCosmetics();
-  const [outdated, setOutdated] = useState(false);
+  const version = useDbVersion();
+  const [show, setShow] = useState(false);
   useEffect(() => {
-    if (!api.social) return;
+    const social = api.social;
+    if (!social) return;
     let wasAdmin = false;
     try {
       if (admin) localStorage.setItem(WAS_ADMIN_KEY, '1');
@@ -213,13 +216,18 @@ export function DbUpdateBanner() {
       /* ignorieren */
     }
     if (!admin && !wasAdmin) return;
-    let alive = true;
-    api.social.schemaVersion().then(
-      (v) => alive && setOutdated(v < SCHEMA_VERSION),
-      () => alive && setOutdated(true), // Funktion fehlt → SQL ist älter
-    );
-    return () => void (alive = false);
+    setShow(true);
+    void checkDbVersion(social);
+    // Nach dem Update in Supabase: beim Zurückkehren in die App erneut prüfen, damit der Hinweis verschwindet
+    const again = () => document.visibilityState === 'visible' && void checkDbVersion(social);
+    document.addEventListener('visibilitychange', again);
+    window.addEventListener('focus', again);
+    return () => {
+      document.removeEventListener('visibilitychange', again);
+      window.removeEventListener('focus', again);
+    };
   }, [api, admin]);
+  const outdated = show && version !== null && version < SCHEMA_VERSION;
   if (!outdated) return null;
   return (
     <div id="db-update-banner" className="update-banner" role="status">
