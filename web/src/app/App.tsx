@@ -1,3 +1,4 @@
+import { Gym } from '../pages/Gym';
 import { Welcome } from '../pages/Welcome';
 import { welcomeSeen } from '../lib/onboarding';
 import { useLiveConnection } from '../lib/live';
@@ -79,6 +80,7 @@ const ROUTES: Route[] = [
   [/^#\/admin$/, () => <Admin />],
   [/^#\/mitteilungen$/, () => <Notifications />],
   [/^#\/willkommen$/, () => <Welcome />],
+  [/^#\/gym$/, () => <Gym />],
   [/^#\/animationen$/, () => <Animations />],
   [/^#\/animationen\/gross$/, () => <Animations big />],
 ];

@@ -167,6 +167,8 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 119: Live-Aktualisierung über Supabase Realtime – neue Kommentare, Anfeuern, Freundes-Trainings, Freundschaftsanfragen und Challenges erscheinen sofort (privater Kanal pro Person, nur Signale, Inhalte weiter über geprüfte Funktionen) (Datenbank-Update 62)
 - [x] Schritt 120: Admin-Menü „Datenbank (Supabase)“ zeigt den Stand und hat die Knöpfe „SQL kopieren“ und „Supabase öffnen“ (direkt in den SQL Editor); auch im Update-Hinweis und auf der Einrichtungsseite
 - [x] Schritt 123: Einstieg für neue Nutzer – Begrüßung nach der ersten Anmeldung (Name, App in 4 Schritten erklärt, dann Trainingsplan), Start-Checkliste auf der Startseite (Plan, erstes Training, Freund, Erinnerungen), einmalige Tipps auf Workouts und Freunde
+- [x] Schritt 124: „Mein Gym“ – jeder Arbeitssatz ist ein Schlag auf einen Stein; darunter liegt ein neues Gerät (28 Geräte in 4 Seltenheiten, gezeichnet wie in den Übungs-Animationen), das man im eigenen Gym aufstellt; Karte auf der Startseite, Gym im Freundesprofil
+- [ ] Ideen fürs Gym: Aufstellung im Konto speichern, Gym von Freunden ansehen und anfeuern, Deko (Boden, Wände, Spiegel) aus dem Shop
 - [ ] Echte Push-Nachrichten von Freunden, wenn die App zu ist (braucht Apple-Push-Schlüssel / Firebase, **Lukas**: Apple-Developer-Konto)
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [x] Onboarding nach der Registrierung (Schritt 123) – Pro-Abo/Bezahlseite gibt es schon als Demo

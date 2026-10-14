@@ -1,5 +1,7 @@
 // Freunde: eigener Code/Einladungslink, Freund hinzufügen, Anfragen, Freundesliste, Rangliste,
 // Profil eines Freundes, Feed der Freunde (auf Home) und Einladungslinks (#/freunde/add/CODE).
+import { MachineArt } from '../components/MachineArt';
+import { GYM_ITEMS, gymProgress, hitsFrom } from '../lib/gym';
 import { FirstTip } from '../components/FirstTip';
 import { useLive } from '../lib/live';
 import { AvatarDot } from '../components/AvatarDot';
@@ -425,6 +427,16 @@ export function FriendProfile({ userId }: { userId: string }) {
       <div className="card">
         <BodyGraph levels={levels} skin={eq.skin ?? null} />
       </div>
+      {(() => {
+        const gp = gymProgress(hitsFrom(d.sets));
+        return (
+          <div className="card friend-gym" id="friend-gym">
+            <h3>Gym von {name}</h3>
+            <p className="muted small">{gp.unlocked.length} von {GYM_ITEMS.length} Geräten gefunden{gp.unlocked.length ? ` · zuletzt: ${gp.unlocked[gp.unlocked.length - 1].name}` : ''}</p>
+            {gp.unlocked.length > 0 && <div className="friend-gym-row">{gp.unlocked.slice(-4).reverse().map((it) => <MachineArt key={it.id} pattern={it.pattern} height={64} />)}</div>}
+          </div>
+        );
+      })()}
       {records.length > 0 && (
         <div className="card scroll-x">
           <h3>Bestwerte</h3>

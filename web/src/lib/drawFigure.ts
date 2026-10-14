@@ -59,7 +59,8 @@ interface Item { depth: number; draw: () => void }
 
 export type Focus = Map<Segment, 'p' | 's'>;
 
-export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p: Pattern, u: number, cam: Camera, hi: Focus, c: Colors) {
+/** opts.figure = false: nur das Gerät zeichnen (z. B. für „Mein Gym“) */
+export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p: Pattern, u: number, cam: Camera, hi: Focus, c: Colors, opts: { figure?: boolean } = {}) {
   ctx.clearRect(0, 0, w, h);
   const pose = { ...NEUTRAL, ...patternPose(p, u) };
   const j = solve(pose, p.anchor);
@@ -75,13 +76,15 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
     ctx.fillStyle = fg;
     ctx.save(); ctx.translate(fc.x, fc.y); ctx.scale(1, fy / fr); ctx.translate(-fc.x, -fc.y);
     ctx.beginPath(); ctx.arc(fc.x, fc.y, fr, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    const sc = P([j.pelvis[0], 0, (j.pelvis[2] + (j.toeL[2] + j.toeR[2]) / 2) / 2]);
-    const rx = 0.55 * sc.s, ry = 0.17 * sc.s;
-    const sh = ctx.createRadialGradient(sc.x, sc.y, 1, sc.x, sc.y, rx);
-    sh.addColorStop(0, 'rgba(0,0,0,0.28)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = sh;
-    ctx.save(); ctx.translate(sc.x, sc.y); ctx.scale(1, ry / rx); ctx.translate(-sc.x, -sc.y);
-    ctx.beginPath(); ctx.arc(sc.x, sc.y, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    if (opts.figure !== false) {
+      const sc = P([j.pelvis[0], 0, (j.pelvis[2] + (j.toeL[2] + j.toeR[2]) / 2) / 2]);
+      const rx = 0.55 * sc.s, ry = 0.17 * sc.s;
+      const sh = ctx.createRadialGradient(sc.x, sc.y, 1, sc.x, sc.y, rx);
+      sh.addColorStop(0, 'rgba(0,0,0,0.28)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = sh;
+      ctx.save(); ctx.translate(sc.x, sc.y); ctx.scale(1, ry / rx); ctx.translate(-sc.x, -sc.y);
+      ctx.beginPath(); ctx.arc(sc.x, sc.y, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
   }
 
   // ---- Figur: verjüngte, schattierte Körperteile mit Muskelbäuchen ----
@@ -203,6 +206,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
   taper(hpMid, lerp3(hpMid, waist, 0.6), 0.13, 0.118, SHORTS, -0.012, false);
 
   // Hilfsmittel und Geräte (realistische Bausteine aus gymKit)
+  if (opts.figure === false) items.length = 0;
   const kit = makeKit(ctx, P, items, cam);
   for (const prop of p.props) drawProp(kit, prop, j, pose, p);
 
