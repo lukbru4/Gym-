@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
-  cleanAdventure, companionFrom, journeyFrom, moodFor, muscleShares, nextStopIndex, postcards, ROUTE, stageIndex, STAGES, workoutGain,
+  cleanAdventure, companionFrom, journeyFrom, islandFrom, ISLAND_FULL_SETS, REGIONS, stateFor, moodFor, muscleShares, nextStopIndex, postcards, ROUTE, stageIndex, STAGES, workoutGain,
   HM_PER_SET, KM_PER_CARDIO_KM, KM_PER_SET,
 } from '../src/lib/adventure';
 import { readFileSync } from 'node:fs';
@@ -107,5 +107,46 @@ describe('Datenbank-Update 65', () => {
     expect(sql).toContain('create or replace function public.set_my_adventure(p_adv jsonb)');
     expect(sql).toContain("'adventure', p.adventure");
     expect(sql).toMatch(/select 65 \$\$;/);
+  });
+});
+
+describe('Trainings-Insel', () => {
+  const day = (d: number) => `2026-03-${String(d).padStart(2, '0')}`;
+  test('Gebiete wachsen mit den Sätzen der letzten 30 Tage, Cardio separat', () => {
+    const w: Workout[] = [{ id: 1, date: day(1) }, { id: 2, date: day(10) }];
+    const sets: WorkoutSet[] = [
+      ...Array.from({ length: 24 }, () => ({ workout_id: 1, exercise_id: 1 })), // Beine voll
+      ...Array.from({ length: 6 }, () => ({ workout_id: 2, exercise_id: 2 })), // Brust ein Viertel
+      { workout_id: 2, exercise_id: 3, distance_km: 5 },
+    ];
+    const isl = islandFrom(w, sets, ex, day(12));
+    expect(isl.level.beine).toBe(1);
+    expect(isl.level.brust).toBeCloseTo(0.25);
+    expect(isl.counts.cardio).toBe(1);
+    expect(stateFor(isl.level.beine)).toBe('praechtig');
+    expect(stateFor(isl.level.ruecken)).toBe('kahl');
+    expect(isl.weakest).not.toBeNull();
+    expect(isl.last).toBe('brust'); // zuletzt Bankdrücken
+    expect(isl.balance).toBeGreaterThan(0);
+    expect(isl.balance).toBeLessThan(40);
+  });
+  test('Ohne Training: alles kahl, kein Tipp', () => {
+    const isl = islandFrom([], [], ex, day(12));
+    expect(isl.balance).toBe(0);
+    expect(isl.weakest).toBeNull();
+    expect(isl.last).toBeNull();
+  });
+  test('Alles ausgewogen trainiert → 100 %', () => {
+    const all: ExerciseMap = new Map([
+      [1, { name: 'A', type: 'strength', muscles: ['quadrizeps'], user_id: null }], [2, { name: 'B', type: 'strength', muscles: ['brust'], user_id: null }],
+      [4, { name: 'C', type: 'strength', muscles: ['lat'], user_id: null }], [5, { name: 'D', type: 'strength', muscles: ['schultern'], user_id: null }],
+      [6, { name: 'E', type: 'strength', muscles: ['bizeps'], user_id: null }], [7, { name: 'F', type: 'strength', muscles: ['bauch'], user_id: null }],
+      [3, { name: 'Laufen', type: 'cardio', muscles: [], user_id: null }],
+    ]);
+    const sets: WorkoutSet[] = [1, 2, 3, 4, 5, 6, 7].flatMap((e) => Array.from({ length: ISLAND_FULL_SETS }, () => ({ workout_id: 1, exercise_id: e })));
+    expect(islandFrom([{ id: 1, date: day(5) }], sets, all, day(6)).balance).toBe(100);
+  });
+  test('Alle Gebiete haben eine Muskelgruppe', () => {
+    expect(REGIONS.map((r) => r.area).sort()).toEqual(['arme', 'bauch', 'beine', 'brust', 'cardio', 'ruecken', 'schultern']);
   });
 });

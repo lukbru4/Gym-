@@ -5,7 +5,10 @@ import { useGame } from '../app/gameContext';
 import { Loading } from '../components/Bits';
 import { PetArt } from '../components/PetArt';
 import { ClimbArt, Postcard, WorldMap } from '../components/WorldArt';
+import { IslandArt } from '../components/IslandArt';
+import { ZoomPan } from '../components/ZoomPan';
 import {
+  ISLAND_FULL_SETS, islandFrom, REGIONS, STATE_TEXT, stateFor, type Area,
   cleanAdventure, companionFrom, GROUPS, HM_PER_KG, HM_PER_SET, KM_PER_CARDIO_KM, KM_PER_SET, loadAdventureLocal, loadSeen, MAX_PET_NAME,
   MOOD_TEXT, nextStopIndex, PET_NAMES, postcards, ROUTE, saveAdventureLocal, saveSeen, SPECIES, STAGES,
   type AdventureState, type Companion, type Journey, type Species, type Stop,
@@ -32,6 +35,11 @@ export function Adventure() {
     [game.status === 'ok' ? game.data.sets.length : -1, game.status === 'ok' ? game.data.workouts.length : -1], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const cards = comp ? postcards(comp.journey) : [];
+  const island = useMemo(
+    () => (game.status === 'ok' ? islandFrom(game.data.workouts, game.data.sets, exerciseMap(), todayISO()) : null),
+    [game.status === 'ok' ? game.data.sets.length : -1, game.status === 'ok' ? game.data.workouts.length : -1], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const [area, setArea] = useState<Area | null>(null);
 
   // Begleiter laden: Konto (falls vorhanden), sonst Gerät
   useEffect(() => {
@@ -141,6 +149,26 @@ export function Adventure() {
         )}
       </div>
 
+      {island && (
+        <>
+          <div className="adv-head"><h3>Deine Insel</h3><IslandHelp /></div>
+          <div className="card adv-island" id="adv-island">
+            <ZoomPan id="island-zoom" label="Insel">
+              <IslandArt island={island} species={adv.species} stageIdx={comp.stageIdx} shares={comp.shares} mood={comp.mood} selected={area} onPick={setArea} />
+            </ZoomPan>
+            {area ? (() => {
+              const r = REGIONS.find((x) => x.area === area)!;
+              return (
+                <p className="island-info" id="island-info"><strong>{r.icon} {r.name} = {r.muscle}</strong> · {island.counts[area]} {island.counts[area] === 1 ? 'Satz' : 'Sätze'} in 30 Tagen · {STATE_TEXT[stateFor(island.level[area])]}
+                  {island.counts[area] < ISLAND_FULL_SETS && <> · noch {ISLAND_FULL_SETS - island.counts[area]} bis „in voller Pracht“</>}</p>
+              );
+            })() : <p className="muted small">Tippe auf ein Gebiet, um zu sehen, für welche Muskeln es steht. Mit zwei Fingern kannst du heranzoomen.</p>}
+            <div className="gym-bar"><i style={{ width: `${island.balance}%` }} /></div>
+            <p className="small" id="island-balance"><strong>Ausgewogenheit {island.balance} %</strong>{island.weakest && island.level[island.weakest.area] < 0.85 && <> · Tipp: Trainier mehr <strong>{island.weakest.muscle}</strong> – dann wächst {island.weakest.icon} {island.weakest.name} wieder.</>}</p>
+          </div>
+        </>
+      )}
+
       <h3>Weltreise {j.round > 1 && <span className="muted small">· Runde {j.round}</span>}</h3>
       {j.climb ? (
         <div className="card adv-climb" id="adv-climb">
@@ -151,7 +179,7 @@ export function Adventure() {
         </div>
       ) : (
         <div className="card adv-trip" id="adv-trip">
-          <WorldMap journey={j} friends={friends} zoom={!world} />
+          <ZoomPan id="world-zoom" label="Weltkarte"><WorldMap journey={j} friends={friends} zoom={!world} /></ZoomPan>
           <button type="button" className="btn small-btn adv-zoom" id="adv-zoom" onClick={() => setWorld((x) => !x)}>{world ? '🔍 Näher ran' : '🌍 Ganze Welt'}</button>
           <p id="adv-leg"><strong>{here.name.replace(' (Heimkehr)', '')} → {next.name}</strong> · {fmt(Math.round(j.legDone), 0)} von {fmt(j.legKm, 0)} km {next.peak && '⛰️'}</p>
           <div className="gym-bar"><i style={{ width: `${Math.round((j.legDone / j.legKm) * 100)}%` }} /></div>
@@ -210,12 +238,40 @@ export function AdventureHelp() {
             <p className="small">Die App zählt deine Sätze der letzten 30 Tage pro Muskelgruppe. Wo du am meisten trainierst, bekommt er die dicksten Muskeln – je höher die Stufe, desto deutlicher.</p>
             <h4>😊 Stimmung</h4>
             <p className="small">0–2 Tage seit dem letzten Training: fröhlich · 3–6 Tage: müde · ab 7 Tagen: traurig. Nur das Aussehen – keine Strafe, nichts geht verloren.</p>
+            <h4>🏝️ Insel</h4>
+            <p className="small">Jedes Gebiet steht für eine Muskelgruppe und wächst mit deinen Sätzen der letzten 30 Tage – vernachlässigte Gebiete vertrocknen. Mehr dazu unter „Wozu die Insel?“.</p>
             <h4>🌍 Weltreise</h4>
             <p className="small">1 Satz = {KM_PER_SET} km, 1 km Cardio = {KM_PER_CARDIO_KM} km. Die Reise läuft schon, solange er noch im Ei ist. In jeder Stadt gibt es eine Postkarte fürs Album.</p>
             <h4>⛰️ Gipfel</h4>
             <p className="small">Am Berg zählen Höhenmeter statt Kilometer: jeder Satz {HM_PER_SET} m, dazu {Math.round(100 * HM_PER_KG)} m je 100 bewegte kg. Erst auf dem Gipfel gibt es die Postkarte – dann geht die Reise weiter.</p>
             <p className="muted small">Alles wird aus deinen echten Trainings berechnet. Gespeichert werden nur Art und Name deines Begleiters.</p>
             <button type="button" className="btn primary block" id="adv-help-close" onClick={() => setOpen(false)}>Verstanden</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Erklärung der Insel */
+function IslandHelp() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="btn small-btn adv-help-btn" id="island-help" onClick={() => setOpen(true)}>ℹ️ Wozu die Insel?</button>
+      {open && (
+        <div className="dialog-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
+          <div className="dialog adv-help" id="island-help-dialog" role="dialog" aria-modal="true" aria-label="So funktioniert die Insel">
+            <h3>Wozu die Insel?</h3>
+            <p className="small">Die Insel zeigt dir auf einen Blick, <strong>wie ausgewogen du trainierst</strong>. Jedes Gebiet steht für eine Muskelgruppe:</p>
+            <table className="table adv-help-table">
+              <tbody>{REGIONS.map((r) => <tr key={r.area}><td>{r.icon} {r.name}</td><td>{r.muscle}</td></tr>)}</tbody>
+            </table>
+            <p className="small">Gezählt werden deine Sätze der <strong>letzten 30 Tage</strong>. Ab {ISLAND_FULL_SETS} Sätzen (etwa 6 pro Woche) steht ein Gebiet in voller Pracht – mit hohen Bergen, dichtem Wald, Häusern und Blumen.</p>
+            <p className="small">Lässt du eine Muskelgruppe weg, <strong>vertrocknet</strong> ihr Gebiet langsam: Der Wald wird braun, im Garten bleibt nur Erde. So siehst du sofort, was zu kurz kommt.</p>
+            <p className="small">Dein Begleiter wohnt in der Hütte und steht dort, wo du zuletzt trainiert hast.</p>
+            <p className="muted small">Unterschied zur Weltreise: Die Reise zeigt, <strong>wie viel</strong> du trainierst – die Insel, <strong>wie ausgewogen</strong>.</p>
+            <button type="button" className="btn primary block" id="island-help-close" onClick={() => setOpen(false)}>Verstanden</button>
           </div>
         </div>
       )}

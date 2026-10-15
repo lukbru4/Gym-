@@ -175,7 +175,9 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 129 (Datenbank-Update 64): Gym-Stil „Vintage Holz“ (Backstein, Holzdielen, Holzschild, Geräte aus Holz/Leder/Messing), 8 Vintage-Deko-Teile im Laden; Übungsseite wieder scrollbar (auch beim Wischen über die Animation)
 - [x] Schritt 130 (Datenbank-Update 65): „Abenteuer“ – Begleiter aus dem Ei (Drache/Wolf/Gorilla, 5 Stufen, Muskeln wachsen je nach Training, Stimmung), Weltreise (1 Satz = 25 km) mit Gipfel-Etappen (bewegte Kilos = Höhenmeter: Mont Blanc, Kilimandscharo, Aconcagua, Fuji, Everest), Postkarten-Album, Freunde auf der Karte und im Profil; Vintage-Stil wieder entfernt; Boxsack/Ringe/Lampe hängen an der Decke; Wasser in 100/250/500 ml
 - [x] Schritt 131: Auswahl „Gym, Ei oder beides“ (Begrüßung, Karte auf der Startseite für bestehende Nutzer, Einstellungen); „So funktioniert's“-Erklärung im Abenteuer
-- [ ] Schritt 132: Trainings-Insel als Zuhause des Begleiters (Bereiche wachsen nach Muskelgruppen, Souvenirs aus der Weltreise)
+- [x] Schritt 132: Trainings-Insel – zeigt, wie ausgewogen man trainiert (Berge = Beine, Wald = Rücken, Strand = Brust, Klippen = Schultern, Dorf = Arme, Garten = Bauch, Fluss = Cardio; Sätze der letzten 30 Tage, ab 24 Sätzen „in voller Pracht“, vernachlässigte Gebiete vertrocknen), Hütte des Begleiters, Gebiete antippen, Erklärung „Wozu die Insel?“, Zoomen mit zwei Fingern/Knöpfen (auch Weltkarte), Insel im Freundesprofil
+- [ ] Schritt 133: Körpermaße + Fortschritts-Fotos (privat, Vergleich, Kalender-📷; Datenbank-Update 66)
+- [ ] Schritt 134: Training im Studio smarter (Scheibenrechner, Supersätze, „+2,5 kg“-Hinweis, Aufwärmsätze)
 - [ ] Ideen fürs Gym: Gym von Freunden anfeuern, Boden- und Wandfarben aus dem Shop
 - [ ] Echte Push-Nachrichten von Freunden, wenn die App zu ist (braucht Apple-Push-Schlüssel / Firebase, **Lukas**: Apple-Developer-Konto)
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)

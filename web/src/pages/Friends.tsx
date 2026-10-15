@@ -4,7 +4,8 @@ import { MachineArt } from '../components/MachineArt';
 import { chestsEarned, cleanGym, GYM_ITEMS, gymProgress, hitsFrom, tierFor } from '../lib/gym';
 import { GymRoom } from '../components/GymRoom';
 import { PetArt } from '../components/PetArt';
-import { cleanAdventure, companionFrom, nextStopIndex, postcards, ROUTE, SPECIES } from '../lib/adventure';
+import { cleanAdventure, companionFrom, islandFrom, nextStopIndex, postcards, ROUTE, SPECIES } from '../lib/adventure';
+import { IslandArt } from '../components/IslandArt';
 import { FirstTip } from '../components/FirstTip';
 import { useLive } from '../lib/live';
 import { AvatarDot } from '../components/AvatarDot';
@@ -458,6 +459,7 @@ export function FriendProfile({ userId }: { userId: string }) {
               <p className="muted small">{SPECIES.find((s) => s.id === fa.species)?.name} · {c.stage.name}<br />
                 {j.climb ? `Am Berg: ${ROUTE[j.at].name}` : `Unterwegs nach ${ROUTE[nextStopIndex(j)].name}`} · {postcards(j).length} Postkarten</p>
             </div>
+            {(() => { const isl = islandFrom(d.workouts, d.sets, map, todayISO()); return <><IslandArt island={isl} species={fa.species} stageIdx={c.stageIdx} shares={c.shares} mood={c.mood} /><p className="muted small">Insel von {name}: Ausgewogenheit {isl.balance} %</p></>; })()}
           </div>
         );
       })()}

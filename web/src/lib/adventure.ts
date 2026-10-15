@@ -41,19 +41,69 @@ export const GROUPS: Group[] = ['arme', 'brust', 'ruecken', 'schultern', 'bauch'
 const dayMs = 86400000;
 const daysBetween = (a: ISODate, b: ISODate) => Math.round((Date.parse(b) - Date.parse(a)) / dayMs);
 
-/** Muskelanteile der letzten Tage (0–1, stärkste Gruppe = 1) – dort wachsen die Muskeln des Begleiters */
-export function muscleShares(workouts: Workout[], sets: WorkoutSet[], ex: ExerciseMap, today: ISODate, days = 30): Record<Group, number> {
+export type Area = Group | 'cardio';
+/** Sätze je Muskelgruppe (und Cardio) der letzten Tage */
+export function groupCounts(workouts: Workout[], sets: WorkoutSet[], ex: ExerciseMap, today: ISODate, days = 30): Record<Area, number> {
   const dateOf = new Map(workouts.map((w) => [w.id, w.date]));
-  const count: Record<Group, number> = { arme: 0, brust: 0, ruecken: 0, schultern: 0, bauch: 0, beine: 0 };
+  const count: Record<Area, number> = { arme: 0, brust: 0, ruecken: 0, schultern: 0, bauch: 0, beine: 0, cardio: 0 };
   for (const s of sets) {
     const d = dateOf.get(s.workout_id);
     if (!d || daysBetween(d, today) > days || !isWorkingSet(s)) continue;
     const e = ex.get(s.exercise_id);
     if (!e) continue;
-    for (const c of exerciseCategories({ id: s.exercise_id, ...e } as Exercise)) if (c in count) count[c as Group]++;
+    for (const c of exerciseCategories({ id: s.exercise_id, ...e } as Exercise)) if (c in count) count[c as Area]++;
   }
-  const max = Math.max(1, ...Object.values(count));
+  return count;
+}
+
+/** Muskelanteile der letzten Tage (0–1, stärkste Gruppe = 1) – dort wachsen die Muskeln des Begleiters */
+export function muscleShares(workouts: Workout[], sets: WorkoutSet[], ex: ExerciseMap, today: ISODate, days = 30): Record<Group, number> {
+  const count = groupCounts(workouts, sets, ex, today, days);
+  const max = Math.max(1, ...GROUPS.map((g) => count[g]));
   return Object.fromEntries(GROUPS.map((g) => [g, count[g] / max])) as Record<Group, number>;
+}
+
+// ---- Trainings-Insel: zeigt, wie ausgewogen du trainierst ----------------------------------
+/** Sätze in 30 Tagen, ab denen ein Gebiet in voller Pracht steht (≈ 6 Sätze pro Woche) */
+export const ISLAND_FULL_SETS = 24;
+export interface Region { area: Area; name: string; icon: string; muscle: string }
+export const REGIONS: Region[] = [
+  { area: 'beine', name: 'Berge', icon: '🏔️', muscle: 'Beine' },
+  { area: 'ruecken', name: 'Wald', icon: '🌲', muscle: 'Rücken' },
+  { area: 'brust', name: 'Strand', icon: '🏖️', muscle: 'Brust' },
+  { area: 'schultern', name: 'Klippen', icon: '🪨', muscle: 'Schultern' },
+  { area: 'arme', name: 'Dorf', icon: '🏘️', muscle: 'Arme' },
+  { area: 'bauch', name: 'Garten', icon: '🌻', muscle: 'Bauch' },
+  { area: 'cardio', name: 'Fluss', icon: '🌊', muscle: 'Cardio' },
+];
+export type RegionState = 'kahl' | 'wenig' | 'gut' | 'praechtig';
+export const STATE_TEXT: Record<RegionState, string> = { kahl: 'trocken und kahl', wenig: 'wächst langsam', gut: 'gut gepflegt', praechtig: 'in voller Pracht' };
+export const stateFor = (level: number): RegionState => (level < 0.15 ? 'kahl' : level < 0.5 ? 'wenig' : level < 0.85 ? 'gut' : 'praechtig');
+export interface Island { counts: Record<Area, number>; level: Record<Area, number>; balance: number; weakest: Region | null; last: Area | null }
+/** Insel aus den Trainings: Pflegestand je Gebiet (0–1), Ausgewogenheit (0–100) und schwächstes Gebiet */
+export function islandFrom(workouts: Workout[], sets: WorkoutSet[], ex: ExerciseMap, today: ISODate): Island {
+  const counts = groupCounts(workouts, sets, ex, today);
+  const level = Object.fromEntries(REGIONS.map((r) => [r.area, Math.min(1, counts[r.area] / ISLAND_FULL_SETS)])) as Record<Area, number>;
+  // Ausgewogenheit: Durchschnitt der Muskelgebiete (Cardio zählt nur halb)
+  const muscle = GROUPS.map((g) => level[g]);
+  const balance = Math.round(((muscle.reduce((a, b) => a + b, 0) + level.cardio * 0.5) / (GROUPS.length + 0.5)) * 100);
+  const any = REGIONS.some((r) => counts[r.area] > 0);
+  const weakest = any ? [...REGIONS].filter((r) => r.area !== 'cardio').sort((a, b) => level[a.area] - level[b.area])[0] : null;
+  // wo zuletzt trainiert wurde: dort steht der Begleiter
+  const lastW = [...workouts].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).find((w) => sets.some((s) => s.workout_id === w.id && isWorkingSet(s)));
+  let last: Area | null = null;
+  if (lastW) {
+    // nur der Hauptmuskel jeder Übung zählt (Bankdrücken → Brust, nicht Arme)
+    const c = new Map<Area, number>();
+    for (const s of sets) {
+      if (s.workout_id !== lastW.id || !isWorkingSet(s)) continue;
+      const e = ex.get(s.exercise_id);
+      const main = e ? [...exerciseCategories({ id: s.exercise_id, ...e } as Exercise)].find((k) => REGIONS.some((r) => r.area === k)) : undefined;
+      if (main) c.set(main as Area, (c.get(main as Area) ?? 0) + 1);
+    }
+    last = [...c.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  }
+  return { counts, level, balance, weakest, last };
 }
 
 // ---- Weltreise mit Gipfeln ---------------------------------------------------------------
