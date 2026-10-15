@@ -174,7 +174,8 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 128: Namensideen fürs Gym (feste Liste, Baukasten, persönlich aus Vorname, meist trainierter Muskelgruppe und Ausbaustufe; „Neue Ideen“)
 - [x] Schritt 129 (Datenbank-Update 64): Gym-Stil „Vintage Holz“ (Backstein, Holzdielen, Holzschild, Geräte aus Holz/Leder/Messing), 8 Vintage-Deko-Teile im Laden; Übungsseite wieder scrollbar (auch beim Wischen über die Animation)
 - [x] Schritt 130 (Datenbank-Update 65): „Abenteuer“ – Begleiter aus dem Ei (Drache/Wolf/Gorilla, 5 Stufen, Muskeln wachsen je nach Training, Stimmung), Weltreise (1 Satz = 25 km) mit Gipfel-Etappen (bewegte Kilos = Höhenmeter: Mont Blanc, Kilimandscharo, Aconcagua, Fuji, Everest), Postkarten-Album, Freunde auf der Karte und im Profil; Vintage-Stil wieder entfernt; Boxsack/Ringe/Lampe hängen an der Decke; Wasser in 100/250/500 ml
-- [ ] Schritt 131: Trainings-Insel als Zuhause des Begleiters (Bereiche wachsen nach Muskelgruppen, Souvenirs aus der Weltreise)
+- [x] Schritt 131: Auswahl „Gym, Ei oder beides“ (Begrüßung, Karte auf der Startseite für bestehende Nutzer, Einstellungen); „So funktioniert's“-Erklärung im Abenteuer
+- [ ] Schritt 132: Trainings-Insel als Zuhause des Begleiters (Bereiche wachsen nach Muskelgruppen, Souvenirs aus der Weltreise)
 - [ ] Ideen fürs Gym: Gym von Freunden anfeuern, Boden- und Wandfarben aus dem Shop
 - [ ] Echte Push-Nachrichten von Freunden, wenn die App zu ist (braucht Apple-Push-Schlüssel / Firebase, **Lukas**: Apple-Developer-Konto)
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)

@@ -104,7 +104,7 @@ export function Adventure() {
   const stageProgress = comp.next ? (comp.workouts - prevMin) / (comp.next.min - prevMin) : 1;
   return (
     <>
-      <h2>Abenteuer</h2>
+      <div className="adv-head"><h2>Abenteuer</h2><AdventureHelp /></div>
       <div className="card adv-pet" id="adv-pet">
         <PetArt species={adv.species} stageIdx={comp.stageIdx} shares={comp.shares} mood={comp.mood} progress={stageProgress} size={190} />
         <div className="adv-pet-info">
@@ -190,6 +190,39 @@ export function Adventure() {
   );
 }
 
+/** „So funktioniert's“: die Regeln in einfachen Worten (Zahlen direkt aus lib/adventure) */
+export function AdventureHelp() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="btn small-btn adv-help-btn" id="adv-help" onClick={() => setOpen(true)}>ℹ️ So funktioniert's</button>
+      {open && (
+        <div className="dialog-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
+          <div className="dialog adv-help" id="adv-help-dialog" role="dialog" aria-modal="true" aria-label="So funktioniert das Abenteuer">
+            <h3>So funktioniert's</h3>
+            <h4>🥚 Dein Begleiter wächst mit deinen Trainings</h4>
+            <p className="small">Jedes Training mit mindestens einem echten Satz zählt als <strong>1 Schritt</strong> (Aufwärmsätze zählen nicht). Wie schwer, ist egal. Er wird nie wieder kleiner.</p>
+            <table className="table adv-help-table">
+              <thead><tr><th>Trainings</th><th>Stufe</th></tr></thead>
+              <tbody>{STAGES.map((st, i) => <tr key={st.id}><td>{i + 1 < STAGES.length ? (i === 0 ? `0–${STAGES[1].min - 1}` : `ab ${st.min}`) : `ab ${st.min}`}</td><td>{st.name}{i === 1 ? ' – schlüpft 🐣' : i === 4 ? ' 👑' : ''}</td></tr>)}</tbody>
+            </table>
+            <h4>💪 Muskeln</h4>
+            <p className="small">Die App zählt deine Sätze der letzten 30 Tage pro Muskelgruppe. Wo du am meisten trainierst, bekommt er die dicksten Muskeln – je höher die Stufe, desto deutlicher.</p>
+            <h4>😊 Stimmung</h4>
+            <p className="small">0–2 Tage seit dem letzten Training: fröhlich · 3–6 Tage: müde · ab 7 Tagen: traurig. Nur das Aussehen – keine Strafe, nichts geht verloren.</p>
+            <h4>🌍 Weltreise</h4>
+            <p className="small">1 Satz = {KM_PER_SET} km, 1 km Cardio = {KM_PER_CARDIO_KM} km. Die Reise läuft schon, solange er noch im Ei ist. In jeder Stadt gibt es eine Postkarte fürs Album.</p>
+            <h4>⛰️ Gipfel</h4>
+            <p className="small">Am Berg zählen Höhenmeter statt Kilometer: jeder Satz {HM_PER_SET} m, dazu {Math.round(100 * HM_PER_KG)} m je 100 bewegte kg. Erst auf dem Gipfel gibt es die Postkarte – dann geht die Reise weiter.</p>
+            <p className="muted small">Alles wird aus deinen echten Trainings berechnet. Gespeichert werden nur Art und Name deines Begleiters.</p>
+            <button type="button" className="btn primary block" id="adv-help-close" onClick={() => setOpen(false)}>Verstanden</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /** Erster Besuch: Ei aussuchen und Namen geben */
 function Hatch({ onDone }: { onDone: (a: AdventureState) => void }) {
   const { showError } = useApp();
@@ -197,7 +230,7 @@ function Hatch({ onDone }: { onDone: (a: AdventureState) => void }) {
   const [name, setName] = useState('');
   return (
     <>
-      <h2>Abenteuer</h2>
+      <div className="adv-head"><h2>Abenteuer</h2><AdventureHelp /></div>
       <p>Such dir ein Ei aus! Daraus schlüpft dein <strong>Begleiter</strong>: Er wird mit jedem Training stärker, bekommt Muskeln dort, wo du trainierst, und reist mit dir um die Welt – bis auf die höchsten Gipfel.</p>
       <div className="adv-eggs" id="adv-eggs" role="radiogroup" aria-label="Ei auswählen">
         {SPECIES.map((s) => (

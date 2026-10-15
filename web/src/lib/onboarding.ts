@@ -33,3 +33,20 @@ export const tipSeen = (id: string) => get(tipKey(id)) === '1';
 export const dismissTip = (id: string) => { tick++; set(tipKey(id), '1'); };
 /** Neu zeichnen, wenn Tipps/Checkliste ausgeblendet werden */
 export const useOnboardingTick = () => useSyncExternalStore(subscribe, () => tick, () => tick);
+
+/** Spiel-Modus: was man sammeln möchte – Mein Gym, das Abenteuer (Ei) oder beides (null = noch nicht gewählt) */
+export type FunMode = 'gym' | 'ei' | 'beides';
+const funKey = (uid: string) => `gym-tracker-fun:${uid}`;
+export const funMode = (uid: string): FunMode | null => {
+  const v = get(funKey(uid));
+  return v === 'gym' || v === 'ei' || v === 'beides' ? v : null;
+};
+export const setFunMode = (uid: string, m: FunMode) => { tick++; set(funKey(uid), m); };
+/** Was angezeigt wird: ohne Wahl beides */
+export const showsGym = (m: FunMode | null) => m !== 'ei';
+export const showsEgg = (m: FunMode | null) => m !== 'gym';
+/** Aktueller Modus, zeichnet bei Änderung neu */
+export function useFunMode(uid: string): FunMode | null {
+  useOnboardingTick();
+  return funMode(uid);
+}

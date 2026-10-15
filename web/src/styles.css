@@ -2250,3 +2250,14 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .pet-egg, .adv-reveal-art .pet-art { animation: none; } }
 .adv-trip { position: relative; }
 .adv-zoom { position: absolute; top: 22px; right: 22px; padding: 4px 10px; font-size: 0.75rem; }
+
+.adv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.adv-help { max-height: 85vh; overflow-y: auto; text-align: left; }
+.adv-help h4 { margin: 12px 0 2px; }
+.adv-help-table { width: 100%; font-size: 0.85rem; }
+/* Spiel-Modus: Gym, Ei oder beides */
+.fun-choice { display: grid; gap: 8px; margin: 10px 0; }
+.fun-option { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.fun-option.active { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+.fun-option strong { display: block; } .fun-option small { display: block; color: var(--text-secondary); font-size: 0.78rem; line-height: 1.3; }
+.fun-icon { font-size: 1.8rem; flex: none; }

@@ -39,6 +39,8 @@ import {
 } from '../lib/theme';
 import { hardReload } from '../lib/update';
 import { APP_VERSION } from '../version';
+import { FunChoice } from '../components/FunChoice';
+import { setFunMode, useFunMode } from '../lib/onboarding';
 import { SettingsIcon } from '../components/SettingsIcons';
 import { FAQ, NEWS } from '../lib/news';
 
@@ -174,6 +176,7 @@ export function Account({ section }: { section?: string }) {
     setHoursState(next);
   };
   const [busy, setBusy] = useState(false);
+  const fun = useFunMode(user?.id ?? 'local');
   const { owned, admin } = useCosmetics();
   // Shop-Farbschemata nur zeigen, wenn gekauft (oder gerade aktiv)
   // Nur Standard + Gekauftes (Admin: alles, auch eigene Entwürfe)
@@ -322,6 +325,11 @@ export function Account({ section }: { section?: string }) {
     ),
     app: (
       <>
+      <div className="card" id="fun-settings">
+        <h3>Spiel-Modus</h3>
+        <p className="muted small">Was möchtest du mit deinem Training sammeln? Dein Fortschritt geht beim Wechseln nicht verloren.</p>
+        <FunChoice value={fun} onPick={(m) => setFunMode(user?.id ?? 'local', m)} />
+      </div>
       <div className="card">
         <h3>App</h3>
         <p className="muted small">App-Version: {APP_VERSION}</p>

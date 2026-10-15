@@ -15,6 +15,7 @@ import { WEB_URL } from '../lib/platform';
 import { fmt } from '../lib/format';
 import { fetchServerVersion, hardReload } from '../lib/update';
 import { APP_VERSION } from '../version';
+import { showsEgg, showsGym, useFunMode } from '../lib/onboarding';
 import { Coin, Flame, MenuIcon } from './Icons';
 
 export function Header({ game }: { game: Game | null }) {
@@ -23,6 +24,7 @@ export function Header({ game }: { game: Game | null }) {
   const { admin } = useCosmetics();
   const hash = useHash();
   const menuRef = useRef<HTMLDivElement>(null);
+  const fun = useFunMode(user?.id ?? 'local');
   useEffect(() => setOpen(false), [hash]);
   useEffect(() => {
     if (!open) return;
@@ -81,8 +83,8 @@ export function Header({ game }: { game: Game | null }) {
       </button>
       {open && (
         <div className="menu" id="menu" ref={menuRef}>
-          <a href="#/gym" id="menu-gym">🏋️ Mein Gym</a>
-          <a href="#/abenteuer" id="menu-adventure">🗺️ Abenteuer</a>
+          {showsGym(fun) && <a href="#/gym" id="menu-gym">🏋️ Mein Gym</a>}
+          {showsEgg(fun) && <a href="#/abenteuer" id="menu-adventure">🗺️ Abenteuer</a>}
           <a href="#/konto">Konto &amp; Einstellungen</a>
           {api.social && <a href="#/shop">Shop</a>}
           {admin && <a href="#/admin" id="menu-admin">🛠 Admin-Menü</a>}

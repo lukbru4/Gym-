@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { navigate } from '../app/router';
-import { markWelcomeSeen } from '../lib/onboarding';
+import { FunChoice } from '../components/FunChoice';
+import { funMode, markWelcomeSeen, setFunMode, type FunMode } from '../lib/onboarding';
 
 const SLIDES = [
   { icon: '🏋️', title: 'Trainieren & leveln', text: 'Trag deine Trainings ein – Sätze, Gewichte, Wiederholungen. Jede Übung zeigt dir als Animation, wie sie geht. Für jedes Training bekommst du Erfahrung, steigst im Level auf und sammelst Credits für den Shop.' },
@@ -13,7 +14,8 @@ const SLIDES = [
 
 export function Welcome() {
   const { api, user, showError } = useApp();
-  const [step, setStep] = useState(0); // 0 = Name, 1..4 = Folien, 5 = Plan
+  const [step, setStep] = useState(0); // 0 = Name, 1..4 = Folien, 5 = Gym/Ei-Wahl, 6 = Plan
+  const [fun, setFun] = useState<FunMode | null>(() => funMode(user?.id ?? 'local'));
   const [name, setName] = useState('');
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
@@ -37,7 +39,9 @@ export function Welcome() {
     }
     setStep(1);
   };
-  const last = SLIDES.length + 1;
+  const choice = SLIDES.length + 1;
+  const last = SLIDES.length + 2;
+  const pickFun = (m: FunMode) => { setFun(m); setFunMode(user?.id ?? 'local', m); };
   return (
     <div className="welcome" id="welcome" data-step={step}>
       <div className="welcome-dots" aria-hidden="true">{Array.from({ length: last + 1 }, (_, i) => <i key={i} className={i === step ? 'on' : ''} />)}</div>
@@ -50,12 +54,21 @@ export function Welcome() {
           <button type="button" className="btn primary block" id="welcome-next" disabled={!loaded || !name.trim()} onClick={saveName}>Weiter</button>
         </div>
       )}
-      {step >= 1 && step < last && (
+      {step >= 1 && step < choice && (
         <div className="welcome-slide">
           <div className="welcome-icon">{SLIDES[step - 1].icon}</div>
           <h2>{SLIDES[step - 1].title}</h2>
           <p>{SLIDES[step - 1].text}</p>
           <button type="button" className="btn primary block" id="welcome-next" onClick={() => setStep(step + 1)}>Weiter</button>
+        </div>
+      )}
+      {step === choice && (
+        <div className="welcome-slide">
+          <div className="welcome-icon">🎮</div>
+          <h2>Was möchtest du sammeln?</h2>
+          <p>Neben dem Training gibt es zwei Spiele, die mit deinen echten Sätzen wachsen. Du kannst das später in den Einstellungen ändern.</p>
+          <FunChoice value={fun} onPick={pickFun} />
+          <button type="button" className="btn primary block" id="welcome-next" disabled={!fun} onClick={() => setStep(last)}>Weiter</button>
         </div>
       )}
       {step === last && (
@@ -67,7 +80,7 @@ export function Welcome() {
           <button type="button" className="btn block" id="welcome-later" onClick={() => finish('#/')}>Später – erst umschauen</button>
         </div>
       )}
-      {step > 0 && step < last && <button type="button" className="welcome-skip" id="welcome-skip" onClick={() => setStep(last)}>Überspringen</button>}
+      {step > 0 && step < last && <button type="button" className="welcome-skip" id="welcome-skip" onClick={() => { if (!fun) pickFun('beides'); setStep(last); }}>Überspringen</button>}
     </div>
   );
 }
