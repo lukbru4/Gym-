@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { autoPlace, GYM_ITEMS, gymProgress, hitsFrom, stoneHp } from '../src/lib/gym';
 import { PATTERNS } from '../src/lib/animations';
+import { propBounds } from '../src/lib/drawFigure';
 
 describe('Mein Gym', () => {
   test('jedes Gerät hat ein gezeichnetes Muster, IDs eindeutig', () => {
@@ -30,7 +31,7 @@ describe('Mein Gym', () => {
 });
 
 import { readFileSync } from 'node:fs';
-import { chestsEarned, cleanGym, CHEST_DECO, DECO_SHOP, fromSlots, nextTier, placeNew, tierFor, TIERS } from '../src/lib/gym';
+import { ALL_DECO, chestsEarned, cleanGym, CHEST_DECO, DECO_SHOP, fromSlots, nextTier, placeNew, tierFor, TIERS } from '../src/lib/gym';
 
 describe('Mein Gym gestalten', () => {
   test('Ausbaustufen nach gefundenen Geräten', () => {
@@ -71,5 +72,22 @@ describe('Mein Gym gestalten', () => {
     const block = sql.slice(sql.indexOf('-- Gym-Deko'), sql.indexOf('on conflict', sql.indexOf('-- Gym-Deko')));
     const rows = [...block.matchAll(/\('([a-z_]+)',\s*'gymdeco',\s*'[^']+',\s*(\d+)\)/g)].map((m) => ({ id: m[1], price: Number(m[2]) }));
     expect(rows).toEqual(DECO_SHOP.map(({ id, price }) => ({ id, price })));
+  });
+});
+
+describe('Ansicht & echte Größen', () => {
+  test('übernimmt alte Spiegelung als Ansicht von rechts und prüft rot', () => {
+    const g = cleanGym({ objects: [{ id: 'bench', x: 1, y: 2, level: 0, flip: true }, { id: 'pullup', x: 1, y: 2, level: 0, rot: 2 }, { id: 'dip', x: 1, y: 2, level: 0, rot: 7 }] }, new Set(), TIERS[0]);
+    expect(g.objects.map((o) => o.rot ?? 0)).toEqual([3, 2, 0]);
+  });
+  test('alle Deko hat eine echte Höhe, alle Stufen eine Raumbreite', () => {
+    for (const d of ALL_DECO) expect(d.h).toBeGreaterThan(0.1);
+    for (const t of TIERS) expect(t.meters).toBeGreaterThan(3);
+  });
+  test('Geräte in echten Größenverhältnissen', () => {
+    const h = (id: string) => { const b = propBounds(PATTERNS[GYM_ITEMS.find((i) => i.id === id)!.pattern]); return b.max[1] - b.min[1]; };
+    expect(h('pullup')).toBeGreaterThan(h('bench') * 1.4);
+    expect(h('pullup')).toBeGreaterThan(2);
+    for (const it of GYM_ITEMS) { const v = h(it.id); expect(v, it.id).toBeGreaterThan(0.3); expect(v, it.id).toBeLessThan(2.8); }
   });
 });

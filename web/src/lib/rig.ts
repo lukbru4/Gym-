@@ -123,7 +123,8 @@ export function solve(p: Pose, anchor: Anchor = { on: 'feet' }): Joints {
 }
 
 // ---- Kamera ---------------------------------------------------------------------------
-export interface Camera { azimuth: number; elevation: number; distance: number; target: V3 }
+/** focal: feste Brennweite in Pixeln (sonst aus der Bildhöhe) – für maßstabsgetreue Geräte im Gym */
+export interface Camera { azimuth: number; elevation: number; distance: number; target: V3; focal?: number }
 export interface Projected { x: number; y: number; s: number; depth: number }
 
 /** Perspektivische Projektion auf Bildkoordinaten (Einheit: Pixel bei Bildhöhe h) */
@@ -136,7 +137,7 @@ export function project(v: V3, cam: Camera, w: number, h: number): Projected {
   const y2 = y0 * Math.cos(e) - z1 * Math.sin(e);
   const z2 = y0 * Math.sin(e) + z1 * Math.cos(e);
   const dist = cam.distance - z2; // Abstand zur Kamera (z2 positiv = näher)
-  const f = h * 0.95;
+  const f = cam.focal ?? h * 0.95;
   const s = f / dist;
   return { x: w / 2 + x1 * s, y: h / 2 - y2 * s, s, depth: dist };
 }

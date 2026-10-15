@@ -7,12 +7,12 @@ import { Loading } from '../components/Bits';
 import { ask, notify } from '../components/Dialog';
 import { DecoArt } from '../components/DecoArt';
 import { GymRoom, nameOf } from '../components/GymRoom';
-import { MachineArt, Stone, StoneWithMachine } from '../components/MachineArt';
+import { MachineArt, machineHeight, Stone, StoneWithMachine } from '../components/MachineArt';
 import { setCosmetics, useCosmetics } from '../lib/cosmetics';
 import { fmt } from '../lib/format';
 import {
   chestsEarned, chestsOpened, cleanGym, DECO_BY_ID, DECO_SHOP, GYM_ITEMS, gymProgress, hitsFrom, loadGymLocal, MAX_NAME, nextTier,
-  placeNew, saveGymLocal, seenCount, setChestsOpened, setSeenCount, tierFor, type DecoItem, type GymItem, type GymState,
+  placeNew, saveGymLocal, seenCount, setChestsOpened, setSeenCount, tierFor, VIEW_NAMES, type DecoItem, type GymItem, type GymRot, type GymState,
 } from '../lib/gym';
 import { isOffensive } from '../lib/moderation';
 
@@ -34,6 +34,7 @@ export function Gym() {
   const [gym, setGym] = useState<GymState | null>(null);
   const [edit, setEdit] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
+  const [look, setLook] = useState<{ id: string; rot: GymRot } | null>(null);
   const [reveal, setReveal] = useState<{ kind: 'machine'; item: GymItem } | { kind: 'chest'; item: DecoItem } | null>(null);
   const [breaking, setBreaking] = useState(false);
   const [busy, setBusy] = useState('');
@@ -147,7 +148,7 @@ export function Gym() {
         )}
       </div>
 
-      <GymRoom gym={gym} tier={tier} edit={edit} selected={sel} onSelect={setSel}
+      <GymRoom gym={gym} tier={tier} edit={edit} selected={sel} onSelect={setSel} onOpen={(id, rot) => setLook({ id, rot: rot as GymRot })}
         onMove={(id, pos) => setGym({ ...gym, objects: gym.objects.map((o) => (o.id === id ? { ...o, ...pos } : o)) })} />
 
       {edit ? (
@@ -156,7 +157,8 @@ export function Gym() {
           {selObj && (
             <div className="card gym-selbar" id="gym-selbar">
               <strong>{nameOf(selObj.id)}</strong>
-              <button type="button" className="btn small-btn" id="gym-flip" onClick={() => setGym({ ...gym, objects: gym.objects.map((o) => (o.id === sel ? { ...o, flip: !o.flip } : o)) })}>↔ Spiegeln</button>
+              <span className="muted small" id="gym-view">Ansicht: {VIEW_NAMES[selObj.rot ?? 0]}</span>
+              <button type="button" className="btn small-btn" id="gym-rotate" onClick={() => setGym({ ...gym, objects: gym.objects.map((o) => (o.id === sel ? { ...o, rot: (((o.rot ?? 0) + 1) % 4) as GymRot } : o)) })}>⟳ Drehen</button>
               <button type="button" className="btn small-btn" id="gym-store" onClick={() => { setGym({ ...gym, objects: gym.objects.filter((o) => o.id !== sel) }); setSel(null); }}>Ins Lager</button>
             </div>
           )}
@@ -201,14 +203,16 @@ export function Gym() {
         {GYM_ITEMS.map((it, i) => {
           const have = i < prog.unlocked.length;
           return (
-            <div key={it.id} className={`gym-card r-${it.rarity}${have ? '' : ' locked'}`} data-item={it.id}>
+            <button key={it.id} type="button" className={`gym-card r-${it.rarity}${have ? '' : ' locked'}`} data-item={it.id} disabled={!have} onClick={() => setLook({ id: it.id, rot: 0 })}>
               {have ? <MachineArt pattern={it.pattern} height={60} /> : <span className="gym-q">?</span>}
               <span>{have ? it.name : RARITY_LABEL[it.rarity]}</span>
-            </div>
+            </button>
           );
         })}
       </div>
       <p className="muted small">🎁 Nach Stein 5, 10, 15, 20, 25 und dem letzten Stein gibt es eine Belohnungs-Kiste mit exklusiver Deko.</p>
+
+      {look && <LookDialog id={look.id} rot={look.rot} onRot={(rot) => setLook({ ...look, rot })} onClose={() => setLook(null)} />}
 
       {reveal && (
         <div className="dialog-backdrop">
@@ -231,6 +235,32 @@ export function Gym() {
         </div>
       )}
     </>
+  );
+}
+
+/** Großansicht eines Geräts (oder Deko) – von allen vier Seiten anschauen */
+function LookDialog({ id, rot, onRot, onClose }: { id: string; rot: GymRot; onRot: (r: GymRot) => void; onClose: () => void }) {
+  const m = GYM_ITEMS.find((i) => i.id === id), d = DECO_BY_ID.get(id);
+  const h = m ? machineHeight(m.pattern) : d?.h ?? 1;
+  const rarity = m?.rarity ?? (d?.chest ? 'legendär' : 'gewöhnlich');
+  return (
+    <div className="dialog-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dialog gym-look" id="gym-look" role="dialog" aria-modal="true" aria-label={nameOf(id)}>
+        <p className={`rarity r-${rarity}`}>{m ? RARITY_LABEL[rarity] : d?.chest ? 'Exklusiv aus der Kiste' : 'Deko'}</p>
+        <h3>{nameOf(id)}</h3>
+        <div className="gym-look-art">
+          {m ? <MachineArt pattern={m.pattern} view={rot} height={220} />
+            : d ? <div style={{ transform: ['', 'scaleX(0.6)', 'scaleX(-1)', 'scaleX(-0.6)'][rot] }}><DecoArt item={d} height={200} /></div> : null}
+        </div>
+        <p className="muted small" id="gym-look-info">Ansicht {VIEW_NAMES[rot]} · ca. {fmt(h, 1)} m hoch</p>
+        <div className="seg gym-look-views" role="group" aria-label="Ansicht">
+          {(['Vorne', 'Links', 'Hinten', 'Rechts'] as const).map((l, i) => (
+            <button key={l} type="button" className={`seg-tab${rot === i ? ' active' : ''}`} aria-pressed={rot === i} data-view={i} onClick={() => onRot(i as GymRot)}>{l}</button>
+          ))}
+        </div>
+        <button type="button" className="btn block" id="gym-look-close" onClick={onClose}>Schließen</button>
+      </div>
+    </div>
   );
 }
 

@@ -55,6 +55,22 @@ export function frameOf(p: Pattern): { target: V3; size: number } {
   return { target, size };
 }
 
+const boundsCache = new Map<string, { min: V3; max: V3 }>();
+/** Nur das Gerät (ohne Figur) in echten Metern: kleinste und größte Ecke – für maßstabsgetreue Darstellung */
+export function propBounds(p: Pattern): { min: V3; max: V3 } {
+  const hit = boundsCache.get(p.id);
+  if (hit) return hit;
+  const pts: V3[] = [];
+  const pose = { ...NEUTRAL, ...patternPose(p, 0) };
+  const jj = solve(pose, p.anchor);
+  for (const prop of p.props) drawProp(boundsKit(pts), prop, jj, pose, p);
+  const min: V3 = [Infinity, Infinity, Infinity], max: V3 = [-Infinity, -Infinity, -Infinity];
+  for (const v of pts) for (let i = 0; i < 3; i++) { min[i] = Math.min(min[i], v[i]); max[i] = Math.max(max[i], v[i]); }
+  const out = pts.length ? { min, max } : { min: [-0.3, 0, -0.3] as V3, max: [0.3, 0.6, 0.3] as V3 };
+  boundsCache.set(p.id, out);
+  return out;
+}
+
 interface Item { depth: number; draw: () => void }
 
 export type Focus = Map<Segment, 'p' | 's'>;

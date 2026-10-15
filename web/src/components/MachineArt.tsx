@@ -1,31 +1,64 @@
 // Gezeichnetes Trainingsgerät ohne Figur (aus den Übungs-Animationen), gezeichnet, sobald es sichtbar ist.
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { PATTERNS } from '../lib/animations';
-import { drawScene, frameOf } from '../lib/drawFigure';
+import { drawScene, propBounds } from '../lib/drawFigure';
+import { project, type V3 } from '../lib/rig';
 import { readColors } from './ExerciseAnim';
 
-export function MachineArt({ pattern, height = 120, className = '' }: { pattern: string; height?: number; className?: string }) {
+/** Blickwinkel je Ansicht (0 vorne, 1 links, 2 hinten, 3 rechts) – leicht schräg, damit man die Tiefe sieht */
+export const FRONT_AZ = 30;
+export const viewAzimuth = (view: number) => FRONT_AZ + [0, -90, 180, 90][view & 3];
+const ELEV = 16, DIST = 14;
+
+/** Gerät auf einer Fläche: Ausschnitt (in Pixeln bei Maßstab 1 px/m) und Kamera */
+function layout(pattern: string, view: number) {
+  const p = PATTERNS[pattern] ?? PATTERNS.bench;
+  const { min, max } = propBounds(p);
+  const target: V3 = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
+  const cam = { azimuth: viewAzimuth(view), elevation: ELEV, distance: DIST, target, focal: DIST };
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const x of [min[0], max[0]]) for (const y of [min[1], max[1]]) for (const z of [min[2], max[2]]) {
+    const q = project([x, y, z], cam, 0, 0);
+    x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y);
+  }
+  return { p, cam, x0, x1, y0, y1, height: max[1] - min[1] };
+}
+/** Echte Höhe eines Geräts in Metern */
+export const machineHeight = (pattern: string) => layout(pattern, 0).height;
+/** Sichtbare Breite eines Geräts in Metern (je nach Ansicht) */
+export const machineWidth = (pattern: string, view = 0) => { const L = layout(pattern, view); return L.x1 - L.x0; };
+
+/**
+ * Gezeichnetes Gerät ohne Figur.
+ * - mit pxPerM: maßstabsgetreu (alle Geräte im selben Maßstab, Größe ergibt sich aus dem Gerät)
+ * - ohne: füllt die Fläche (height) möglichst gut aus
+ */
+export function MachineArt({ pattern, height = 120, className = '', view = 0, pxPerM }: { pattern: string; height?: number; className?: string; view?: number; pxPerM?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const L = useMemo(() => layout(pattern, view), [pattern, view]);
+  const pad = 4;
+  const size = pxPerM ? { width: Math.ceil((L.x1 - L.x0) * pxPerM) + pad * 2, height: Math.ceil((L.y1 - L.y0) * pxPerM) + pad * 2 } : null;
   useEffect(() => {
     const canvas = ref.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
     const draw = () => {
-      const p = PATTERNS[pattern] ?? PATTERNS.bench;
-      const f = frameOf(p);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = canvas.clientWidth || 140, h = canvas.clientHeight || height;
+      const w = size?.width ?? (canvas.clientWidth || 140), h = size?.height ?? (canvas.clientHeight || height);
+      const k = pxPerM ?? Math.min((w - pad * 2) / (L.x1 - L.x0), (h - pad * 2) / (L.y1 - L.y0)) * 0.94;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawScene(ctx, w, h, p, 0, { azimuth: p.azimuth, elevation: 14, distance: f.size * 1.18, target: f.target }, new Map(), readColors(), { figure: false });
+      // Mitte des Geräts in die Mitte der Fläche schieben
+      ctx.translate(-((L.x0 + L.x1) / 2) * k, -((L.y0 + L.y1) / 2) * k);
+      drawScene(ctx, w, h, L.p, 0, { ...L.cam, focal: DIST * k }, new Map(), readColors(), { figure: false });
     };
     if (typeof IntersectionObserver === 'undefined') return draw();
     const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { draw(); io.disconnect(); } }, { rootMargin: '120px' });
     io.observe(canvas);
     return () => io.disconnect();
-  }, [pattern, height]);
-  return <canvas ref={ref} className={`machine-art ${className}`} style={{ height }} aria-hidden="true" />;
+  }, [L, height, pxPerM, size?.width, size?.height]);
+  return <canvas ref={ref} className={`machine-art${pxPerM ? ' to-scale' : ''} ${className}`} style={size ?? { height }} aria-hidden="true" />;
 }
 
 /** Stein mit Rissen je nach Fortschritt (0..1); Farbe nach Seltenheit des Geräts darunter */

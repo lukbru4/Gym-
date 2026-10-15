@@ -113,34 +113,35 @@ export function setSeenCount(uid: string, n: number) {
 // Frei gestalten: Objekte (Geräte + Deko) mit Position, Ausbaustufen, Name, Kisten, Empore
 // =========================================================================================
 export type DecoKind = 'sign' | 'deco';
-export interface DecoItem { id: string; name: string; kind: DecoKind; price: number; text?: string; color?: string; chest?: number }
+/** h = echte Höhe in Metern (für die Größenverhältnisse im Raum) */
+export interface DecoItem { id: string; name: string; kind: DecoKind; price: number; h: number; text?: string; color?: string; chest?: number }
 
 /** Kaufbare Deko & Schilder (IDs/Preise passen zu public.shop_items, kind 'gymdeco') */
 export const DECO_SHOP: DecoItem[] = [
-  { id: 'gym_sign_cali', name: 'Schild „Calisthenics-Bereich“', kind: 'sign', price: 150, text: 'CALISTHENICS', color: '#2f9e44' },
-  { id: 'gym_sign_free', name: 'Schild „Free Weights“', kind: 'sign', price: 150, text: 'FREE WEIGHTS', color: '#1971c2' },
-  { id: 'gym_sign_cardio', name: 'Schild „Cardio-Zone“', kind: 'sign', price: 150, text: 'CARDIO', color: '#e8590c' },
-  { id: 'gym_sign_legday', name: 'Schild „Leg Day“', kind: 'sign', price: 120, text: 'LEG DAY', color: '#c2255c' },
-  { id: 'gym_sign_nopain', name: 'Schild „No Pain No Gain“', kind: 'sign', price: 200, text: 'NO PAIN NO GAIN', color: '#212529' },
-  { id: 'gym_neon_beast', name: 'Neon „Beast Mode“', kind: 'sign', price: 250, text: 'BEAST MODE', color: '#ff3cac' },
-  { id: 'gym_plant', name: 'Pflanze', kind: 'deco', price: 80 },
-  { id: 'gym_bag', name: 'Boxsack', kind: 'deco', price: 220 },
-  { id: 'gym_dbrack', name: 'Kurzhantel-Ständer', kind: 'deco', price: 260 },
-  { id: 'gym_kettle', name: 'Kettlebell-Reihe', kind: 'deco', price: 180 },
-  { id: 'gym_water', name: 'Wasserspender', kind: 'deco', price: 120 },
-  { id: 'gym_mat', name: 'Sportmatte', kind: 'deco', price: 90 },
-  { id: 'gym_lamp', name: 'Neonlampe', kind: 'deco', price: 140 },
-  { id: 'gym_chalk', name: 'Kreidebox', kind: 'deco', price: 80 },
-  { id: 'gym_rings', name: 'Turnringe', kind: 'deco', price: 160 },
+  { id: 'gym_sign_cali', name: 'Schild „Calisthenics-Bereich“', kind: 'sign', price: 150, h: 1.5, text: 'CALISTHENICS', color: '#2f9e44' },
+  { id: 'gym_sign_free', name: 'Schild „Free Weights“', kind: 'sign', price: 150, h: 1.5, text: 'FREE WEIGHTS', color: '#1971c2' },
+  { id: 'gym_sign_cardio', name: 'Schild „Cardio-Zone“', kind: 'sign', price: 150, h: 1.5, text: 'CARDIO', color: '#e8590c' },
+  { id: 'gym_sign_legday', name: 'Schild „Leg Day“', kind: 'sign', price: 120, h: 1.5, text: 'LEG DAY', color: '#c2255c' },
+  { id: 'gym_sign_nopain', name: 'Schild „No Pain No Gain“', kind: 'sign', price: 200, h: 1.5, text: 'NO PAIN NO GAIN', color: '#212529' },
+  { id: 'gym_neon_beast', name: 'Neon „Beast Mode“', kind: 'sign', price: 250, h: 1.0, text: 'BEAST MODE', color: '#ff3cac' },
+  { id: 'gym_plant', name: 'Pflanze', kind: 'deco', price: 80, h: 1.2 },
+  { id: 'gym_bag', name: 'Boxsack', kind: 'deco', price: 220, h: 1.7 },
+  { id: 'gym_dbrack', name: 'Kurzhantel-Ständer', kind: 'deco', price: 260, h: 1.0 },
+  { id: 'gym_kettle', name: 'Kettlebell-Reihe', kind: 'deco', price: 180, h: 0.5 },
+  { id: 'gym_water', name: 'Wasserspender', kind: 'deco', price: 120, h: 1.3 },
+  { id: 'gym_mat', name: 'Sportmatte', kind: 'deco', price: 90, h: 0.35 },
+  { id: 'gym_lamp', name: 'Neonlampe', kind: 'deco', price: 140, h: 1.8 },
+  { id: 'gym_chalk', name: 'Kreidebox', kind: 'deco', price: 80, h: 0.9 },
+  { id: 'gym_rings', name: 'Turnringe', kind: 'deco', price: 160, h: 2.4 },
 ];
 /** Exklusive Deko aus Belohnungs-Kisten (nach Stein 5, 10, 15, 20, 25 und dem letzten) */
 export const CHEST_DECO: DecoItem[] = [
-  { id: 'chest_trophy', name: 'Pokal', kind: 'deco', price: 0, chest: 5 },
-  { id: 'chest_golddb', name: 'Goldene Hantel', kind: 'deco', price: 0, chest: 10 },
-  { id: 'chest_belt', name: 'Champion-Gürtel in Vitrine', kind: 'deco', price: 0, chest: 15 },
-  { id: 'chest_neon', name: 'Neon „LEVEL UP“', kind: 'sign', price: 0, chest: 20, text: 'LEVEL UP', color: '#e8222f' },
-  { id: 'chest_statue', name: 'Athleten-Statue', kind: 'deco', price: 0, chest: 25 },
-  { id: 'chest_crown', name: 'Goldene Krone', kind: 'deco', price: 0, chest: 28 },
+  { id: 'chest_trophy', name: 'Pokal', kind: 'deco', price: 0, h: 0.8, chest: 5 },
+  { id: 'chest_golddb', name: 'Goldene Hantel', kind: 'deco', price: 0, h: 0.5, chest: 10 },
+  { id: 'chest_belt', name: 'Champion-Gürtel in Vitrine', kind: 'deco', price: 0, h: 1.6, chest: 15 },
+  { id: 'chest_neon', name: 'Neon „LEVEL UP“', kind: 'sign', price: 0, h: 1.0, chest: 20, text: 'LEVEL UP', color: '#e8222f' },
+  { id: 'chest_statue', name: 'Athleten-Statue', kind: 'deco', price: 0, h: 2.0, chest: 25 },
+  { id: 'chest_crown', name: 'Goldene Krone', kind: 'deco', price: 0, h: 0.7, chest: 28 },
 ];
 export const ALL_DECO = [...DECO_SHOP, ...CHEST_DECO];
 export const DECO_BY_ID = new Map(ALL_DECO.map((d) => [d.id, d]));
@@ -149,18 +150,22 @@ const KNOWN = new Set([...GYM_ITEMS.map((i) => i.id), ...ALL_DECO.map((d) => d.i
 /** Kisten, die man mit n zerschlagenen Steinen verdient hat */
 export const chestsEarned = (broken: number) => CHEST_DECO.filter((c) => broken >= (c.chest ?? 99));
 
-export interface GymTier { id: string; name: string; min: number; max: number; empore: boolean }
+/** meters = echte Raumbreite (daraus der gemeinsame Maßstab für alle Geräte) */
+export interface GymTier { id: string; name: string; min: number; max: number; empore: boolean; meters: number }
 export const TIERS: GymTier[] = [
-  { id: 'garage', name: 'Garage', min: 0, max: 8, empore: false },
-  { id: 'studio', name: 'Studio', min: 6, max: 16, empore: false },
-  { id: 'halle', name: 'Halle', min: 14, max: 28, empore: false },
-  { id: 'elevation', name: 'Elevation Center', min: 22, max: 40, empore: true },
+  { id: 'garage', name: 'Garage', min: 0, max: 8, empore: false, meters: 5 },
+  { id: 'studio', name: 'Studio', min: 6, max: 16, empore: false, meters: 6.5 },
+  { id: 'halle', name: 'Halle', min: 14, max: 28, empore: false, meters: 8 },
+  { id: 'elevation', name: 'Elevation Center', min: 22, max: 40, empore: true, meters: 9 },
 ];
 export const tierFor = (machines: number) => [...TIERS].reverse().find((t) => machines >= t.min)!;
 export const nextTier = (machines: number) => TIERS.find((t) => t.min > machines) ?? null;
 
-/** Ein aufgestelltes Objekt: x 0–100 (links→rechts), y 0–100 (hinten→vorne), level 1 = Empore */
-export interface GymObject { id: string; x: number; y: number; level: 0 | 1; flip?: boolean }
+/** Ansicht eines Objekts: 0 von vorne, 1 von links, 2 von hinten, 3 von rechts */
+export type GymRot = 0 | 1 | 2 | 3;
+export const VIEW_NAMES = ['von vorne', 'von links', 'von hinten', 'von rechts'] as const;
+/** Ein aufgestelltes Objekt: x 0–100 (links→rechts), y 0–100 (hinten→vorne), level 1 = Empore, rot = Ansicht */
+export interface GymObject { id: string; x: number; y: number; level: 0 | 1; rot?: GymRot }
 export interface GymState { name: string; objects: GymObject[] }
 export const MAX_NAME = 24;
 
@@ -173,13 +178,15 @@ export function cleanGym(raw: unknown, owned: Set<string>, tier: GymTier): GymSt
   const objects: GymObject[] = [];
   for (const o of Array.isArray(r.objects) ? r.objects : []) {
     if (!o || typeof o !== 'object') continue;
-    const { id, x, y, level, flip } = o as Record<string, unknown>;
+    const { id, x, y, level, rot, flip } = o as Record<string, unknown>;
     // bekannte Dinge erlauben (Besitz der Deko lädt evtl. erst später – fremde IDs werden verworfen)
     if (typeof id !== 'string' || !(owned.has(id) || KNOWN.has(id)) || seen.has(id)) continue;
     if (typeof x !== 'number' || typeof y !== 'number') continue;
     seen.add(id);
     const lv = level === 1 && tier.empore ? 1 : 0;
-    objects.push({ id, x: clamp(x, 0, 100), y: clamp(y, 0, 100), level: lv, ...(flip === true ? { flip: true } : {}) });
+    // früher gab es nur „Spiegeln“ (flip) – das entspricht jetzt der Ansicht von rechts
+    const r = rot === 1 || rot === 2 || rot === 3 ? rot : flip === true ? 3 : 0;
+    objects.push({ id, x: clamp(x, 0, 100), y: clamp(y, 0, 100), level: lv, ...(r ? { rot: r } : {}) });
     if (objects.length >= tier.max) break;
   }
   return { name, objects };

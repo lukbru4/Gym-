@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { DECO_BY_ID, GYM_ITEMS, type GymObject, type GymState, type GymTier } from '../lib/gym';
 import { DecoArt } from './DecoArt';
-import { MachineArt } from './MachineArt';
+import { MachineArt, machineWidth } from './MachineArt';
 
 const MACHINE = new Map(GYM_ITEMS.map((i) => [i.id, i]));
 const FLOOR_TOP = 36; // Wand endet bei 36 % der Raumhöhe
@@ -11,15 +11,26 @@ const EMPORE = { top: 12, floor: 31 }; // Empore: Geländer oben, Boden der Empo
 export const nameOf = (id: string) => MACHINE.get(id)?.name ?? DECO_BY_ID.get(id)?.name ?? id;
 export const rarityOf = (id: string) => MACHINE.get(id)?.rarity ?? (DECO_BY_ID.get(id)?.chest ? 'legendär' : 'gewöhnlich');
 
-/** Bildschirmposition (in % des Raums) eines Objekts */
+/** Bildschirmposition (in % des Raums) eines Objekts; scale = Tiefe (hinten kleiner) */
 function place(o: GymObject) {
-  if (o.level === 1) return { left: 6 + o.x * 0.88, bottom: 100 - EMPORE.floor, scale: 0.42, z: 4 };
+  if (o.level === 1) return { left: 6 + o.x * 0.88, bottom: 100 - EMPORE.floor, scale: 0.5, z: 4 };
   const ground = FLOOR_TOP + (o.y / 100) * (97 - FLOOR_TOP);
-  return { left: 4 + o.x * 0.92, bottom: 100 - ground, scale: 0.55 + 0.45 * (o.y / 100), z: 10 + Math.round(o.y) };
+  return { left: 4 + o.x * 0.92, bottom: 100 - ground, scale: 0.6 + 0.4 * (o.y / 100), z: 10 + Math.round(o.y) };
+}
+/** Deko von der Seite: schmaler, rechts gespiegelt; von hinten gespiegelt */
+const decoTransform = (rot: number) => ['', ' scaleX(0.6)', ' scaleX(-1)', ' scaleX(-0.6)'][rot] ?? '';
+/** Breite eines Objekts in Metern (für den Rand des Raums) */
+function widthOf(o: GymObject) {
+  const m = MACHINE.get(o.id), d = DECO_BY_ID.get(o.id);
+  if (m) return machineWidth(m.pattern, o.rot ?? 0);
+  return d ? d.h * 1.1 * (o.rot === 1 || o.rot === 3 ? 0.6 : 1) : 1;
 }
 
-export function GymRoom({ gym, tier, edit = false, selected, onSelect, onMove }: {
-  gym: GymState; tier: GymTier; edit?: boolean; selected?: string | null;
+/** Pfeil: aus welcher Richtung man das Gerät gerade sieht */
+const VIEW_ARROWS = ['👁 vorne', '👁 links', '👁 hinten', '👁 rechts'];
+
+export function GymRoom({ gym, tier, edit = false, selected, onSelect, onMove, onOpen }: {
+  gym: GymState; tier: GymTier; edit?: boolean; selected?: string | null; onOpen?: (id: string, rot: number) => void;
   onSelect?: (id: string | null) => void; onMove?: (id: string, pos: Pick<GymObject, 'x' | 'y' | 'level'>) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -49,13 +60,20 @@ export function GymRoom({ gym, tier, edit = false, selected, onSelect, onMove }:
       {gym.objects.map((o) => {
         const p = place(o);
         const machine = MACHINE.get(o.id), deco = DECO_BY_ID.get(o.id);
-        const h = Math.round(w * 0.36 * p.scale);
+        const rot = o.rot ?? 0;
+        // gemeinsamer Maßstab: echte Raumbreite in Metern → alle Geräte in echten Größenverhältnissen
+        const pxPerM = (w / tier.meters) * p.scale;
+        const half = Math.min(45, ((widthOf(o) * pxPerM) / 2 / w) * 100);
+        const left = Math.max(half, Math.min(100 - half, p.left));
         return (
-          <div key={o.id} className={`gym-obj r-${rarityOf(o.id)}${selected === o.id ? ' selected' : ''}`} data-obj={o.id}
-            style={{ left: `${p.left}%`, bottom: `${p.bottom}%`, zIndex: p.z, width: `${Math.round(30 * p.scale)}%`, transform: `translateX(-50%)${o.flip ? ' scaleX(-1)' : ''}` }}
+          <div key={o.id} className={`gym-obj r-${rarityOf(o.id)}${selected === o.id ? ' selected' : ''}`} data-obj={o.id} data-rot={rot} data-scale={p.scale}
+            style={{ left: `${left}%`, bottom: `${p.bottom}%`, zIndex: p.z, transform: 'translateX(-50%)' }}
+            onClick={() => { if (!edit) onOpen?.(o.id, rot); }}
             onPointerDown={(e) => { if (!edit) return; e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); drag.current = o.id; onSelect?.(o.id); }}>
-            {machine ? <MachineArt pattern={machine.pattern} height={h} /> : deco ? <DecoArt item={deco} height={h} /> : null}
-            {edit && <span className="gym-obj-name" style={o.flip ? { transform: 'scaleX(-1)' } : undefined}>{nameOf(o.id)}</span>}
+            {machine ? <MachineArt pattern={machine.pattern} view={rot} pxPerM={pxPerM} />
+              : deco ? <div style={{ transform: decoTransform(rot) }}><DecoArt item={deco} height={Math.round(deco.h * pxPerM)} /></div> : null}
+            {edit && selected === o.id && <span className="gym-obj-view" aria-hidden="true">{VIEW_ARROWS[rot]}</span>}
+            {edit && <span className="gym-obj-name">{nameOf(o.id)}</span>}
           </div>
         );
       })}
