@@ -114,7 +114,7 @@ export function setSeenCount(uid: string, n: number) {
 // =========================================================================================
 export type DecoKind = 'sign' | 'deco';
 /** h = echte Höhe in Metern (für die Größenverhältnisse im Raum) */
-export interface DecoItem { id: string; name: string; kind: DecoKind; price: number; h: number; text?: string; color?: string; chest?: number }
+export interface DecoItem { id: string; name: string; kind: DecoKind; price: number; h: number; text?: string; color?: string; chest?: number; vintage?: boolean }
 
 /** Kaufbare Deko & Schilder (IDs/Preise passen zu public.shop_items, kind 'gymdeco') */
 export const DECO_SHOP: DecoItem[] = [
@@ -133,6 +133,15 @@ export const DECO_SHOP: DecoItem[] = [
   { id: 'gym_lamp', name: 'Neonlampe', kind: 'deco', price: 140, h: 1.8 },
   { id: 'gym_chalk', name: 'Kreidebox', kind: 'deco', price: 80, h: 0.9 },
   { id: 'gym_rings', name: 'Turnringe', kind: 'deco', price: 160, h: 2.4 },
+  // Vintage (passt zum Holz-Gym)
+  { id: 'gym_v_clubs', name: 'Holz-Keulen (Indian Clubs)', kind: 'deco', price: 120, h: 0.75, vintage: true },
+  { id: 'gym_v_medball', name: 'Leder-Medizinball', kind: 'deco', price: 100, h: 0.45, vintage: true },
+  { id: 'gym_v_ladder', name: 'Holz-Sprossenwand', kind: 'deco', price: 240, h: 2.4, vintage: true },
+  { id: 'gym_v_scale', name: 'Alte Waage', kind: 'deco', price: 160, h: 1.6, vintage: true },
+  { id: 'gym_v_rope', name: 'Kletterseil', kind: 'deco', price: 180, h: 2.8, vintage: true },
+  { id: 'gym_v_poster', name: 'Poster „Strongman 1920“', kind: 'deco', price: 130, h: 1.3, vintage: true },
+  { id: 'gym_v_dbrack', name: 'Holz-Hantelständer', kind: 'deco', price: 220, h: 0.95, vintage: true },
+  { id: 'gym_v_ring', name: 'Boxring-Ecke', kind: 'deco', price: 300, h: 1.4, vintage: true },
 ];
 /** Exklusive Deko aus Belohnungs-Kisten (nach Stein 5, 10, 15, 20, 25 und dem letzten) */
 export const CHEST_DECO: DecoItem[] = [
@@ -166,13 +175,15 @@ export type GymRot = 0 | 1 | 2 | 3;
 export const VIEW_NAMES = ['von vorne', 'von links', 'von hinten', 'von rechts'] as const;
 /** Ein aufgestelltes Objekt: x 0–100 (links→rechts), y 0–100 (hinten→vorne), level 1 = Empore, rot = Ansicht */
 export interface GymObject { id: string; x: number; y: number; level: 0 | 1; rot?: GymRot }
-export interface GymState { name: string; objects: GymObject[] }
+/** Stil des Raums: modernes Studio oder altes Holz-Gym (Vintage) */
+export type GymStyle = 'modern' | 'vintage';
+export interface GymState { name: string; objects: GymObject[]; style?: GymStyle }
 export const MAX_NAME = 24;
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 /** Daten (vom Server oder Gerät) prüfen und bereinigen */
 export function cleanGym(raw: unknown, owned: Set<string>, tier: GymTier): GymState {
-  const r = (raw && typeof raw === 'object' ? raw : {}) as { name?: unknown; objects?: unknown };
+  const r = (raw && typeof raw === 'object' ? raw : {}) as { name?: unknown; objects?: unknown; style?: unknown };
   const name = typeof r.name === 'string' ? r.name.slice(0, MAX_NAME) : '';
   const seen = new Set<string>();
   const objects: GymObject[] = [];
@@ -189,7 +200,7 @@ export function cleanGym(raw: unknown, owned: Set<string>, tier: GymTier): GymSt
     objects.push({ id, x: clamp(x, 0, 100), y: clamp(y, 0, 100), level: lv, ...(r ? { rot: r } : {}) });
     if (objects.length >= tier.max) break;
   }
-  return { name, objects };
+  return r.style === 'vintage' ? { name, objects, style: 'vintage' } : { name, objects };
 }
 /** Alte Aufstellung (12 feste Plätze in 3 Reihen) in freie Positionen umrechnen */
 export function fromSlots(layout: (string | null)[]): GymObject[] {

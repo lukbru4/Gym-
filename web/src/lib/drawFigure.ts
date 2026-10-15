@@ -1,7 +1,7 @@
 // Zeichnet die 3D-Figur und ihre Hilfsmittel auf eine Canvas-Fläche (2D-Kontext mit eigener Perspektive).
 import { LEN, NEUTRAL, poseAt, project, solve, type Camera, type Joints, type Pose, type V3 } from './rig';
 import type { Pattern, Prop, Segment } from './animations';
-import { boundsKit, makeKit, MAT, type Kit } from './gymKit';
+import { boundsKit, makeKit, MAT, type Kit, type KitTheme } from './gymKit';
 import { drawMachine, weightTower } from './machines';
 
 export interface Colors { body: string; bodyDark: string; accent: string; accent2: string; prop: string; propDark: string; floor: string; text: string }
@@ -75,8 +75,8 @@ interface Item { depth: number; draw: () => void }
 
 export type Focus = Map<Segment, 'p' | 's'>;
 
-/** opts.figure = false: nur das Gerät zeichnen (z. B. für „Mein Gym“) */
-export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p: Pattern, u: number, cam: Camera, hi: Focus, c: Colors, opts: { figure?: boolean } = {}) {
+/** opts.figure = false: nur das Gerät zeichnen (z. B. für „Mein Gym“); opts.theme = 'vintage': Holz/Leder/Messing */
+export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p: Pattern, u: number, cam: Camera, hi: Focus, c: Colors, opts: { figure?: boolean; theme?: KitTheme } = {}) {
   ctx.clearRect(0, 0, w, h);
   const pose = { ...NEUTRAL, ...patternPose(p, u) };
   const j = solve(pose, p.anchor);
@@ -221,7 +221,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
 
   // Hilfsmittel und Geräte (realistische Bausteine aus gymKit)
   if (opts.figure === false) items.length = 0;
-  const kit = makeKit(ctx, P, items, cam);
+  const kit = makeKit(ctx, P, items, cam, opts.theme);
   for (const prop of p.props) drawProp(kit, prop, j, pose, p);
 
   items.sort((a, b) => b.depth - a.depth);

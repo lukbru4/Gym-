@@ -3336,7 +3336,15 @@ insert into public.shop_items (id, kind, name, price) values
   ('gym_mat', 'gymdeco', 'Sportmatte', 90),
   ('gym_lamp', 'gymdeco', 'Neonlampe', 140),
   ('gym_chalk', 'gymdeco', 'Kreidebox', 80),
-  ('gym_rings', 'gymdeco', 'Turnringe', 160)
+  ('gym_rings', 'gymdeco', 'Turnringe', 160),
+  ('gym_v_clubs', 'gymdeco', 'Holz-Keulen (Indian Clubs)', 120),
+  ('gym_v_medball', 'gymdeco', 'Leder-Medizinball', 100),
+  ('gym_v_ladder', 'gymdeco', 'Holz-Sprossenwand', 240),
+  ('gym_v_scale', 'gymdeco', 'Alte Waage', 160),
+  ('gym_v_rope', 'gymdeco', 'Kletterseil', 180),
+  ('gym_v_poster', 'gymdeco', 'Poster „Strongman 1920“', 130),
+  ('gym_v_dbrack', 'gymdeco', 'Holz-Hantelständer', 220),
+  ('gym_v_ring', 'gymdeco', 'Boxring-Ecke', 300)
 on conflict (id) do update set kind = excluded.kind, name = excluded.name, price = excluded.price;
 
 create or replace function public.my_gym()
@@ -3387,6 +3395,6 @@ $$;
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 63 $$;
+returns integer language sql immutable set search_path = '' as $$ select 64 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

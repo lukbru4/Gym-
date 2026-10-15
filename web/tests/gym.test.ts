@@ -118,3 +118,15 @@ describe('Namensideen', () => {
     expect(firstNameOf('x1')).toBe('');
   });
 });
+
+describe('Vintage Holz-Gym', () => {
+  test('Stil wird geprüft und gespeichert', () => {
+    expect(cleanGym({ style: 'vintage', objects: [] }, new Set(), TIERS[0]).style).toBe('vintage');
+    expect(cleanGym({ style: 'quatsch', objects: [] }, new Set(), TIERS[0]).style).toBeUndefined();
+  });
+  test('Vintage-Deko im Laden, mit Höhe', () => {
+    const v = ALL_DECO.filter((d) => d.vintage);
+    expect(v.length).toBe(8);
+    for (const d of v) { expect(d.id.startsWith('gym_v_')).toBe(true); expect(d.price).toBeGreaterThan(0); }
+  });
+});

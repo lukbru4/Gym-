@@ -2206,3 +2206,12 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .gym-ideas .chip.personal { border-color: var(--accent); }
 .gym-ideas .chip.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 .gym-ideas .chip.shuffle { background: none; border-style: dashed; }
+
+/* Übungsseite: ganzer Inhalt scrollt (Körpergraph, Anleitung); senkrechtes Wischen über der Animation scrollt ebenfalls */
+.ex-info { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding-bottom: calc(env(safe-area-inset-bottom) + 32px); }
+.ex-info > * { flex-shrink: 0; }
+.ex-info .anim-canvas { touch-action: pan-y; }
+
+.gym-style .seg-tab { border: 0; background: none; font: inherit; font-weight: 700; cursor: pointer; }
+.gym-style .seg-tab.active { background: var(--accent); color: var(--accent-text); }
+.gym-room.style-vintage { background: #b9814b; }

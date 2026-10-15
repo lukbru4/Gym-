@@ -172,6 +172,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 126 (Datenbank-Update 63): Gym frei gestalten (Geräte verschieben, drehen, Lager), Deko-Laden mit Schildern (z. B. „Calisthenics-Bereich“) für Credits, eigener Gym-Name als Leuchtschild, Ausbaustufen Garage → Studio → Halle → Elevation Center mit Empore, Belohnungs-Kisten mit exklusiver Deko, Aufstellung im Konto gespeichert, Freunde sehen den Gym-Raum
 - [x] Schritt 127: Gym-Geräte in echten Größenverhältnissen (gemeinsamer Maßstab je Raumgröße), Ansicht wählbar (von vorne, links, hinten, rechts), Großansicht beim Antippen mit Höhe in Metern
 - [x] Schritt 128: Namensideen fürs Gym (feste Liste, Baukasten, persönlich aus Vorname, meist trainierter Muskelgruppe und Ausbaustufe; „Neue Ideen“)
+- [x] Schritt 129 (Datenbank-Update 64): Gym-Stil „Vintage Holz“ (Backstein, Holzdielen, Holzschild, Geräte aus Holz/Leder/Messing), 8 Vintage-Deko-Teile im Laden; Übungsseite wieder scrollbar (auch beim Wischen über die Animation)
 - [ ] Ideen fürs Gym: Gym von Freunden anfeuern, Boden- und Wandfarben aus dem Shop
 - [ ] Echte Push-Nachrichten von Freunden, wenn die App zu ist (braucht Apple-Push-Schlüssel / Firebase, **Lukas**: Apple-Developer-Konto)
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
