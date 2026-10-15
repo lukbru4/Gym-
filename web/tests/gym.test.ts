@@ -119,14 +119,10 @@ describe('Namensideen', () => {
   });
 });
 
-describe('Vintage Holz-Gym', () => {
-  test('Stil wird geprüft und gespeichert', () => {
-    expect(cleanGym({ style: 'vintage', objects: [] }, new Set(), TIERS[0]).style).toBe('vintage');
-    expect(cleanGym({ style: 'quatsch', objects: [] }, new Set(), TIERS[0]).style).toBeUndefined();
-  });
-  test('Vintage-Deko im Laden, mit Höhe', () => {
-    const v = ALL_DECO.filter((d) => d.vintage);
-    expect(v.length).toBe(8);
-    for (const d of v) { expect(d.id.startsWith('gym_v_')).toBe(true); expect(d.price).toBeGreaterThan(0); }
+describe('Vintage entfernt', () => {
+  test('Stil wird nicht mehr gespeichert, Vintage-Deko nicht mehr im Laden, aber noch aufstellbar', () => {
+    expect(cleanGym({ style: 'vintage', objects: [] }, new Set(), TIERS[0])).toEqual({ name: '', objects: [] });
+    expect(DECO_SHOP.some((d) => d.id.startsWith('gym_v_'))).toBe(false);
+    expect(cleanGym({ objects: [{ id: 'gym_v_clubs', x: 1, y: 1, level: 0 }] }, new Set(), TIERS[0]).objects).toHaveLength(1);
   });
 });

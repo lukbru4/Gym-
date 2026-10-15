@@ -23,21 +23,6 @@ export const MAT = {
   wood: { base: [168, 120, 78], gloss: 0.15 } as Mat,
 };
 
-/** Vintage-Look (Holz-Gym): Rahmen aus Holz, Polster aus braunem Leder, Chrom wird Messing, Scheiben Gusseisen */
-const VINTAGE = new Map<Mat, Mat>([
-  [MAT.frame, { base: [122, 82, 50], gloss: 0.18 }],
-  [MAT.frameLight, { base: [168, 122, 78], gloss: 0.2 }],
-  [MAT.pad, { base: [112, 60, 32], gloss: 0.4 }],
-  [MAT.chrome, { base: [200, 162, 84], gloss: 0.85 }],
-  [MAT.plate, { base: [42, 40, 38], gloss: 0.25 }],
-  [MAT.stack, { base: [64, 54, 46], gloss: 0.3 }],
-  [MAT.pin, { base: [200, 162, 84], gloss: 0.8 }],
-  [MAT.rubber, { base: [84, 60, 40], gloss: 0.1 }],
-  [MAT.grip, { base: [84, 50, 30], gloss: 0.25 }],
-  [MAT.bench, { base: [176, 128, 82], gloss: 0.2 }],
-]);
-export type KitTheme = 'modern' | 'vintage';
-
 export interface Item { depth: number; draw: () => void }
 
 const norm = (v: V3): V3 => {
@@ -79,8 +64,7 @@ export interface Kit {
   ball: (c: V3, r: number, m: Mat, bias?: number) => void;
 }
 
-export function makeKit(ctx: CanvasRenderingContext2D, P: (v: V3) => Projected, items: Item[], cam: Camera, theme: KitTheme = 'modern'): Kit {
-  const R = (m: Mat) => (theme === 'vintage' ? VINTAGE.get(m) ?? m : m);
+export function makeKit(ctx: CanvasRenderingContext2D, P: (v: V3) => Projected, items: Item[], cam: Camera): Kit {
   const a = (cam.azimuth * Math.PI) / 180, e = (cam.elevation * Math.PI) / 180;
   const view: V3 = [-Math.cos(e) * Math.sin(a), Math.sin(e), Math.cos(e) * Math.cos(a)];
 
@@ -233,13 +217,13 @@ export function makeKit(ctx: CanvasRenderingContext2D, P: (v: V3) => Projected, 
   return {
     P,
     view,
-    tube: (a, b, r, m, bias) => tube(a, b, r, R(m), bias),
-    box: (c, ax, ay, az, hx, hy, hz, m, bias) => box(c, ax, ay, az, hx, hy, hz, R(m), bias),
-    aabb: (x0, x1, y0, y1, z0, z1, m, bias) => box([(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], X, Y, Z, (x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2, R(m), bias),
-    pad: (c, ax, ay, az, hx, hy, hz, bias) => box(c, ax, ay, az, hx, hy, hz, R(MAT.pad), bias, true),
-    disc: (c, axis, r, thick, m, bias, hole) => disc(c, axis, r, thick, R(m), bias, hole),
+    tube,
+    box: (c, ax, ay, az, hx, hy, hz, m, bias) => box(c, ax, ay, az, hx, hy, hz, m, bias),
+    aabb: (x0, x1, y0, y1, z0, z1, m, bias) => box([(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], X, Y, Z, (x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2, m, bias),
+    pad: (c, ax, ay, az, hx, hy, hz, bias) => box(c, ax, ay, az, hx, hy, hz, MAT.pad, bias, true),
+    disc,
     cable,
-    ball: (c, r, m, bias) => ball(c, r, R(m), bias),
+    ball,
   };
 }
 

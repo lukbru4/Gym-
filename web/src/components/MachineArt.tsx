@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef } from 'react';
 import { PATTERNS } from '../lib/animations';
 import { drawScene, propBounds } from '../lib/drawFigure';
 import { project, type V3 } from '../lib/rig';
-import type { KitTheme } from '../lib/gymKit';
 import { readColors } from './ExerciseAnim';
 
 /** Blickwinkel je Ansicht (0 vorne, 1 links, 2 hinten, 3 rechts) – leicht schräg, damit man die Tiefe sieht */
@@ -34,7 +33,7 @@ export const machineWidth = (pattern: string, view = 0) => { const L = layout(pa
  * - mit pxPerM: maßstabsgetreu (alle Geräte im selben Maßstab, Größe ergibt sich aus dem Gerät)
  * - ohne: füllt die Fläche (height) möglichst gut aus
  */
-export function MachineArt({ pattern, height = 120, className = '', view = 0, pxPerM, theme = 'modern' }: { pattern: string; height?: number; className?: string; view?: number; pxPerM?: number; theme?: KitTheme }) {
+export function MachineArt({ pattern, height = 120, className = '', view = 0, pxPerM }: { pattern: string; height?: number; className?: string; view?: number; pxPerM?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const L = useMemo(() => layout(pattern, view), [pattern, view]);
   const pad = 4;
@@ -52,13 +51,13 @@ export function MachineArt({ pattern, height = 120, className = '', view = 0, px
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       // Mitte des Geräts in die Mitte der Fläche schieben
       ctx.translate(-((L.x0 + L.x1) / 2) * k, -((L.y0 + L.y1) / 2) * k);
-      drawScene(ctx, w, h, L.p, 0, { ...L.cam, focal: DIST * k }, new Map(), readColors(), { figure: false, theme });
+      drawScene(ctx, w, h, L.p, 0, { ...L.cam, focal: DIST * k }, new Map(), readColors(), { figure: false });
     };
     if (typeof IntersectionObserver === 'undefined') return draw();
     const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { draw(); io.disconnect(); } }, { rootMargin: '120px' });
     io.observe(canvas);
     return () => io.disconnect();
-  }, [L, height, pxPerM, size?.width, size?.height, theme]);
+  }, [L, height, pxPerM, size?.width, size?.height]);
   return <canvas ref={ref} className={`machine-art${pxPerM ? ' to-scale' : ''} ${className}`} style={size ?? { height }} aria-hidden="true" />;
 }
 

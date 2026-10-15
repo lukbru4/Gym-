@@ -45,7 +45,7 @@ export interface Challenge {
   bonus: number;
 }
 export interface Comment { id: number; user_id: string; display_name: string; body: string; created_at: string; is_mine: boolean; can_delete: boolean }
-export interface FriendProfileData { profile: { id: string; display_name: string; equipped?: Equipped; week_goal?: number; gym?: unknown }; workouts: Workout[]; sets: WorkoutSet[]; exercises: Exercise[] }
+export interface FriendProfileData { profile: { id: string; display_name: string; equipped?: Equipped; week_goal?: number; gym?: unknown; adventure?: unknown }; workouts: Workout[]; sets: WorkoutSet[]; exercises: Exercise[] }
 
 export interface Social {
   myProfile(): Promise<Profile>;
@@ -90,6 +90,9 @@ export interface Social {
   /** Mein Gym: Aufstellung im Konto */
   myGym(): Promise<unknown>;
   setMyGym(gym: { name: string; objects: unknown[] }): Promise<void>;
+  /** Abenteuer: Art und Name des Begleiters im Konto */
+  myAdventure(): Promise<unknown>;
+  setMyAdventure(a: { species: string; name: string }): Promise<void>;
   /** Live-Signale (Supabase Realtime, privater Kanal „user:<id>“); liefert eine Abmelde-Funktion */
   subscribeLive(onSignal: (s: LiveSignal) => void): Promise<() => void>;
   /** Mitteilungen (Glocke): Anfeuern, Kommentare, Freundschaften, Challenges */
@@ -238,6 +241,10 @@ export function createSocial(supabase: SupabaseClient): Social {
       await rpc('set_dish_photo', { p_dish: dishId, p_on: true });
     },
     myGym: () => rpc('my_gym'),
+    myAdventure: () => rpc('my_adventure'),
+    setMyAdventure: async (p_adv) => {
+      await rpc('set_my_adventure', { p_adv });
+    },
     setMyGym: async (p_gym) => {
       await rpc('set_my_gym', { p_gym });
     },

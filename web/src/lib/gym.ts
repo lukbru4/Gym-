@@ -114,7 +114,7 @@ export function setSeenCount(uid: string, n: number) {
 // =========================================================================================
 export type DecoKind = 'sign' | 'deco';
 /** h = echte Höhe in Metern (für die Größenverhältnisse im Raum) */
-export interface DecoItem { id: string; name: string; kind: DecoKind; price: number; h: number; text?: string; color?: string; chest?: number; vintage?: boolean }
+export interface DecoItem { id: string; name: string; kind: DecoKind; price: number; h: number; text?: string; color?: string; chest?: number; vintage?: boolean; /** hängt an der Decke: Abstand zum Boden in Metern */ hang?: number }
 
 /** Kaufbare Deko & Schilder (IDs/Preise passen zu public.shop_items, kind 'gymdeco') */
 export const DECO_SHOP: DecoItem[] = [
@@ -125,15 +125,17 @@ export const DECO_SHOP: DecoItem[] = [
   { id: 'gym_sign_nopain', name: 'Schild „No Pain No Gain“', kind: 'sign', price: 200, h: 1.5, text: 'NO PAIN NO GAIN', color: '#212529' },
   { id: 'gym_neon_beast', name: 'Neon „Beast Mode“', kind: 'sign', price: 250, h: 1.0, text: 'BEAST MODE', color: '#ff3cac' },
   { id: 'gym_plant', name: 'Pflanze', kind: 'deco', price: 80, h: 1.2 },
-  { id: 'gym_bag', name: 'Boxsack', kind: 'deco', price: 220, h: 1.7 },
+  { id: 'gym_bag', name: 'Boxsack', kind: 'deco', price: 220, h: 1.4, hang: 0.4 },
   { id: 'gym_dbrack', name: 'Kurzhantel-Ständer', kind: 'deco', price: 260, h: 1.0 },
   { id: 'gym_kettle', name: 'Kettlebell-Reihe', kind: 'deco', price: 180, h: 0.5 },
   { id: 'gym_water', name: 'Wasserspender', kind: 'deco', price: 120, h: 1.3 },
   { id: 'gym_mat', name: 'Sportmatte', kind: 'deco', price: 90, h: 0.35 },
-  { id: 'gym_lamp', name: 'Neonlampe', kind: 'deco', price: 140, h: 1.8 },
+  { id: 'gym_lamp', name: 'Neonlampe', kind: 'deco', price: 140, h: 0.25, hang: 2.2 },
   { id: 'gym_chalk', name: 'Kreidebox', kind: 'deco', price: 80, h: 0.9 },
-  { id: 'gym_rings', name: 'Turnringe', kind: 'deco', price: 160, h: 2.4 },
-  // Vintage (passt zum Holz-Gym)
+  { id: 'gym_rings', name: 'Turnringe', kind: 'deco', price: 160, h: 1.2, hang: 1.0 },
+];
+/** Nicht mehr im Laden (Vintage-Stil entfernt) – wer sie schon gekauft hat, behält sie im Lager */
+export const RETIRED_DECO: DecoItem[] = [
   { id: 'gym_v_clubs', name: 'Holz-Keulen (Indian Clubs)', kind: 'deco', price: 120, h: 0.75, vintage: true },
   { id: 'gym_v_medball', name: 'Leder-Medizinball', kind: 'deco', price: 100, h: 0.45, vintage: true },
   { id: 'gym_v_ladder', name: 'Holz-Sprossenwand', kind: 'deco', price: 240, h: 2.4, vintage: true },
@@ -152,7 +154,7 @@ export const CHEST_DECO: DecoItem[] = [
   { id: 'chest_statue', name: 'Athleten-Statue', kind: 'deco', price: 0, h: 2.0, chest: 25 },
   { id: 'chest_crown', name: 'Goldene Krone', kind: 'deco', price: 0, h: 0.7, chest: 28 },
 ];
-export const ALL_DECO = [...DECO_SHOP, ...CHEST_DECO];
+export const ALL_DECO = [...DECO_SHOP, ...CHEST_DECO, ...RETIRED_DECO];
 export const DECO_BY_ID = new Map(ALL_DECO.map((d) => [d.id, d]));
 const KNOWN = new Set([...GYM_ITEMS.map((i) => i.id), ...ALL_DECO.map((d) => d.id)]);
 
@@ -175,15 +177,13 @@ export type GymRot = 0 | 1 | 2 | 3;
 export const VIEW_NAMES = ['von vorne', 'von links', 'von hinten', 'von rechts'] as const;
 /** Ein aufgestelltes Objekt: x 0–100 (links→rechts), y 0–100 (hinten→vorne), level 1 = Empore, rot = Ansicht */
 export interface GymObject { id: string; x: number; y: number; level: 0 | 1; rot?: GymRot }
-/** Stil des Raums: modernes Studio oder altes Holz-Gym (Vintage) */
-export type GymStyle = 'modern' | 'vintage';
-export interface GymState { name: string; objects: GymObject[]; style?: GymStyle }
+export interface GymState { name: string; objects: GymObject[] }
 export const MAX_NAME = 24;
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 /** Daten (vom Server oder Gerät) prüfen und bereinigen */
 export function cleanGym(raw: unknown, owned: Set<string>, tier: GymTier): GymState {
-  const r = (raw && typeof raw === 'object' ? raw : {}) as { name?: unknown; objects?: unknown; style?: unknown };
+  const r = (raw && typeof raw === 'object' ? raw : {}) as { name?: unknown; objects?: unknown };
   const name = typeof r.name === 'string' ? r.name.slice(0, MAX_NAME) : '';
   const seen = new Set<string>();
   const objects: GymObject[] = [];
@@ -200,7 +200,7 @@ export function cleanGym(raw: unknown, owned: Set<string>, tier: GymTier): GymSt
     objects.push({ id, x: clamp(x, 0, 100), y: clamp(y, 0, 100), level: lv, ...(r ? { rot: r } : {}) });
     if (objects.length >= tier.max) break;
   }
-  return r.style === 'vintage' ? { name, objects, style: 'vintage' } : { name, objects };
+  return { name, objects };
 }
 /** Alte Aufstellung (12 feste Plätze in 3 Reihen) in freie Positionen umrechnen */
 export function fromSlots(layout: (string | null)[]): GymObject[] {

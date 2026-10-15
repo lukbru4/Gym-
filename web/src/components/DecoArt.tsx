@@ -25,14 +25,17 @@ function Sign({ text, color, neon }: { text: string; color: string; neon?: boole
   );
 }
 
+/** Hängende Deko: Ausschnitt eng um die Zeichnung, damit die Kette oben direkt ansetzt */
+const CROP: Record<string, string> = { gym_bag: '34 14 52 82', gym_rings: '28 0 64 88', gym_lamp: '12 18 96 22' };
+
 const ART: Record<string, () => ReactElement> = {
   gym_plant: () => (<g><path d="M48 104 h24 l4 -30 h-32 z" fill="#b5651d" stroke="#7a4210" strokeWidth="2" />{[[-18, -40], [0, -54], [18, -42], [-28, -22], [28, -24]].map(([dx, dy], i) => <path key={i} d={`M60 76 Q${60 + dx / 2} ${76 + dy / 2} ${60 + dx} ${76 + dy}`} stroke="#2f7d32" strokeWidth="9" strokeLinecap="round" fill="none" />)}</g>),
-  gym_bag: () => (<g><line x1="60" y1="2" x2="60" y2="16" stroke="#777" strokeWidth="3" /><rect x="40" y="16" width="40" height="78" rx="14" fill="#b71c1c" stroke="#5a0d0d" strokeWidth="3" /><rect x="40" y="30" width="40" height="6" fill="#222" /><rect x="40" y="74" width="40" height="6" fill="#222" /><ellipse cx="60" cy="106" rx="24" ry="4" fill="rgba(0,0,0,0.35)" /></g>),
+  gym_bag: () => (<g><rect x="40" y="16" width="40" height="78" rx="14" fill="#b71c1c" stroke="#5a0d0d" strokeWidth="3" /><rect x="40" y="30" width="40" height="6" fill="#222" /><rect x="40" y="74" width="40" height="6" fill="#222" /></g>),
   gym_dbrack: () => (<g><path d="M14 104 L22 50 h76 l8 54" fill="none" stroke="#3d434b" strokeWidth="5" /><line x1="18" y1="72" x2="102" y2="72" stroke="#3d434b" strokeWidth="5" />{[0, 1, 2, 3].map((i) => <g key={i}><rect x={22 + i * 20} y="40" width="5" height="12" fill="#222" /><rect x={33 + i * 20 - 6} y="44" width="10" height="4" fill="#aaa" /><rect x={36 + i * 20} y="40" width="5" height="12" fill="#222" /></g>)}{[0, 1, 2, 3].map((i) => <g key={i}><rect x={20 + i * 21} y="60" width="6" height="14" fill="#222" /><rect x={32 + i * 21 - 6} y="65" width="10" height="4" fill="#aaa" /><rect x={34 + i * 21} y="60" width="6" height="14" fill="#222" /></g>)}</g>),
   gym_kettle: () => (<g>{[0, 1, 2].map((i) => <g key={i}><circle cx={26 + i * 34} cy={88} r={12 + i * 2} fill="#2b2f35" /><path d={`M${18 + i * 34} ${80 - i * 2} q${8 + i} -${16 + i * 2} ${16 + i * 2} 0`} fill="none" stroke="#2b2f35" strokeWidth="5" /></g>)}</g>),
   gym_water: () => (<g><rect x="40" y="44" width="40" height="60" rx="4" fill="#e9ecef" stroke="#adb5bd" strokeWidth="2" /><path d="M44 44 q0 -36 16 -36 q16 0 16 36 z" fill="#74c0fc" opacity="0.8" stroke="#4dabf7" strokeWidth="2" /><rect x="52" y="60" width="16" height="10" rx="2" fill="#495057" /></g>),
   gym_mat: () => (<g><path d="M8 96 L30 78 h82 L96 96 z" fill="#5f3dc4" stroke="#3b2582" strokeWidth="2" /><path d="M8 96 h88 v5 h-88 z" fill="#3b2582" /></g>),
-  gym_lamp: () => (<g><line x1="60" y1="2" x2="60" y2="24" stroke="#666" strokeWidth="3" /><rect x="18" y="24" width="84" height="10" rx="5" fill="#fff" style={{ filter: 'drop-shadow(0 0 8px #74c0fc)' }} /><path d="M18 34 L4 100 h112 L102 34 z" fill="#74c0fc" opacity="0.12" /></g>),
+  gym_lamp: () => (<g><rect x="18" y="24" width="84" height="10" rx="5" fill="#fff" style={{ filter: 'drop-shadow(0 0 8px #74c0fc)' }} /></g>),
   gym_chalk: () => (<g><rect x="30" y="60" width="60" height="40" rx="4" fill="#f1f3f5" stroke="#868e96" strokeWidth="2" /><ellipse cx="60" cy="60" rx="30" ry="6" fill="#fff" stroke="#868e96" strokeWidth="2" /><text x="60" y="86" textAnchor="middle" fontSize="11" fontWeight="800" fill="#495057" fontFamily="sans-serif">CHALK</text></g>),
   gym_rings: () => (<g><line x1="44" y1="0" x2="44" y2="66" stroke="#c49a5a" strokeWidth="3" /><line x1="76" y1="0" x2="76" y2="66" stroke="#c49a5a" strokeWidth="3" /><circle cx="44" cy="76" r="10" fill="none" stroke="#8b5a2b" strokeWidth="5" /><circle cx="76" cy="76" r="10" fill="none" stroke="#8b5a2b" strokeWidth="5" /></g>),
   // ---- Vintage (Holz-Gym) ----
@@ -56,7 +59,7 @@ export function DecoArt({ item, height = 70 }: { item: DecoItem; height?: number
   const art = ART[item.id];
   return (
     <div style={{ height }} className="deco-art">
-      <svg viewBox={`0 0 ${W} 110`} className="deco-svg" aria-hidden="true">{art ? art() : <circle cx="60" cy="60" r="30" fill="#888" />}</svg>
+      <svg viewBox={CROP[item.id] ?? `0 0 ${W} 110`} className="deco-svg" aria-hidden="true">{art ? art() : <circle cx="60" cy="60" r="30" fill="#888" />}</svg>
     </div>
   );
 }

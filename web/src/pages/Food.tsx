@@ -11,7 +11,7 @@ import { Paywall } from '../components/Pro';
 import { fmt } from '../lib/format';
 import { MEALS, mealForHour, totals, type FoodEntry, type Meal } from '../lib/food';
 import { computePlan, type PlanInput, type PlanResult } from '../lib/nutritionPlan';
-import { loadPlan, loadWater, saveWater, savePlan, type StoredPlan } from '../lib/nutritionStore';
+import { getWaterStep, loadPlan, loadWater, saveWater, savePlan, setWaterStep, WATER_STEPS, type StoredPlan } from '../lib/nutritionStore';
 import { usePro } from '../lib/pro';
 import { addDays, todayISO } from '../lib/stats';
 
@@ -66,6 +66,7 @@ export function Food() {
   const [showPlan, setShowPlan] = useState(false);
   const [goalVersion, setGoalVersion] = useState(0);
   const [water, setWater] = useState(() => loadWater(uid, today));
+  const [waterStep, setWaterStepState] = useState(getWaterStep);
   useEffect(() => setWater(loadWater(uid, date)), [uid, date]);
   const entries = useAsync(() => (social ? social.foodList(date) : Promise.resolve([] as FoodEntry[])), [social, date, dataVersion]);
   const week = useAsync(
@@ -166,9 +167,15 @@ export function Food() {
       <div className="nc-card" id="food-water">
         <div className="nc-between"><b>💧 Wasser</b><span id="water-val">{fmt(water / 1000, 2)} / {fmt(waterGoalMl / 1000, 1)} L</span></div>
         <div className="nc-track"><i className="water" style={{ width: `${Math.min(100, (water / waterGoalMl) * 100)}%` }} /></div>
+        <div className="nc-row water-steps" role="group" aria-label="Menge pro Tippen">
+          {WATER_STEPS.map((ml) => (
+            <button key={ml} type="button" className={`chip${waterStep === ml ? ' active' : ''}`} data-water-step={ml} aria-pressed={waterStep === ml}
+              onClick={() => { setWaterStepState(ml); setWaterStep(ml); }}>{ml} ml</button>
+          ))}
+        </div>
         <div className="nc-row">
-          <button type="button" className="nc-btn ghost small" id="water-minus" aria-label="250 ml weniger" onClick={() => addWater(-250)}>−</button>
-          <button type="button" className="nc-btn small" id="water-plus" aria-label="250 ml mehr" onClick={() => addWater(250)}>+ 250 ml</button>
+          <button type="button" className="nc-btn ghost small" id="water-minus" aria-label={`${waterStep} ml weniger`} onClick={() => addWater(-waterStep)}>−</button>
+          <button type="button" className="nc-btn small" id="water-plus" aria-label={`${waterStep} ml mehr`} onClick={() => addWater(waterStep)}>+ {waterStep} ml</button>
         </div>
       </div>
 

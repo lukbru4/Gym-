@@ -1,5 +1,6 @@
 // Home: Umschalter „Mein Feed | Freunde“, Begrüßung mit Rückblick (laufendes Training: Zeile über der Leiste), Aufgaben, Körpergraph, Wochenstatistik.
 import { GymCard } from './Gym';
+import { AdventureCard } from './Adventure';
 import { hitsFrom } from '../lib/gym';
 import { StartChecklist } from '../components/StartChecklist';
 import { dueHint, getReminders, planWeek } from '../lib/reminders';
@@ -121,6 +122,7 @@ export function Home() {
       })()}
       <MigrateCard />
       <StartChecklist workoutCount={g.workouts.length} />
+      <AdventureCard />
       <GymCard hits={hitsFrom(g.sets)} />
       <CycleCard compact />
       {api.mode === 'local' && (

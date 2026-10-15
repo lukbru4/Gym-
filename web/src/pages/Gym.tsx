@@ -183,12 +183,6 @@ export function Gym() {
       {edit ? (
         <>
           <p className="muted small">Zieh Geräte und Deko mit dem Finger an ihren Platz{tier.empore ? ' – auch hoch auf die Empore' : ''}. Antippen wählt aus.</p>
-          <div className="seg gym-style" id="gym-style" role="group" aria-label="Stil">
-            {([['modern', 'Modern'], ['vintage', '🪵 Vintage Holz']] as const).map(([id, label]) => (
-              <button key={id} type="button" className={`seg-tab${(gym.style ?? 'modern') === id ? ' active' : ''}`} data-style={id} aria-pressed={(gym.style ?? 'modern') === id}
-                onClick={() => setGym(id === 'vintage' ? { ...gym, style: 'vintage' } : { name: gym.name, objects: gym.objects })}>{label}</button>
-            ))}
-          </div>
           {selObj && (
             <div className="card gym-selbar" id="gym-selbar">
               <strong>{nameOf(selObj.id)}</strong>

@@ -3336,16 +3336,10 @@ insert into public.shop_items (id, kind, name, price) values
   ('gym_mat', 'gymdeco', 'Sportmatte', 90),
   ('gym_lamp', 'gymdeco', 'Neonlampe', 140),
   ('gym_chalk', 'gymdeco', 'Kreidebox', 80),
-  ('gym_rings', 'gymdeco', 'Turnringe', 160),
-  ('gym_v_clubs', 'gymdeco', 'Holz-Keulen (Indian Clubs)', 120),
-  ('gym_v_medball', 'gymdeco', 'Leder-Medizinball', 100),
-  ('gym_v_ladder', 'gymdeco', 'Holz-Sprossenwand', 240),
-  ('gym_v_scale', 'gymdeco', 'Alte Waage', 160),
-  ('gym_v_rope', 'gymdeco', 'Kletterseil', 180),
-  ('gym_v_poster', 'gymdeco', 'Poster „Strongman 1920“', 130),
-  ('gym_v_dbrack', 'gymdeco', 'Holz-Hantelständer', 220),
-  ('gym_v_ring', 'gymdeco', 'Boxring-Ecke', 300)
+  ('gym_rings', 'gymdeco', 'Turnringe', 160)
 on conflict (id) do update set kind = excluded.kind, name = excluded.name, price = excluded.price;
+-- Vintage-Deko (Update 64) wurde wieder entfernt: nur löschen, wenn sie noch niemand gekauft hat
+delete from public.shop_items s where s.id like 'gym\_v\_%' and not exists (select 1 from public.purchases p where p.item_id = s.id);
 
 create or replace function public.my_gym()
 returns jsonb language sql stable security definer set search_path = '' as $$
@@ -3378,7 +3372,7 @@ begin
     raise exception 'Profil nicht sichtbar';
   end if;
   return jsonb_build_object(
-    'profile', (select jsonb_build_object('id', p.id, 'display_name', p.display_name, 'equipped', p.equipped, 'week_goal', p.week_goal, 'gym', p.gym) from public.profiles p where p.id = p_user),
+    'profile', (select jsonb_build_object('id', p.id, 'display_name', p.display_name, 'equipped', p.equipped, 'week_goal', p.week_goal, 'gym', p.gym, 'adventure', p.adventure) from public.profiles p where p.id = p_user),
     'workouts', coalesce((select jsonb_agg(jsonb_build_object('id', w.id, 'date', w.date)) from public.workouts w where w.user_id = p_user), '[]'::jsonb),
     'sets', coalesce((select jsonb_agg(jsonb_build_object(
               'workout_id', s.workout_id, 'exercise_id', s.exercise_id, 'position', s.position, 'reps', s.reps,
@@ -3394,7 +3388,33 @@ $$;
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
+-- Datenbank-Update 65: Abenteuer – Art und Name des Begleiters (Fortschritt wird aus den Trainings berechnet)
+-- ===========================================================================
+alter table public.profiles add column if not exists adventure jsonb;
+
+create or replace function public.my_adventure()
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select p.adventure from public.profiles p where p.id = auth.uid()
+$$;
+
+create or replace function public.set_my_adventure(p_adv jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'Bitte melde dich an.'; end if;
+  if p_adv is null or jsonb_typeof(p_adv) <> 'object' or length(p_adv::text) > 500 then raise exception 'Ungültige Daten.'; end if;
+  if coalesce(p_adv->>'species', '') not in ('drache', 'wolf', 'gorilla') then raise exception 'Unbekannter Begleiter.'; end if;
+  if char_length(coalesce(p_adv->>'name', '')) > 16 then raise exception 'Der Name ist zu lang (höchstens 16 Zeichen).'; end if;
+  if public.is_offensive(coalesce(p_adv->>'name', '')) then raise exception 'Bitte wähle einen freundlichen Namen.'; end if;
+  perform public.my_profile(); -- legt das Profil an, falls es fehlt
+  update public.profiles set adventure = jsonb_build_object('species', p_adv->>'species', 'name', coalesce(p_adv->>'name', ''))
+   where id = auth.uid();
+end;
+$$;
+revoke all on function public.my_adventure(), public.set_my_adventure(jsonb) from public, anon;
+grant execute on function public.my_adventure(), public.set_my_adventure(jsonb) to authenticated;
+
+-- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 64 $$;
+returns integer language sql immutable set search_path = '' as $$ select 65 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

@@ -38,3 +38,22 @@ export function saveWater(uid: string, date: string, ml: number) {
     /* ignorieren */
   }
 }
+
+/** Wasser: Menge pro Tippen (100, 250 oder 500 ml), gemerkt pro Gerät */
+export const WATER_STEPS = [100, 250, 500] as const;
+const STEP_KEY = 'gym-tracker-water-step';
+export function getWaterStep(): number {
+  try {
+    const n = Number(localStorage.getItem(STEP_KEY));
+    return (WATER_STEPS as readonly number[]).includes(n) ? n : 250;
+  } catch {
+    return 250;
+  }
+}
+export function setWaterStep(ml: number) {
+  try {
+    localStorage.setItem(STEP_KEY, String(ml));
+  } catch {
+    /* nur Komfort */
+  }
+}

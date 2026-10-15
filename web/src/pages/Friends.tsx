@@ -3,6 +3,8 @@
 import { MachineArt } from '../components/MachineArt';
 import { chestsEarned, cleanGym, GYM_ITEMS, gymProgress, hitsFrom, tierFor } from '../lib/gym';
 import { GymRoom } from '../components/GymRoom';
+import { PetArt } from '../components/PetArt';
+import { cleanAdventure, companionFrom, nextStopIndex, postcards, ROUTE, SPECIES } from '../lib/adventure';
 import { FirstTip } from '../components/FirstTip';
 import { useLive } from '../lib/live';
 import { AvatarDot } from '../components/AvatarDot';
@@ -439,6 +441,23 @@ export function FriendProfile({ userId }: { userId: string }) {
             {fg && fg.objects.length > 0
               ? <GymRoom gym={fg} tier={tier} />
               : gp.unlocked.length > 0 && <div className="friend-gym-row">{gp.unlocked.slice(-4).reverse().map((it) => <MachineArt key={it.id} pattern={it.pattern} height={64} />)}</div>}
+          </div>
+        );
+      })()}
+      {(() => {
+        const fa = cleanAdventure(d.profile.adventure);
+        if (!fa) return null;
+        const map: ExerciseMap = new Map(d.exercises.map((e) => [e.id, e]));
+        const c = companionFrom(d.workouts, d.sets, map, todayISO());
+        const j = c.journey;
+        return (
+          <div className="card friend-adv" id="friend-adv">
+            <h3>Begleiter: {fa.name}</h3>
+            <div className="adv-mini-row">
+              <PetArt species={fa.species} stageIdx={c.stageIdx} shares={c.shares} mood={c.mood} size={96} />
+              <p className="muted small">{SPECIES.find((s) => s.id === fa.species)?.name} · {c.stage.name}<br />
+                {j.climb ? `Am Berg: ${ROUTE[j.at].name}` : `Unterwegs nach ${ROUTE[nextStopIndex(j)].name}`} · {postcards(j).length} Postkarten</p>
+            </div>
           </div>
         );
       })()}
