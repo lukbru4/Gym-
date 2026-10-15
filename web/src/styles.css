@@ -2199,3 +2199,10 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .chest { font-size: 5rem; display: inline-block; }
 .chest.shake { animation: stone-shake 0.12s linear infinite; }
 .gym-room.tier-garage { background: #55585c; }
+
+/* Namensideen fürs Gym */
+.gym-ideas { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 10px; }
+.gym-ideas .chip { border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 0.78rem; font-weight: 700; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+.gym-ideas .chip.personal { border-color: var(--accent); }
+.gym-ideas .chip.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.gym-ideas .chip.shuffle { background: none; border-style: dashed; }

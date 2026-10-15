@@ -31,7 +31,7 @@ describe('Mein Gym', () => {
 });
 
 import { readFileSync } from 'node:fs';
-import { ALL_DECO, chestsEarned, cleanGym, CHEST_DECO, DECO_SHOP, fromSlots, nextTier, placeNew, tierFor, TIERS } from '../src/lib/gym';
+import { firstNameOf, gymNameIdeas, ALL_DECO, chestsEarned, cleanGym, CHEST_DECO, DECO_SHOP, fromSlots, nextTier, placeNew, tierFor, TIERS } from '../src/lib/gym';
 
 describe('Mein Gym gestalten', () => {
   test('Ausbaustufen nach gefundenen Geräten', () => {
@@ -89,5 +89,32 @@ describe('Ansicht & echte Größen', () => {
     expect(h('pullup')).toBeGreaterThan(h('bench') * 1.4);
     expect(h('pullup')).toBeGreaterThan(2);
     for (const it of GYM_ITEMS) { const v = h(it.id); expect(v, it.id).toBeGreaterThan(0.3); expect(v, it.id).toBeLessThan(2.8); }
+  });
+});
+
+describe('Namensideen', () => {
+  test('6 verschiedene, kurze, freundliche Vorschläge', () => {
+    for (let seed = 0; seed < 50; seed++) {
+      const ideas = gymNameIdeas(seed, { firstName: 'Lukas', focus: 'beine', tier: 'garage' }, (s) => /schlecht/i.test(s));
+      expect(ideas).toHaveLength(6);
+      expect(new Set(ideas.map((i) => i.name)).size).toBe(6);
+      for (const i of ideas) expect(i.name.length).toBeLessThanOrEqual(24);
+      expect(ideas[0].personal).toBe(true);
+    }
+  });
+  test('persönlich: Vorname mit Apostroph, Muskelgruppe', () => {
+    const all = Array.from({ length: 30 }, (_, s) => gymNameIdeas(s, { firstName: 'Lukas', focus: 'beine' }).filter((i) => i.personal).map((i) => i.name)).flat();
+    expect(all.some((n) => n.startsWith('Lukas’ '))).toBe(true);
+    expect(all.some((n) => ['Leg Day Lab', 'Quad Factory', 'Squat Society'].includes(n))).toBe(true);
+    expect(gymNameIdeas(1, { firstName: 'Anna' }).some((i) => i.name.startsWith('Annas '))).toBe(true);
+  });
+  test('anderer seed → andere Liste; ohne Kontext keine persönlichen', () => {
+    expect(gymNameIdeas(1).map((i) => i.name)).not.toEqual(gymNameIdeas(2).map((i) => i.name));
+    expect(gymNameIdeas(3).some((i) => i.personal)).toBe(false);
+  });
+  test('Vorname aus Anzeigename', () => {
+    expect(firstNameOf('lukas.brunotte')).toBe('Lukas');
+    expect(firstNameOf('Du')).toBe('');
+    expect(firstNameOf('x1')).toBe('');
   });
 });

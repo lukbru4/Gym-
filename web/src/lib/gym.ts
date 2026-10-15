@@ -240,3 +240,64 @@ export function setChestsOpened(uid: string, n: number) {
     /* nur Komfort */
   }
 }
+
+// =========================================================================================
+// Namensideen fürs eigene Gym (fest + Baukasten + persönlich aus Vorname, Lieblings-Muskelgruppe, Ausbaustufe)
+// =========================================================================================
+export const NAME_IDEAS = [
+  'Elevations', 'Iron Temple', 'Beast Factory', 'Gainz Garage', 'Muscle Lab', 'Die Schmiede', 'Kraftwerk', 'Titan Club',
+  'Pump House', 'Level Up Gym', 'Iron Paradise', 'Sweat Society', 'Eisenzeit', 'Muckibude Deluxe', 'No Excuses Club',
+  'Gravity Zone', 'Steel Mill', 'Rep Republic', 'Barbell Bunker', 'Olymp', 'Hantelhimmel', 'Next Level Lab', 'Power Plant',
+  'Grind House', 'Iron Kingdom', 'Comeback Club',
+];
+const PREFIX = ['Iron', 'Beast', 'Titan', 'Alpha', 'Steel', 'Gold', 'Power', 'Rebel', 'Spartan', 'Thunder', 'Phoenix', 'Atlas'];
+const SUFFIX = ['Gym', 'Lab', 'Club', 'Factory', 'Zone', 'Temple', 'House', 'Arena', 'Forge', 'Den'];
+/** Lieblings-Muskelgruppe → passende Namen */
+const FOCUS_NAMES: Record<string, string[]> = {
+  beine: ['Leg Day Lab', 'Quad Factory', 'Squat Society'],
+  brust: ['Chest Club', 'Bench Temple', 'Press Paradise'],
+  ruecken: ['Back Factory', 'Pull-Up Palace', 'Lat Lab'],
+  schultern: ['Shoulder Summit', 'Boulder Club', 'Delt Den'],
+  arme: ['Arm Armory', 'Biceps Bunker', 'Gun Show Gym'],
+  bauch: ['Core Club', 'Sixpack Society', 'Abs Factory'],
+  cardio: ['Cardio Kingdom', 'Run & Rise', 'Sweat Station'],
+};
+const TIER_SUFFIX: Record<string, string> = { garage: 'Garage', studio: 'Studio', halle: 'Arena', elevation: 'Center' };
+
+export interface NameContext { firstName?: string; focus?: string; tier?: string }
+/** Kleiner, reproduzierbarer Zufall (gleicher seed → gleiche Vorschläge) */
+function rng(seed: number) {
+  let s = (seed * 2654435761) >>> 0 || 1;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+}
+/** Vorname aus dem Anzeigenamen – nur Buchstaben, sonst leer (kein „Du“) */
+export const firstNameOf = (display: string) => {
+  const n = display.trim().split(/[\s._@-]+/)[0] ?? '';
+  return /^\p{L}{2,12}$/u.test(n) && n.toLowerCase() !== 'du' ? n[0].toUpperCase() + n.slice(1) : '';
+};
+/**
+ * 6 verschiedene Namensideen (≤ 24 Zeichen). Die erste ist persönlich (Vorname/Lieblings-Muskelgruppe), falls möglich.
+ * blocked: Prüfung auf anstößige Wörter (aus lib/moderation)
+ */
+export function gymNameIdeas(seed: number, ctx: NameContext = {}, blocked: (s: string) => boolean = () => false): { name: string; personal: boolean }[] {
+  const r = rng(seed + 1);
+  const pick = <T,>(a: T[]) => a[Math.floor(r() * a.length)];
+  const personal: string[] = [];
+  const focus = ctx.focus ? FOCUS_NAMES[ctx.focus] : undefined;
+  const tierWord = ctx.tier ? TIER_SUFFIX[ctx.tier] : undefined;
+  if (ctx.firstName) {
+    const owner = /[sxzß]$/i.test(ctx.firstName) ? `${ctx.firstName}’` : `${ctx.firstName}s`;
+    personal.push(`${owner} ${pick(['Iron Temple', 'Beast Factory', 'Kraftwerk', 'Muscle Lab', 'Power Plant'])}`);
+    if (tierWord) personal.push(`${owner} ${pick(PREFIX)} ${tierWord}`);
+  }
+  if (focus) personal.push(pick(focus));
+  if (tierWord) personal.push(`${pick(PREFIX)} ${tierWord}`);
+  const out: { name: string; personal: boolean }[] = [];
+  const add = (name: string, p: boolean) => {
+    if (name.length <= MAX_NAME && !blocked(name) && !out.some((o) => o.name === name)) out.push({ name, personal: p });
+  };
+  // persönliche Idee zuerst (gemischt), dann feste Liste und Baukasten abwechselnd
+  for (const n of personal.sort(() => r() - 0.5).slice(0, 2)) add(n, true);
+  for (let i = 0; out.length < 6 && i < 60; i++) add(i % 2 ? `${pick(PREFIX)} ${pick(SUFFIX)}` : pick(NAME_IDEAS), false);
+  return out;
+}

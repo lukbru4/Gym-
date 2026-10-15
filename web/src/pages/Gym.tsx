@@ -12,14 +12,17 @@ import { setCosmetics, useCosmetics } from '../lib/cosmetics';
 import { fmt } from '../lib/format';
 import {
   chestsEarned, chestsOpened, cleanGym, DECO_BY_ID, DECO_SHOP, GYM_ITEMS, gymProgress, hitsFrom, loadGymLocal, MAX_NAME, nextTier,
-  placeNew, saveGymLocal, seenCount, setChestsOpened, setSeenCount, tierFor, VIEW_NAMES, type DecoItem, type GymItem, type GymRot, type GymState,
+  firstNameOf, gymNameIdeas, placeNew, saveGymLocal, seenCount, setChestsOpened, setSeenCount, tierFor, VIEW_NAMES, type DecoItem, type GymItem, type GymRot, type GymState,
 } from '../lib/gym';
 import { isOffensive } from '../lib/moderation';
+import { exerciseCategories } from '../lib/muscles';
+import { displayName } from '../app/profile';
+import type { Exercise } from '../lib/types';
 
 const RARITY_LABEL: Record<string, string> = { 'gewöhnlich': 'Gewöhnlich', 'selten': 'Selten', 'episch': 'Episch', 'legendär': 'Legendär' };
 
 export function Gym() {
-  const { api, user, showError, dataChanged } = useApp();
+  const { api, user, showError, dataChanged, exerciseMap } = useApp();
   const game = useGame();
   const cosmetics = useCosmetics();
   const uid = user?.id ?? 'local';
@@ -38,6 +41,19 @@ export function Gym() {
   const [reveal, setReveal] = useState<{ kind: 'machine'; item: GymItem } | { kind: 'chest'; item: DecoItem } | null>(null);
   const [breaking, setBreaking] = useState(false);
   const [busy, setBusy] = useState('');
+  const [ideaSeed, setIdeaSeed] = useState(() => Math.floor(Math.random() * 1000));
+  // Namensideen: persönlich aus Vorname, meist trainierter Muskelgruppe und Ausbaustufe
+  const focus = useMemo(() => {
+    if (game.status !== 'ok') return undefined;
+    const map = exerciseMap(), count = new Map<string, number>();
+    for (const st of game.data.sets) {
+      if (st.is_warmup) continue;
+      const ex = map.get(st.exercise_id);
+      if (ex) for (const c of exerciseCategories({ id: st.exercise_id, ...ex } as Exercise)) if (c !== 'eigene') count.set(c, (count.get(c) ?? 0) + 1);
+    }
+    return [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  }, [game.status === 'ok' ? game.data.sets.length : 0]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ideas = gymNameIdeas(ideaSeed, { firstName: firstNameOf(displayName(api, user)), focus, tier: tier.id }, isOffensive);
 
   // Aufstellung laden: Konto (falls vorhanden), sonst Gerät
   useEffect(() => {
@@ -147,6 +163,19 @@ export function Gym() {
           <button type="button" className="btn" id="gym-edit" onClick={() => setEdit(true)}>✏️ Gym gestalten</button>
         )}
       </div>
+
+      {(edit || !gym.name) && (
+        <div className="gym-ideas" id="gym-ideas">
+          <span className="muted small">{edit ? 'Ideen:' : 'Gib deinem Gym einen Namen:'}</span>
+          {ideas.map((i) => (
+            <button key={i.name} type="button" className={`chip${i.personal ? ' personal' : ''}${gym.name === i.name ? ' active' : ''}`} data-name-idea={i.name}
+              onClick={() => (edit ? setGym({ ...gym, name: i.name }) : void save({ ...gym, name: i.name }))}>
+              {i.personal ? '⭐ ' : ''}{i.name}
+            </button>
+          ))}
+          <button type="button" className="chip shuffle" id="gym-name-shuffle" onClick={() => setIdeaSeed((x) => x + 1)}>🎲 Neue Ideen</button>
+        </div>
+      )}
 
       <GymRoom gym={gym} tier={tier} edit={edit} selected={sel} onSelect={setSel} onOpen={(id, rot) => setLook({ id, rot: rot as GymRot })}
         onMove={(id, pos) => setGym({ ...gym, objects: gym.objects.map((o) => (o.id === id ? { ...o, ...pos } : o)) })} />
