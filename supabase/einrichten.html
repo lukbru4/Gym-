@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supabase einrichten</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f6f6f4; --surface: #fff; --text: #0b0b0b; --muted: #52514e; --border: #e2e1dc; --accent: #3d7a00; --ok: #16a34a; --err: #c93a39; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111; --surface: #1a1a19; --text: #fff; --muted: #c3c2b7; --border: #2f2f2d; --accent: #b8f000; --ok: #5ee08e; --err: #e66767; } }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 8px; }
+  ol { padding-left: 20px; }
+  button { width: 100%; min-height: 56px; border: 0; border-radius: 14px; background: var(--accent); color: #0b0b0b; font: 800 1.15rem system-ui, sans-serif; cursor: pointer; }
+  button:disabled { opacity: 0.5; }
+  #status { min-height: 1.5em; margin: 10px 0; font-weight: 700; }
+  #status.ok, #admin-status.ok { color: var(--ok); } #status.err, #admin-status.err { color: var(--err); }
+  #admin-status { font-weight: 700; overflow-wrap: anywhere; }
+  textarea { width: 100%; box-sizing: border-box; height: 220px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: 12px/1.4 ui-monospace, monospace; padding: 8px; }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+  .linkbtn { display: block; text-align: center; min-height: 56px; line-height: 56px; border-radius: 14px; border: 2px solid var(--accent); color: var(--text); font: 800 1.1rem system-ui, sans-serif; text-decoration: none; margin: 4px 0 8px; }
+  button.small { width: auto; min-height: 40px; padding: 0 14px; font-size: 0.95rem; border-radius: 10px; }
+  .row2 { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin: 10px 0; }
+  .mail-card h3 { margin: 0 0 4px; font-size: 1rem; }
+  .mail-card iframe { width: 100%; height: 520px; border: 0; border-radius: 10px; background: #f2f2f0; margin-top: 8px; }
+  code { overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Supabase einrichten</h1>
+  <ol>
+    <li>Tippe unten auf <strong>„SQL kopieren“</strong>.</li>
+    <li>Wechsle zu Supabase → <strong>SQL Editor</strong>, leere das Textfeld und füge ein (Finger gedrückt halten → <strong>Einsetzen</strong>).</li>
+    <li>Tippe auf <strong>Run</strong> und bei der Warnung auf <strong>Run query</strong>.</li>
+  </ol>
+  <button id="copy" disabled>SQL wird geladen …</button>
+  <p id="status" role="status"></p>
+  <a class="linkbtn" id="open-supabase" href="https://supabase.com/dashboard/project/msyudbdzsmajdhbptfxw/sql/new" target="_blank" rel="noopener">Supabase SQL Editor öffnen</a>
+  <p class="muted">Tipp: In der App findest du das auch unter ☰ → 🛠 Admin-Menü → „Datenbank (Supabase)“ – dort siehst du auch, ob alles aktuell ist.</p>
+  <p class="muted" id="info"></p>
+  <textarea id="sql" readonly aria-label="SQL-Skript"></textarea>
+
+  <h2 id="admin">Dich als Admin eintragen (einmalig)</h2>
+  <ol>
+    <li>Erst das große SQL oben ausführen.</li>
+    <li>Hier die E-Mail deines Level-Up-Kontos eintragen und auf <strong>„Admin-Befehl kopieren“</strong> tippen.</li>
+    <li>In Supabase → SQL Editor → <strong>New query</strong> einfügen → <strong>Run</strong>.</li>
+    <li>In der App einmal abmelden und wieder anmelden: Im Menü ☰ erscheint <strong>🛠 Admin-Menü</strong>.</li>
+  </ol>
+  <input id="admin-email" type="email" placeholder="deine@email.de" autocomplete="email" style="width:100%;box-sizing:border-box;min-height:48px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:16px;background:var(--surface);color:var(--text)">
+  <p></p>
+  <button id="admin-copy">Admin-Befehl kopieren</button>
+  <p id="admin-status" role="status"></p>
+
+  <h2 id="mails">E-Mails einrichten (einmalig, ca. 5 Minuten)</h2>
+  <p>Danach bekommen neue Nutzer eine deutsche Mail im Level-Up-Look mit einem großen Knopf, und der Link führt direkt in die App – nicht mehr auf supabase.co.</p>
+  <ol>
+    <li>Supabase → <strong>Authentication</strong> → <strong>URL Configuration</strong>: bei <strong>Site URL</strong> eintragen:<br><code id="site-url">https://lukbru4.github.io/Gym-/</code> <button class="small" data-copy-text="https://lukbru4.github.io/Gym-/">Kopieren</button><br>Bei <strong>Redirect URLs</strong> dieselbe Adresse hinzufügen → <strong>Save</strong>.</li>
+    <li>Supabase → <strong>Authentication</strong> → <strong>Emails</strong> (bzw. Email Templates). Für jede Vorlage unten: Reiter in Supabase öffnen, <strong>Betreff kopieren</strong> → bei „Subject“ einfügen, <strong>Text kopieren</strong> → bei „Message body“ alles ersetzen → <strong>Save</strong>.</li>
+  </ol>
+  <div id="mail-list"></div>
+  <p class="muted">Test: Registriere dich mit einer zweiten E-Mail-Adresse – die Mail sollte jetzt so aussehen wie in der Vorschau.</p>
+
+  <h2 id="absender">Später: eigener Absender (braucht eigene Domain)</h2>
+  <p>Bis dahin steht als Absender noch „Supabase Auth“. Außerdem verschickt Supabase ohne eigenen Mail-Dienst nur sehr wenige Mails pro Stunde – bei vielen neuen Nutzern auf einmal kommen manche Mails dann nicht an.</p>
+  <ol>
+    <li>Domain kaufen, z. B. bei IONOS, Strato oder Cloudflare (ca. 1 € pro Monat), etwa <em>levelup-app.de</em>.</li>
+    <li>Kostenloses Konto bei einem Mail-Dienst anlegen, z. B. <strong>Brevo</strong> (300 Mails/Tag gratis) oder <strong>Resend</strong>.</li>
+    <li>Dort die Domain hinzufügen und die angezeigten DNS-Einträge beim Domain-Anbieter eintragen (dauert bis zu einem Tag).</li>
+    <li>Supabase → <strong>Authentication</strong> → <strong>SMTP Settings</strong> → „Enable custom SMTP“: Absender <em>hallo@deine-domain.de</em>, Name <strong>Level Up</strong>, dazu Server, Port, Benutzer und Passwort vom Mail-Dienst → Save.</li>
+  </ol>
+  <p class="muted">Die Zugangsdaten trägst nur du in Supabase ein – nirgends sonst und nicht im Chat.</p>
+</main>
+<script>
+  const btn = document.getElementById('copy');
+  const status = document.getElementById('status');
+  const area = document.getElementById('sql');
+  const say = (text, cls) => { status.textContent = text; status.className = cls || ''; };
+
+  fetch('schema.sql', { cache: 'no-cache' })
+    .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then((sql) => {
+      area.value = sql;
+      const lines = sql.trimEnd().split('\n');
+      document.getElementById('info').textContent =
+        `${lines.length} Zeilen. Letzte Zeile: ${lines[lines.length - 1]}`;
+      btn.disabled = false;
+      btn.textContent = 'SQL kopieren';
+    })
+    .catch((e) => say('Konnte das Skript nicht laden (' + e.message + '). Bitte Seite neu laden.', 'err'));
+
+  // Fallback für ältere Browser: Text markieren und kopieren
+  function legacyCopy() {
+    area.focus();
+    area.setSelectionRange(0, area.value.length);
+    return document.execCommand && document.execCommand('copy');
+  }
+
+  btn.addEventListener('click', () => {
+    const done = () => { say('✓ Kopiert! Jetzt in Supabase einfügen.', 'ok'); btn.textContent = 'Nochmal kopieren'; };
+    const fail = () => {
+      if (legacyCopy()) return done();
+      say('Automatisches Kopieren ging nicht. Das Textfeld unten ist markiert – tippe darauf und wähle „Kopieren“.', 'err');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(area.value).then(done, fail);
+    else fail();
+  });
+
+  // Admin-Befehl: E-Mail nur hier im Browser einsetzen (sie steht nirgends im Code)
+  document.getElementById('admin-copy').addEventListener('click', () => {
+    const email = document.getElementById('admin-email').value.trim().toLowerCase();
+    const out = document.getElementById('admin-status');
+    if (!/^[^\s@']+@[^\s@']+\.[^\s@']+$/.test(email)) { out.textContent = 'Bitte eine gültige E-Mail eingeben.'; out.className = 'err'; return; }
+    const cmd = "insert into public.admins (user_id) select id from auth.users where lower(email) = '" + email + "' on conflict do nothing;";
+    const ok = () => { out.textContent = '✓ Kopiert! Jetzt in Supabase einfügen und Run tippen.'; out.className = 'ok'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(cmd).then(ok, () => { out.textContent = cmd; });
+    else out.textContent = cmd;
+  });
+
+  // Mail-Vorlagen: Betreff/Text kopieren, kleine Vorschau
+  const MAILS = [['bestaetigen', 'Confirm signup – Registrierung bestätigen'], ['passwort', 'Reset password – Passwort zurücksetzen'], ['email-aendern', 'Change email address – E-Mail ändern'], ['magic-link', 'Magic link – Anmelde-Link'], ['einladung', 'Invite user – Einladung']];
+  const copyText = (text, el) => {
+    const ok = () => { el.textContent = '✓ Kopiert'; setTimeout(() => (el.textContent = el.dataset.label), 1800); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, () => prompt('Kopieren:', text));
+    else prompt('Kopieren:', text);
+  };
+  document.querySelectorAll('[data-copy-text]').forEach((b) => { b.dataset.label = b.textContent; b.addEventListener('click', () => copyText(b.dataset.copyText, b)); });
+  fetch('email-templates/betreff.json', { cache: 'no-cache' }).then((r) => r.json()).then((subjects) => {
+    const box = document.getElementById('mail-list');
+    for (const [id, label] of MAILS) {
+      const card = document.createElement('div');
+      card.className = 'mail-card';
+      card.innerHTML = `<h3>${label}</h3><p class="muted">Betreff: <strong>${subjects[id]}</strong></p><div class="row2"><button class="small" data-subj>Betreff kopieren</button><button class="small" data-body>Text kopieren</button></div><details><summary>Vorschau</summary><iframe title="Vorschau" loading="lazy"></iframe></details>`;
+      box.appendChild(card);
+      const subj = card.querySelector('[data-subj]'), body = card.querySelector('[data-body]');
+      subj.dataset.label = subj.textContent; body.dataset.label = body.textContent;
+      subj.addEventListener('click', () => copyText(subjects[id], subj));
+      fetch(`email-templates/${id}.html`, { cache: 'no-cache' }).then((r) => r.text()).then((html) => {
+        body.addEventListener('click', () => copyText(html, body));
+        card.querySelector('iframe').srcdoc = html.replaceAll('{{ .SiteURL }}', 'https://lukbru4.github.io/Gym-/').replaceAll('{{ .TokenHash }}', 'beispiel').replaceAll('{{ .NewEmail }}', 'neu@beispiel.de');
+      });
+    }
+  });
+</script>
+</body>
+</html>
