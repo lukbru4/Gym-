@@ -1,6 +1,7 @@
 // Körpergraph: Anatomie-Zeichnung (hellgrauer Körper) von vorne und hinten; beanspruchte/trainierte Muskeln sind rot.
 // Die Muskelflächen stammen aus einem MIT-lizenzierten Anatomie-Datensatz (siehe lib/anatomy.ts und THIRD_PARTY.md).
 import { useLayoutEffect, useRef, useState } from 'react';
+import { levelInfo, mixHex, muscleColor } from '../lib/levels';
 import { ANATOMY, type AnatomyPart } from '../lib/anatomy';
 import { useCosmetics } from '../lib/cosmetics';
 import { MUSCLE_NAMES, type MuscleLevel } from '../lib/muscles';
@@ -132,19 +133,26 @@ function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) 
       {muscles.filter((m) => !simple || focus?.has(m)).map((m) => {
         const r = levels.get(m) ?? { level: 0, gain: null, exercises: [] };
         const role = focus?.get(m);
-        const title = focus ? `${MUSCLE_NAMES.get(m)}${role === 'p' ? ': Primärer Muskel' : role === 's' ? ': Sekundärer Muskel' : ''}` : `${MUSCLE_NAMES.get(m)}: ${r.level ? `Stufe ${r.level}` : 'noch nicht trainiert'}`;
+        const title = focus ? `${MUSCLE_NAMES.get(m)}${role === 'p' ? ': Primärer Muskel' : role === 's' ? ': Sekundärer Muskel' : ''}` : `${MUSCLE_NAMES.get(m)}: ${r.level ? levelInfo(r.level).name : 'noch nicht trainiert'}`;
         const cls = focus ? `muscle focus-${role ?? 'off'}` : `muscle lv-${r.level}`;
+        // Kraft-Farbe (Gelb → Orange → Rot → Blau → Lila, innerhalb der Stufe hell → dunkel); untrainiert bleibt weiß
+        const col = !focus && r.level > 0 ? muscleColor(r.level, r.gain) : null;
+        const gid = `mc-${side}-${m}`;
+        const paint = col ? { fill: `url(#${gid})`, stroke: mixHex(col, '#000000', 0.35), strokeWidth: 1.2 } : undefined;
+        const grad = col ? <linearGradient id={gid} x1="0.1" y1="0" x2="0.9" y2="1"><stop offset="0" stopColor={mixHex(col, '#ffffff', 0.3)} /><stop offset="1" stopColor={col} /></linearGradient> : null;
         const paths = BODY_MAP[m][side]!.map((slug) => (data[slug] ? <g key={slug} data-slug={slug}><PartPaths part={data[slug]} /></g> : null));
         if (!onSelect) {
           return (
-            <g key={m} className={`${cls} static`} data-muscle={m}>
+            <g key={m} className={`${cls} static`} data-muscle={m} style={paint}>
+              {grad && <defs>{grad}</defs>}
               {paths}
             </g>
           );
         }
         return (
-          <g key={m} className={cls} data-muscle={m} tabIndex={0} role="img" aria-label={title} onClick={() => onSelect(m)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(m)}>
+          <g key={m} className={cls} data-muscle={m} data-level={r.level} style={paint} tabIndex={0} role="img" aria-label={title} onClick={() => onSelect(m)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(m)}>
             <title>{title}</title>
+            {grad && <defs>{grad}</defs>}
             {paths}
           </g>
         );

@@ -1,8 +1,6 @@
 // Home: Umschalter „Mein Feed | Freunde“, Begrüßung mit Rückblick (laufendes Training: Zeile über der Leiste), Aufgaben, Körpergraph, Wochenstatistik.
 import { GymCard } from './Gym';
-import { AdventureCard } from './Adventure';
-import { FunChoice } from '../components/FunChoice';
-import { setFunMode, showsEgg, showsGym, useFunMode } from '../lib/onboarding';
+import { TitleBadge, titleFor } from '../components/TitleBadge';
 import { hitsFrom } from '../lib/gym';
 import { StartChecklist } from '../components/StartChecklist';
 import { dueHint, getReminders, planWeek } from '../lib/reminders';
@@ -90,9 +88,7 @@ function readStatsPeriod(): StatsPeriod {
 
 export function Home() {
   const [statsPeriod, setStatsPeriod] = useState(readStatsPeriod);
-  const { api, user, exerciseMap, dataVersion } = useApp();
-  const uid = user?.id ?? 'local';
-  const fun = useFunMode(uid);
+  const { api, exerciseMap, dataVersion } = useApp();
   const game = useGame();
   const weights = useAsync(() => api.listBodyWeights(), [api, dataVersion]);
   if (game.status === 'loading' || weights.status === 'loading') return <><HomeTabs active="mine" /><Loading /></>;
@@ -118,6 +114,7 @@ export function Home() {
     <>
       <HomeTabs active="mine" />
       <RecapCard workouts={g.workouts} sets={g.sets} today={today} />
+      <a className="card title-mini" id="title-mini" href="#/profil"><span>Dein Titel</span><TitleBadge t={titleFor(g.workouts, g.sets, exerciseMap())} /><span className="tile-chev" aria-hidden="true">›</span></a>
       {(() => {
         // Browser: Erinnerung als Hinweis-Karte (in der App fürs Handy kommt sie als Benachrichtigung)
         if (isNative) return null;
@@ -126,15 +123,7 @@ export function Home() {
       })()}
       <MigrateCard />
       <StartChecklist workoutCount={g.workouts.length} />
-      {fun === null && (
-        <div className="card fun-card" id="fun-choice">
-          <h3>Neu: Gym, Ei oder beides?</h3>
-          <p className="muted small">Was möchtest du mit deinem Training sammeln? Du kannst das jederzeit in den Einstellungen ändern.</p>
-          <FunChoice value={null} onPick={(m) => setFunMode(uid, m)} />
-        </div>
-      )}
-      {showsEgg(fun) && <AdventureCard />}
-      {showsGym(fun) && <GymCard hits={hitsFrom(g.sets)} />}
+      <GymCard hits={hitsFrom(g.sets)} />
       <CycleCard compact />
       {api.mode === 'local' && (
         <p className="notice small">

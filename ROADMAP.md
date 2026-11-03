@@ -27,7 +27,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Veröffentlichungs-Ablauf für GitHub Pages (`.github/workflows/pages.yml`)
 - [x] Pages auf „GitHub Actions“ umgestellt – die React-Version ist live
 - [x] Alte App im Hauptordner entfernt, README neu
-- [ ] Browser-Tests (Playwright) ins Repo übernehmen
+- [x] Browser-Tests (Playwright) ins Repo übernehmen (`web/e2e`)
 
 ## Phase 3 – Freunde & Community
 - [x] Profile für Freunde (Name, Avatar, Level, Rang, Serie, Körpergraph, Bestwerte)
@@ -177,6 +177,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 131: Auswahl „Gym, Ei oder beides“ (Begrüßung, Karte auf der Startseite für bestehende Nutzer, Einstellungen); „So funktioniert's“-Erklärung im Abenteuer
 - [x] Schritt 132: Trainings-Insel – zeigt, wie ausgewogen man trainiert (Berge = Beine, Wald = Rücken, Strand = Brust, Klippen = Schultern, Dorf = Arme, Garten = Bauch, Fluss = Cardio; Sätze der letzten 30 Tage, ab 24 Sätzen „in voller Pracht“, vernachlässigte Gebiete vertrocknen), Hütte des Begleiters, Gebiete antippen, Erklärung „Wozu die Insel?“, Zoomen mit zwei Fingern/Knöpfen (auch Weltkarte), Insel im Freundesprofil
 - [x] Schritt 133: Trainings-Insel auf Wunsch wieder entfernt (Zoomen auf der Weltkarte bleibt); Absturz beim Seitenwechsel in neueren Browsern behoben (scrollTo gibt dort ein Promise zurück)
+- [x] Schritt 134: Abenteuer (Begleiter, Weltreise, Gipfel, Postkarten) und Auswahl „Gym/Ei/beides“ komplett entfernt; Körpergraph weiß mit Kraft-Stufen Beginner (Gelb) → Fortgeschritten (Orange) → Profi (Rot) → Elite (Blau) → Ultra (Lila), Verlauf hell → dunkel, keine überlaufenden Farben; eigener Titel aus „wie oft“ + „wie gut“; Browser-Tests jetzt fest im Repo (`web/e2e`)
 - [ ] Schritt 133: Körpermaße + Fortschritts-Fotos (privat, Vergleich, Kalender-📷; Datenbank-Update 66)
 - [ ] Schritt 134: Training im Studio smarter (Scheibenrechner, Supersätze, „+2,5 kg“-Hinweis, Aufwärmsätze)
 - [ ] Ideen fürs Gym: Gym von Freunden anfeuern, Boden- und Wandfarben aus dem Shop

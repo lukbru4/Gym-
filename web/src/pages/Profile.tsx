@@ -16,6 +16,7 @@ import { fmtEuro, PRO_PRICES, usePro } from '../lib/pro';
 import { itemById } from '../lib/shop';
 import { computeMedals, longestStreak } from '../lib/quests';
 import type { Game } from '../app/game';
+import { TitleCard, titleFor } from '../components/TitleBadge';
 
 function useMedals(g: Game | null) {
   const { api, dataVersion } = useApp();
@@ -30,7 +31,7 @@ function useMedals(g: Game | null) {
 }
 
 export function Profile() {
-  const { api, user } = useApp();
+  const { api, user, exerciseMap } = useApp();
   const game = useGame();
   const { equipped } = useCosmetics();
   const pro = usePro();
@@ -66,6 +67,7 @@ export function Profile() {
           Level {g.player.level} · {g.overall.label} · {fmt(g.credits, 0)} Credits
         </p>
       </div>
+      <TitleCard t={titleFor(g.workouts, g.sets, exerciseMap())} />
       <div className="tile-grid">
         {tile('#/aufgaben', 'aufgaben', 'Aufgaben')}
         {tile('#/medaillen', 'medaillen', 'Medaillen')}

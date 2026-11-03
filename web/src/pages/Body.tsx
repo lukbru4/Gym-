@@ -7,9 +7,9 @@ import { BodyGraph } from '../components/BodyGraph';
 import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ChartView } from '../components/ChartView';
 import { Radar } from '../components/Radar';
-import { useCosmetics } from '../lib/cosmetics';
 import { datedSets } from '../lib/editor';
 import { fmt, fmtDate, fmtShortDate, parseNum } from '../lib/format';
+import { levelInfo, STRENGTH_LEVELS } from '../lib/levels';
 import { LEVELS, MUSCLE_NAMES, musclesOf, strengthLevels } from '../lib/muscles';
 import { todayISO } from '../lib/stats';
 import type { Exercise, MuscleId } from '../lib/types';
@@ -45,7 +45,6 @@ function AssignForm({ ex, used }: { ex: Exercise; used: boolean }) {
 export function Body() {
   const { api, exercises, exerciseMap, showError, dataVersion, dataChanged } = useApp();
   const game = useGame();
-  const cosmetics = useCosmetics();
   const pro = usePro();
   const locked = api.mode === 'cloud' && pro.loaded && !pro.pro;
   const weights = useAsync(() => api.listBodyWeights(), [api, dataVersion]);
@@ -96,17 +95,16 @@ export function Body() {
           {selected ? (
             <>
               <strong>{MUSCLE_NAMES.get(selected)}</strong>
-              <span>{sel?.level ? `Stufe ${sel.level}` : 'noch nicht trainiert'}</span>
+              <span>{sel?.level ? <><b style={{ color: levelInfo(sel.level).dark }}>{levelInfo(sel.level).name}</b> · {pct(sel.gain)} seit Beginn</> : 'noch nicht trainiert'}</span>
             </>
           ) : (
             <span>Tippe auf einen Muskel</span>
           )}
         </div>
         <BodyGraph levels={levels} onSelect={setSelected} labels />
-        <ul className="legend skin-scope" data-skin={cosmetics.equipped.skin} aria-label="Legende">
-          <li><span className="swatch" style={{ background: 'var(--neon-bg)' }} />nicht trainiert</li>
-          {LEVELS.map((l) => (
-            <li key={l.level}><span className="swatch" style={{ background: `var(--glow-${l.level})` }} />Stufe {l.level}: {l.label}</li>
+        <ul className="legend level-legend" id="level-legend" aria-label="Legende">
+          {STRENGTH_LEVELS.map((l) => (
+            <li key={l.level}><span className="swatch" style={{ background: `linear-gradient(135deg, ${l.light}, ${l.dark})` }} />{l.name}{l.level > 0 && <small> ({LEVELS[l.level - 1].label})</small>}</li>
           ))}
         </ul>
         <p className="muted small">
@@ -123,7 +121,7 @@ export function Body() {
                 {trained.map(([m, r]) => (
                   <tr key={m}>
                     <td>{MUSCLE_NAMES.get(m)}</td>
-                    <td>{r.level}</td>
+                    <td style={{ color: levelInfo(r.level).dark, fontWeight: 700 }}>{levelInfo(r.level).name}</td>
                     <td>{pct(r.gain)}</td>
                     <td className="small">
                       {r.exercises.map((x, i) => (
