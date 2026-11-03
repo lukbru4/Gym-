@@ -7,6 +7,7 @@ import { ChartView } from './ChartView';
 import { addGymLog } from '../lib/activity';
 import { fmt, fmtDate, fmtShortDate } from '../lib/format';
 import { toMaxJpeg } from '../lib/image';
+import { photoDate } from '../lib/photoDate';
 import { cleanMeasure, hasValues, latestValues, measureSummary, measureTrend, MEASURES, POSES, poseName, type Measure, type MeasureKey, type Pose, type ProgressPhoto } from '../lib/measures';
 import { todayISO } from '../lib/stats';
 import type { BodyWeight } from '../lib/types';
@@ -127,27 +128,49 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
   const measures = useAsync(() => api.progress.listMeasures(), [api, dataVersion]);
   const list = photos.status === 'ok' ? photos.data : [];
   const urls = usePhotoUrls(list.map((p) => p.id));
-  const fileRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null), camRef = useRef<HTMLInputElement>(null);
+  const [review, setReview] = useState<{ file: File; url: string; date: string; pose: Pose; skip: boolean }[] | null>(null);
+  const [progress, setProgress] = useState('');
   const [pose, setPose] = useState<Pose>('front');
   const [shared, setShared] = useState(false);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<ProgressPhoto | null>(null);
   const [cmp, setCmp] = useState<[string, string] | null>(null);
   const canShare = api.progress.canShare;
-  const upload = async (file: File | undefined) => {
-    if (!file) return;
+  /** Ausgewählte Fotos (Galerie: mehrere, mit Aufnahmedatum; Kamera: heute) erst prüfen lassen */
+  const pick = async (files: FileList | null, fromCamera: boolean) => {
+    const chosen = [...(files ?? [])].filter((f) => f.type.startsWith('image/') || /\.(jpe?g|png|heic|heif|webp)$/i.test(f.name)).slice(0, 20);
+    if (fileRef.current) fileRef.current.value = '';
+    if (camRef.current) camRef.current.value = '';
+    if (!chosen.length) return;
+    if ((files?.length ?? 0) > 20) void notify('Höchstens 20 Fotos auf einmal – die ersten 20 sind ausgewählt.');
+    const items = await Promise.all(chosen.map(async (file) => ({ file, url: URL.createObjectURL(file), date: fromCamera ? todayISO() : await photoDate(file), pose, skip: false })));
+    setReview(items);
+  };
+  const closeReview = () => { for (const r of review ?? []) URL.revokeObjectURL(r.url); setReview(null); setProgress(''); };
+  const saveReview = async () => {
+    const todo = (review ?? []).filter((r) => !r.skip);
+    if (!todo.length) return closeReview();
     setBusy(true);
+    const share = canShare && shared;
+    let done = 0;
     try {
-      const blob = await toMaxJpeg(file, 1024, 0.82);
-      const date = todayISO();
-      await api.progress.addPhoto(blob, date, pose, canShare && shared);
-      addGymLog(user?.id ?? 'local', date, `📷 Fortschritts-Foto (${poseName(pose)})${canShare && shared ? ' – für Freunde' : ''}`);
-      dataChanged();
+      for (const r of todo) {
+        setProgress(`${done + 1} von ${todo.length} …`);
+        const blob = await toMaxJpeg(r.file, 1024, 0.82);
+        await api.progress.addPhoto(blob, r.date, r.pose, share);
+        addGymLog(user?.id ?? 'local', r.date, `📷 Fortschritts-Foto (${poseName(r.pose)})${share ? ' – für Freunde' : ''}`);
+        done++;
+      }
+      closeReview();
     } catch (err) {
       showError(err);
+      // Gespeicherte aus der Liste nehmen, Rest bleibt zum erneuten Versuch
+      setReview((cur) => cur && cur.filter((r) => !todo.slice(0, done).includes(r)));
+      setProgress('');
     } finally {
       setBusy(false);
-      if (fileRef.current) fileRef.current.value = '';
+      dataChanged();
     }
   };
   const groups = useMemo(() => {
@@ -174,9 +197,13 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
             <button type="button" className={`seg-tab${shared ? ' active' : ''}`} aria-pressed={shared} id="photo-friends" onClick={() => setShared(true)}>👥 Freunde</button>
           </div>
         ) : <p className="muted small">🔒 Ohne Konto bleiben Fotos nur auf diesem Gerät.</p>}
-        <input ref={fileRef} type="file" accept="image/*" capture="user" id="photo-file" hidden onChange={(e) => void upload(e.target.files?.[0])} />
-        <button type="button" className="btn primary block" id="photo-add" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? 'Wird gespeichert …' : '📷 Foto hinzufügen'}</button>
-        <p className="muted small">Tipp: gleiches Licht, gleicher Ort, gleiche Pose – dann sieht man den Fortschritt am besten.{canShare ? ' Bitte keine Nacktfotos – Freunde können Fotos melden.' : ''}</p>
+        <input ref={fileRef} type="file" accept="image/*" multiple id="photo-file" hidden onChange={(e) => void pick(e.target.files, false)} />
+        <input ref={camRef} type="file" accept="image/*" capture="user" id="photo-camera" hidden onChange={(e) => void pick(e.target.files, true)} />
+        <div className="row photo-buttons">
+          <button type="button" className="btn primary grow" id="photo-gallery" disabled={busy} onClick={() => fileRef.current?.click()}>🖼️ Aus Galerie</button>
+          <button type="button" className="btn grow" id="photo-add" disabled={busy} onClick={() => camRef.current?.click()}>📷 Kamera</button>
+        </div>
+        <p className="muted small">Aus der Galerie kannst du mehrere Fotos auf einmal wählen – sie bekommen automatisch ihr Aufnahmedatum, das du vor dem Speichern prüfen kannst. Tipp: gleiches Licht, gleicher Ort, gleiche Pose.{canShare ? ' Bitte keine Nacktfotos – Freunde können Fotos melden.' : ''}</p>
       </div>
       {list.length >= 2 && !cmp && <button type="button" className="btn block" id="photo-compare" onClick={startCompare}>↔️ Vorher / Nachher vergleichen</button>}
       {cmp && <Compare photos={list} urls={urls} pair={cmp} onPair={setCmp} onClose={() => setCmp(null)} weights={weights} measures={measures.status === 'ok' ? measures.data : []} />}
@@ -194,6 +221,35 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
           </div>
         </div>
       ))}
+      {review && (
+        <div className="dialog-backdrop">
+          <div className="dialog photo-review" id="photo-review" role="dialog" aria-modal="true" aria-label="Fotos hinzufügen">
+            <h3>{review.length === 1 ? 'Foto hinzufügen' : `${review.length} Fotos hinzufügen`}</h3>
+            <ul className="review-list">
+              {review.map((r, i) => (
+                <li key={r.url} className={r.skip ? 'skip' : ''} data-review={i}>
+                  <img src={r.url} alt="" />
+                  <div className="review-fields">
+                    <label className="small">Datum<input type="date" value={r.date} max={todayISO()} data-review-date={i} onChange={(e) => e.target.value && setReview(review.map((x, j) => (j === i ? { ...x, date: e.target.value } : x)))} /></label>
+                    <select aria-label="Pose" data-review-pose={i} value={r.pose} onChange={(e) => setReview(review.map((x, j) => (j === i ? { ...x, pose: e.target.value as Pose } : x)))}>
+                      {POSES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
+                  <button type="button" className="icon-btn" data-review-skip={i} aria-label={r.skip ? 'Doch hinzufügen' : 'Weglassen'} onClick={() => setReview(review.map((x, j) => (j === i ? { ...x, skip: !x.skip } : x)))}>{r.skip ? '↩️' : '✕'}</button>
+                </li>
+              ))}
+            </ul>
+            {canShare && <p className="small">Sichtbar für: <strong>{shared ? '👥 Freunde' : '🔒 Nur dich'}</strong> <button type="button" className="link-btn" id="review-share" onClick={() => setShared(!shared)}>ändern</button></p>}
+            {progress && <p className="small" id="review-progress">Wird gespeichert: {progress}</p>}
+            <div className="row">
+              <button type="button" className="btn primary grow" id="review-save" disabled={busy || review.every((r) => r.skip)} onClick={() => void saveReview()}>
+                {busy ? 'Speichert …' : `${review.filter((r) => !r.skip).length} speichern`}
+              </button>
+              <button type="button" className="btn" id="review-cancel" disabled={busy} onClick={closeReview}>Abbrechen</button>
+            </div>
+          </div>
+        </div>
+      )}
       {view && (
         <div className="dialog-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setView(null); }}>
           <div className="dialog photo-view" id="photo-view" role="dialog" aria-modal="true" aria-label="Foto">

@@ -67,6 +67,8 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>Die Kamera wird nur zum Scannen von Barcodes auf Lebensmitteln benutzt.</string>
+	<string>Die Kamera wird zum Scannen von Barcodes auf Lebensmitteln und für deine Fortschritts-Fotos benutzt.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Damit du Fortschritts-Fotos aus deiner Galerie auswählen kannst.</string>
 </dict>
 </plist>

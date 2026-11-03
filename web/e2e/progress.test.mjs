@@ -8,8 +8,15 @@ await page.goto(BASE); await page.locator('#recap').waitFor();
 const img = async (color, label) => Buffer.from((await page.evaluate(([c, l]) => {
   const cv = document.createElement('canvas'); cv.width = 600; cv.height = 800;
   const x = cv.getContext('2d'); x.fillStyle = c; x.fillRect(0, 0, 600, 800); x.fillStyle = '#fff'; x.font = 'bold 90px sans-serif'; x.fillText(l, 120, 420);
-  return cv.toDataURL('image/png').split(',')[1];
+  return cv.toDataURL('image/jpeg', 0.9).split(',')[1];
 }, [color, label])), 'base64');
+/** EXIF-Aufnahmedatum in ein JPEG einsetzen (wie bei Handy-Fotos) */
+const withExif = (jpg, date) => {
+  const t = [0x49, 0x49, 42, 0, 8, 0, 0, 0, 1, 0, 0x69, 0x87, 4, 0, 1, 0, 0, 0, 26, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0x03, 0x90, 2, 0, 20, 0, 0, 0, 44, 0, 0, 0, 0, 0, 0, 0, ...[...`${date} 08:30:00`].map((c) => c.charCodeAt(0)), 0];
+  const app1 = [0x45, 0x78, 0x69, 0x66, 0, 0, ...t], len = app1.length + 2;
+  return Buffer.concat([jpg.subarray(0, 2), Buffer.from([0xff, 0xe1, len >> 8, len & 255, ...app1]), jpg.subarray(2)]);
+};
 await go(page, '#/koerper'); await page.locator('#measures').waitFor();
 // Maße: zwei Messungen
 const enter = async (date, vals) => {
@@ -28,12 +35,25 @@ check(await page.locator('#measure-chart').count() === 1, 'Verlauf der Taille al
 await page.locator('#measures').screenshot({ path: `${SHOTS}/masse.png` });
 // Fotos
 check(await page.locator('#photo-friends').count() === 0, 'Ohne Konto: nur „Nur ich“');
-await page.setInputFiles('#photo-file', { name: 'a.png', mimeType: 'image/png', buffer: await img('#c92a2a', 'VORHER') });
-await page.locator('.photo-thumb').first().waitFor();
-await page.click('[data-pose="side"]');
-await page.setInputFiles('#photo-file', { name: 'b.png', mimeType: 'image/png', buffer: await img('#1971c2', 'NACHHER') });
+check((await page.locator('#photo-camera').getAttribute('capture')) === 'user' && (await page.locator('#photo-file').getAttribute('capture')) === null && (await page.locator('#photo-file').getAttribute('multiple')) !== null, 'Kamera-Knopf öffnet die Kamera, Galerie-Knopf die Galerie (mehrere möglich)');
+// Zwei Fotos auf einmal aus der Galerie: eins mit Aufnahmedatum 01.09.2026 (EXIF), eins ohne (heute)
+await page.setInputFiles('#photo-file', [
+  { name: 'IMG_0001.jpg', mimeType: 'image/jpeg', buffer: withExif(await img('#c92a2a', 'VORHER'), '2026:09:01') },
+  { name: 'IMG_0002.jpg', mimeType: 'image/jpeg', buffer: await img('#1971c2', 'NACHHER') },
+]);
+await page.locator('#photo-review').waitFor();
+check(await page.locator('#photo-review [data-review]').count() === 2, 'Prüf-Fenster zeigt beide Fotos');
+check((await page.locator('[data-review-date="0"]').inputValue()) === '2026-09-01', 'Aufnahmedatum aus dem Foto erkannt (01.09.2026)');
+await page.locator('#photo-review').screenshot({ path: `${SHOTS}/galerie-pruefen.png` });
+await page.selectOption('[data-review-pose="1"]', 'side');
+await page.click('[data-review-skip="1"]');
+check((await page.locator('#review-save').innerText()).includes('1 speichern'), 'Weglassen: nur noch 1');
+await page.click('[data-review-skip="1"]');
+await page.click('#review-save');
+await page.locator('#photo-review').waitFor({ state: 'detached' });
 await page.waitForFunction(() => document.querySelectorAll('.photo-thumb img').length === 2);
 check(true, 'Zwei Fotos in der Zeitleiste');
+check((await page.locator('.photo-month h3').allTextContents()).some((t) => t.toLowerCase().includes('september 2026')), 'Galerie-Foto steht im September');
 check((await page.locator('.photo-thumb .photo-meta').allInnerTexts()).some((t) => t.includes('Seitlich')), 'Pose wird angezeigt');
 await page.click('#photo-compare');
 await page.locator('#photo-compare-view img').first().waitFor();
@@ -61,12 +81,14 @@ await page.reload(); await page.locator('#recap').waitFor();
 await page.locator('#recap-acts').waitFor();
 if (await page.locator('#recap-acts-more').count()) await page.click('#recap-acts-more');
 const acts = await page.locator('#recap-acts').innerText();
-check(acts.includes('📷') && acts.includes('Fortschritts-Foto (Vorne)') && acts.includes('Seitlich'), 'Aktivitäten: Fortschritts-Fotos');
+check(acts.includes('📷') && acts.includes('Fortschritts-Foto (Seitlich)') && !acts.includes('(Vorne)'), 'Aktivitäten: heutiges Foto diese Woche, das alte Galerie-Foto (September) nicht');
 await go(page, '#/koerper'); await page.locator('#photos').waitFor();
 await page.waitForFunction(() => document.querySelectorAll('.photo-thumb img').length === 1);
 check(true, 'Foto bleibt nach Neuladen');
 // Kalender
 await go(page, '#/profil'); await page.locator('#calendar').waitFor();
+// übrig ist das Galerie-Foto vom 01.09. → im Kalender zum September blättern
+for (let i = 0; i < 2; i++) await page.click('[data-cal="-1"]');
 await page.locator('.cal-photo').first().waitFor({ timeout: 4000 }).catch(() => {});
 check(await page.locator('.cal-day.photo .cal-photo').count() >= 1, 'Kalender zeigt 📷');
 check(page.errors.length === 0, 'Keine Seitenfehler ' + page.errors.join(' | '));
