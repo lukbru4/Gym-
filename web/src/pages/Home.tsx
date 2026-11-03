@@ -81,10 +81,11 @@ const STATS_TEXT: Record<StatsPeriod, { title: string; unit: string }> = {
 };
 function readStatsPeriod(): StatsPeriod {
   try {
-    const v = localStorage.getItem(STATS_KEY);
-    return v === 'week' || v === 'month' ? v : 'year';
+    // ein gemeinsamer Schalter für Rückblick und Statistik: Standard „Woche“ (wie der Rückblick bisher)
+    const v = localStorage.getItem(STATS_KEY) ?? localStorage.getItem('gym-tracker-recap-period');
+    return v === 'month' || v === 'year' ? v : 'week';
   } catch {
-    return 'year';
+    return 'week';
   }
 }
 
