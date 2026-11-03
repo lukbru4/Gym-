@@ -12,11 +12,12 @@ export const viewAzimuth = (view: number) => FRONT_AZ + [0, -90, 180, 90][view &
 const ELEV = 16, DIST = 14;
 
 /** Gerät auf einer Fläche: Ausschnitt (in Pixeln bei Maßstab 1 px/m) und Kamera */
-function layout(pattern: string, view: number, withFigure = false) {
+function layout(pattern: string, view: number, withFigure = false, straight = false) {
   const p = PATTERNS[pattern] ?? PATTERNS.bench;
   const { min, max } = withFigure ? sceneBounds(p) : propBounds(p);
   const target: V3 = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
-  const cam = { azimuth: viewAzimuth(view), elevation: ELEV, distance: DIST, target, focal: DIST };
+  // gerade: genau von vorne/der Seite, fast ohne Draufsicht (flach); sonst leicht schräg (3D)
+  const cam = { azimuth: straight ? [0, -90, 180, 90][view & 3] : viewAzimuth(view), elevation: straight ? 3 : ELEV, distance: DIST, target, focal: DIST };
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const x of [min[0], max[0]]) for (const y of [min[1], max[1]]) for (const z of [min[2], max[2]]) {
     const q = project([x, y, z], cam, 0, 0);
@@ -27,16 +28,16 @@ function layout(pattern: string, view: number, withFigure = false) {
 /** Echte Höhe eines Geräts in Metern */
 export const machineHeight = (pattern: string) => layout(pattern, 0).height;
 /** Sichtbare Breite eines Geräts in Metern (je nach Ansicht) */
-export const machineWidth = (pattern: string, view = 0) => { const L = layout(pattern, view); return L.x1 - L.x0; };
+export const machineWidth = (pattern: string, view = 0, straight = false) => { const L = layout(pattern, view, false, straight); return L.x1 - L.x0; };
 
 /**
  * Gezeichnetes Gerät ohne Figur.
  * - mit pxPerM: maßstabsgetreu (alle Geräte im selben Maßstab, Größe ergibt sich aus dem Gerät)
  * - ohne: füllt die Fläche (height) möglichst gut aus
  */
-export function MachineArt({ pattern, height = 120, className = '', view = 0, pxPerM, person }: { pattern: string; height?: number; className?: string; view?: number; pxPerM?: number; /** jemand trainiert am Gerät (animiert) */ person?: Look }) {
+export function MachineArt({ pattern, height = 120, className = '', view = 0, pxPerM, person, straight = false }: { pattern: string; height?: number; className?: string; view?: number; pxPerM?: number; /** jemand trainiert am Gerät (animiert) */ person?: Look; /** gerade statt schräg */ straight?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const L = useMemo(() => layout(pattern, view, Boolean(person)), [pattern, view, Boolean(person)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const L = useMemo(() => layout(pattern, view, Boolean(person), straight), [pattern, view, Boolean(person), straight]); // eslint-disable-line react-hooks/exhaustive-deps
   const pad = 4;
   const size = pxPerM ? { width: Math.ceil((L.x1 - L.x0) * pxPerM) + pad * 2, height: Math.ceil((L.y1 - L.y0) * pxPerM) + pad * 2 } : null;
   useEffect(() => {

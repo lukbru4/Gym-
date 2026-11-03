@@ -191,7 +191,7 @@ export const BUILD_ITEMS: BuildItem[] = [
   { id: 'b_floor_wood', name: 'Holzboden', price: 200, group: 'boden', text: 'Heller Parkettboden.' },
   { id: 'b_size_m', name: 'Größere Fläche', price: 500, group: 'flaeche', text: 'Mehr Platz: 7 m breit, bis zu 16 Dinge.' },
   { id: 'b_size_l', name: 'Große Halle', price: 1200, group: 'flaeche', needs: ['b_size_m'], text: '9 m breit, bis zu 28 Dinge.' },
-  { id: 'b_floor2', name: '2. Stock', price: 1500, group: 'stock', needs: ['b_size_m', 'b_wall_back'], text: 'Eine Galerie mit Treppe – Geräte auch oben aufstellen, +12 Plätze.' },
+  { id: 'b_floor2', name: '2. Etage', price: 1500, group: 'stock', needs: ['b_size_m', 'b_wall_back'], text: 'Eine ganze zweite Etage mit Treppe – eigener Raum zum Einrichten, +12 Plätze.' },
 ];
 export const BUILD_BY_ID = new Map(BUILD_ITEMS.map((b) => [b.id, b]));
 export type WallStyle = 'beton' | 'brick' | 'wood' | 'dark';
@@ -222,16 +222,23 @@ export function roomFor(build: string[]): GymTier {
   const size = has('b_size_l') ? 'l' : has('b_size_m') ? 'm' : 's';
   const base = { s: { name: 'Kleiner Raum', max: 8, meters: 5 }, m: { name: 'Studio', max: 16, meters: 7 }, l: { name: 'Halle', max: 28, meters: 9 } }[size];
   const empore = has('b_floor2');
-  return { id: size, name: base.name + (empore ? ' mit 2. Stock' : ''), min: 0, max: base.max + (empore ? 12 : 0), empore, meters: base.meters };
+  return { id: size, name: base.name + (empore ? ' mit 2. Etage' : ''), min: 0, max: base.max + (empore ? 12 : 0), empore, meters: base.meters };
 }
 
 /** Ansicht eines Objekts: 0 von vorne, 1 von links, 2 von hinten, 3 von rechts */
 export type GymRot = 0 | 1 | 2 | 3;
 export const VIEW_NAMES = ['von vorne', 'von links', 'von hinten', 'von rechts'] as const;
 /** Ein aufgestelltes Objekt: x 0–100 (links→rechts), y 0–100 (hinten→vorne), level 1 = Empore, rot = Ansicht */
-export interface GymObject { id: string; x: number; y: number; level: 0 | 1; rot?: GymRot }
-/** Person im Gym: an einem aufgestellten Gerät (on = Objekt-ID) */
-export interface GymPerson { who: 'me' | 'friend' | 'npc'; id: string; on: string; name?: string }
+export interface GymObject {
+  id: string; x: number; y: number; level: 0 | 1; rot?: GymRot;
+  /** Größe 0,6–1,8 (1 = echte Größe) */
+  size?: number;
+  /** gerade von vorne statt schräg (3D) */
+  straight?: boolean;
+}
+export const SIZE_MIN = 0.6, SIZE_MAX = 1.8;
+/** Person im Gym: läuft frei auf ihrer Etage herum (nur du und deine Freunde) */
+export interface GymPerson { who: 'me' | 'friend'; id: string; name?: string; level?: 0 | 1 }
 export interface GymState {
   name: string; objects: GymObject[];
   /** gebaute Teile (b_…) */
@@ -262,7 +269,7 @@ export function cleanGym(raw: unknown, owned: Set<string>, room?: GymTier): GymS
   const objects: GymObject[] = [];
   for (const o of Array.isArray(r.objects) ? r.objects : []) {
     if (!o || typeof o !== 'object') continue;
-    const { id, x, y, level, rot, flip } = o as Record<string, unknown>;
+    const { id, x, y, level, rot, flip, size, straight } = o as Record<string, unknown>;
     // bekannte Dinge erlauben (Besitz lädt evtl. erst später – fremde IDs werden verworfen); Hängendes gibt es nicht mehr
     if (typeof id !== 'string' || !(owned.has(id) || KNOWN.has(id)) || HANGING.has(id) || seen.has(id)) continue;
     if (typeof x !== 'number' || typeof y !== 'number') continue;
@@ -270,20 +277,21 @@ export function cleanGym(raw: unknown, owned: Set<string>, room?: GymTier): GymS
     const lv = level === 1 && tier.empore ? 1 : 0;
     // früher gab es nur „Spiegeln“ (flip) – das entspricht jetzt der Ansicht von rechts
     const rr = rot === 1 || rot === 2 || rot === 3 ? rot : flip === true ? 3 : 0;
-    objects.push({ id, x: clamp(x, 0, 100), y: clamp(y, 0, 100), level: lv, ...(rr ? { rot: rr } : {}) });
+    const sz = typeof size === 'number' && Number.isFinite(size) ? Math.round(clamp(size, SIZE_MIN, SIZE_MAX) * 100) / 100 : 1;
+    objects.push({ id, x: clamp(x, 0, 100), y: clamp(y, 0, 100), level: lv, ...(rr ? { rot: rr } : {}), ...(sz !== 1 ? { size: sz } : {}), ...(straight === true ? { straight: true } : {}) });
     if (objects.length >= tier.max) break;
   }
-  const machineIds = new Set(objects.filter((o) => GYM_ITEMS.some((g) => g.id === o.id)).map((o) => o.id));
+  // Leute: nur du und deine Freunde (die früheren Figuren gibt es nicht mehr); früher standen sie an Geräten (on)
   const people: GymPerson[] = [];
-  const takenSpot = new Set<string>(), takenWho = new Set<string>();
+  const takenWho = new Set<string>();
   for (const p of Array.isArray(r.people) ? r.people : []) {
     if (!p || typeof p !== 'object') continue;
-    const { who, id, on, name: pn } = p as Record<string, unknown>;
-    if ((who !== 'me' && who !== 'friend' && who !== 'npc') || typeof id !== 'string' || typeof on !== 'string') continue;
-    if (who === 'npc' && !NPC_BY_ID.has(id)) continue;
-    if (!machineIds.has(on) || takenSpot.has(on) || takenWho.has(`${who}:${id}`)) continue;
-    takenSpot.add(on); takenWho.add(`${who}:${id}`);
-    people.push({ who, id: id.slice(0, 40), on, ...(typeof pn === 'string' ? { name: pn.slice(0, 30) } : {}) });
+    const { who, id, name: pn, level: pl, on } = p as Record<string, unknown>;
+    if ((who !== 'me' && who !== 'friend') || typeof id !== 'string' || takenWho.has(`${who}:${id}`)) continue;
+    takenWho.add(`${who}:${id}`);
+    const onObj = typeof on === 'string' ? objects.find((o) => o.id === on) : undefined;
+    const lv = (pl === 1 || onObj?.level === 1) && tier.empore ? 1 : 0;
+    people.push({ who, id: id.slice(0, 40), ...(typeof pn === 'string' ? { name: pn.slice(0, 30) } : {}), ...(lv ? { level: 1 as const } : {}) });
     if (people.length >= 20) break;
   }
   return { name, objects, build, wall, floor, people, legacy, v: 2 };
@@ -345,15 +353,15 @@ export function fromSlots(layout: (string | null)[]): GymObject[] {
   return layout.flatMap((id, i) => (id ? [{ id, x: 12.5 + (i % 4) * 25, y: [10, 45, 85][Math.floor(i / 4)] ?? 50, level: 0 as const }] : []));
 }
 /** Neues Objekt an einen freien Platz in der Mitte stellen */
-export function placeNew(state: GymState, id: string): GymState {
-  // freien Platz suchen: möglichst weit weg von allem, was schon auf dem Boden steht
-  const floor = state.objects.filter((o) => o.level === 0);
+export function placeNew(state: GymState, id: string, level: 0 | 1 = 0): GymState {
+  // freien Platz suchen: möglichst weit weg von allem, was schon auf dieser Etage steht
+  const floor = state.objects.filter((o) => o.level === level);
   let best = { x: 50, y: 50 }, bestD = -1;
   for (const y of [12, 40, 68, 92]) for (const x of [12, 37, 62, 87]) {
     const d = floor.length ? Math.min(...floor.map((o) => Math.hypot(o.x - x, (o.y - y) * 1.3))) : 999;
     if (d > bestD + 0.01) { bestD = d; best = { x, y }; }
   }
-  return { ...state, objects: [...state.objects, { id, ...best, level: 0 }] };
+  return { ...state, objects: [...state.objects, { id, ...best, level }] };
 }
 
 const gymKey = (uid: string) => `gym-tracker-gym2:${uid}`;

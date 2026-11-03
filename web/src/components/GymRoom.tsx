@@ -1,49 +1,52 @@
-// Der Gym-Raum: zuerst nur ein Boden unter freiem Himmel – Wände, Fenster, Spiegel, Licht, Bodenbelag und der
-// 2. Stock erscheinen, sobald sie gebaut sind. Geräte und Deko sind frei verschiebbar; Leute trainieren an Geräten.
+// Der Gym-Raum: zuerst nur ein Boden unter freiem Himmel – Wände, Fenster, Spiegel, Licht und Bodenbelag erscheinen,
+// sobald sie gebaut sind. Mit der 2. Etage gibt es einen zweiten Raum. Geräte und Deko sind frei verschiebbar, drehbar
+// und in der Größe änderbar; du und deine Freunde laufen als Klötzchen-Figuren herum.
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { DECO_BY_ID, FRIEND_LOOK, GYM_ITEMS, ME_LOOK, NPC_BY_ID, type GymObject, type GymPerson, type GymState, type GymTier, type Look } from '../lib/gym';
+import { DECO_BY_ID, FRIEND_LOOK, GYM_ITEMS, ME_LOOK, type GymObject, type GymPerson, type GymState, type GymTier, type Look } from '../lib/gym';
+import { GymPeople } from './GymPeople';
 import { DecoArt } from './DecoArt';
 import { MachineArt, machineWidth } from './MachineArt';
 
 const MACHINE = new Map(GYM_ITEMS.map((i) => [i.id, i]));
 const FLOOR_TOP = 36; // Rückwand endet bei 36 % der Raumhöhe
-const EMPORE = { top: 12, floor: 31 }; // 2. Stock: Geländer oben, Boden der Galerie
 
-export const nameOf = (id: string) => MACHINE.get(id)?.name ?? DECO_BY_ID.get(id)?.name ?? NPC_BY_ID.get(id)?.name ?? id;
+export const nameOf = (id: string) => MACHINE.get(id)?.name ?? DECO_BY_ID.get(id)?.name ?? id;
 export const rarityOf = (id: string) => MACHINE.get(id)?.rarity ?? (DECO_BY_ID.get(id)?.chest ? 'legendär' : 'gewöhnlich');
 
 /** Aussehen einer Person im Gym (Freunde bekommen je nach Name eine eigene Shirt-Farbe) */
 const FRIEND_SHIRTS = ['#0ca678', '#f76707', '#ae3ec9', '#1098ad', '#f03e3e', '#74b816'];
 export function lookOf(p: GymPerson): Look {
-  if (p.who === 'npc') return NPC_BY_ID.get(p.id)?.look ?? FRIEND_LOOK;
   if (p.who === 'me') return ME_LOOK;
   let h = 0;
   for (const ch of p.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return { ...FRIEND_LOOK, shirt: FRIEND_SHIRTS[h % FRIEND_SHIRTS.length] };
+  const HAIR = ['#2b2b2b', '#6b4423', '#d9a441', '#8b5a2b', '#1b1b1b'], SKIN = ['#e8b996', '#f1c7a5', '#c68642', '#8d5524', '#f6d5b8'];
+  return { ...FRIEND_LOOK, shirt: FRIEND_SHIRTS[h % FRIEND_SHIRTS.length], hair: HAIR[(h >>> 4) % HAIR.length], skin: SKIN[(h >>> 8) % SKIN.length] };
 }
-export const personName = (p: GymPerson) => (p.who === 'me' ? 'Du' : p.who === 'npc' ? NPC_BY_ID.get(p.id)?.name ?? 'Gast' : p.name ?? 'Freund');
+export const personName = (p: GymPerson) => (p.who === 'me' ? 'Du' : p.name ?? 'Freund');
 
-/** Bildschirmposition (in % des Raums) eines Objekts; scale = Tiefe (hinten kleiner) */
-function place(o: GymObject) {
-  if (o.level === 1) return { left: 6 + o.x * 0.88, bottom: 100 - EMPORE.floor, scale: 0.5, z: 4 };
-  const ground = FLOOR_TOP + (o.y / 100) * (97 - FLOOR_TOP);
-  return { left: 4 + o.x * 0.92, bottom: 100 - ground, scale: 0.6 + 0.4 * (o.y / 100), z: 10 + Math.round(o.y) };
+/** Bildschirmposition (in % des Raums) eines Punkts auf dem Boden; scale = Tiefe (hinten kleiner) */
+function placeXY(x: number, y: number) {
+  const ground = FLOOR_TOP + (y / 100) * (97 - FLOOR_TOP);
+  return { left: 4 + x * 0.92, bottom: 100 - ground, scale: 0.6 + 0.4 * (y / 100), z: 10 + Math.round(y) };
 }
+const place = (o: GymObject) => placeXY(o.x, o.y);
 /** Deko von der Seite: schmaler, rechts gespiegelt; von hinten gespiegelt */
 const decoTransform = (rot: number) => ['', ' scaleX(0.6)', ' scaleX(-1)', ' scaleX(-0.6)'][rot] ?? '';
 /** Breite eines Objekts in Metern (für den Rand des Raums) */
 function widthOf(o: GymObject) {
   const m = MACHINE.get(o.id), d = DECO_BY_ID.get(o.id);
-  if (m) return machineWidth(m.pattern, o.rot ?? 0);
-  return d ? d.h * 1.1 * (o.rot === 1 || o.rot === 3 ? 0.6 : 1) : 1;
+  const k = o.size ?? 1;
+  if (m) return machineWidth(m.pattern, o.rot ?? 0, o.straight) * k;
+  return (d ? d.h * 1.1 * (o.rot === 1 || o.rot === 3 ? 0.6 : 1) : 1) * k;
 }
 
 /** Pfeil: aus welcher Richtung man das Gerät gerade sieht */
 const VIEW_ARROWS = ['👁 vorne', '👁 links', '👁 hinten', '👁 rechts'];
 
-export function GymRoom({ gym, tier, edit = false, selected, onSelect, onMove, onOpen }: {
-  gym: GymState; tier: GymTier; edit?: boolean; selected?: string | null; onOpen?: (id: string, rot: number) => void;
-  onSelect?: (id: string | null) => void; onMove?: (id: string, pos: Pick<GymObject, 'x' | 'y' | 'level'>) => void;
+export function GymRoom({ gym, tier, floor = 0, edit = false, selected, onSelect, onMove, onOpen, meName, id = 'gym-room' }: {
+  id?: string;
+  gym: GymState; tier: GymTier; /** Name für „me“ (im Gym eines Freundes dessen Name) */ meName?: string; /** 0 Erdgeschoss, 1 zweite Etage */ floor?: 0 | 1; edit?: boolean; selected?: string | null; onOpen?: (id: string, rot: number) => void;
+  onSelect?: (id: string | null) => void; onMove?: (id: string, pos: Pick<GymObject, 'x' | 'y'>) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(360);
@@ -59,53 +62,40 @@ export function GymRoom({ gym, tier, edit = false, selected, onSelect, onMove, o
     const r = ref.current!.getBoundingClientRect();
     const px = ((e.clientX - r.left) / r.width) * 100, py = ((e.clientY - r.top) / r.height) * 100;
     const x = Math.max(0, Math.min(100, (px - 4) / 0.92));
-    if (tier.empore && py < EMPORE.floor + 3 && py > EMPORE.top - 6) return { x: Math.max(0, Math.min(100, (px - 6) / 0.88)), y: 0, level: 1 as const };
-    return { x, y: Math.max(0, Math.min(100, ((py - FLOOR_TOP) / (97 - FLOOR_TOP)) * 100)), level: 0 as const };
+    return { x, y: Math.max(0, Math.min(100, ((py - FLOOR_TOP) / (97 - FLOOR_TOP)) * 100)) };
   };
-  const personOn = new Map(gym.people.map((p) => [p.on, p]));
+  const lv = tier.empore ? floor : 0;
+  const objects = gym.objects.filter((o) => o.level === lv);
+  const people = gym.people.filter((p) => (p.level ?? 0) === lv);
   return (
-    <div ref={ref} className={`gym-room size-${tier.id}${edit ? ' editing' : ''}`} id="gym-room" data-built={gym.build.join(' ')}
+    <div ref={ref} className={`gym-room size-${tier.id}${edit ? ' editing' : ''}`} id={id} data-built={gym.build.join(' ')} data-floor={lv}
       onPointerMove={(e) => { if (drag.current && onMove) onMove(drag.current, toPos(e)); }}
       onPointerUp={() => { drag.current = null; }}
       onPointerCancel={() => { drag.current = null; }}
       onClick={(e) => { if (edit && e.target === e.currentTarget) onSelect?.(null); }}>
-      <RoomBackdrop gym={gym} />
-      {gym.objects.map((o) => {
+      <RoomBackdrop gym={gym} upper={lv === 1} />
+      {objects.map((o) => {
         const p = place(o);
         const machine = MACHINE.get(o.id), deco = DECO_BY_ID.get(o.id);
         const rot = o.rot ?? 0;
-        const person = machine ? personOn.get(o.id) : undefined;
-        // gemeinsamer Maßstab: echte Raumbreite in Metern → alle Geräte in echten Größenverhältnissen
-        const pxPerM = (w / tier.meters) * p.scale;
+        // gemeinsamer Maßstab: echte Raumbreite in Metern → alle Geräte in echten Größenverhältnissen (× eigene Größe)
+        const pxPerM = (w / tier.meters) * p.scale * (o.size ?? 1);
         const half = Math.min(45, ((widthOf(o) * pxPerM) / 2 / w) * 100);
         const left = Math.max(half, Math.min(100 - half, p.left));
         return (
-          <div key={o.id} className={`gym-obj r-${rarityOf(o.id)}${selected === o.id ? ' selected' : ''}`} data-obj={o.id} data-rot={rot} data-scale={p.scale}
+          <div key={o.id} className={`gym-obj r-${rarityOf(o.id)}${selected === o.id ? ' selected' : ''}`} data-obj={o.id} data-rot={rot} data-scale={p.scale} data-size={o.size ?? 1} data-straight={o.straight ? '1' : undefined}
             style={{ left: `${left}%`, bottom: `${p.bottom}%`, zIndex: p.z, transform: 'translateX(-50%)' }}
             onClick={() => { if (!edit) onOpen?.(o.id, rot); }}
             onPointerDown={(e) => { if (!edit) return; e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); drag.current = o.id; onSelect?.(o.id); }}>
-            {person && <span className="gym-person-name" data-person={`${person.who}:${person.id}`}>{personName(person)}</span>}
-            {machine ? <MachineArt pattern={machine.pattern} view={rot} pxPerM={pxPerM} person={person ? lookOf(person) : undefined} />
+            {machine ? <MachineArt pattern={machine.pattern} view={rot} pxPerM={pxPerM} straight={o.straight} />
               : deco ? <div style={{ transform: decoTransform(rot) }}><DecoArt item={deco} height={Math.round(deco.h * pxPerM)} /></div> : null}
-            {edit && selected === o.id && <span className="gym-obj-view" aria-hidden="true">{VIEW_ARROWS[rot]}</span>}
+            {edit && selected === o.id && <span className="gym-obj-view" aria-hidden="true">{o.straight ? '👁 gerade' : VIEW_ARROWS[rot]}</span>}
             {edit && <span className="gym-obj-name">{nameOf(o.id)}</span>}
           </div>
         );
       })}
-      {tier.empore && <EmporeRailing />}
+      <GymPeople people={people} place={placeXY} figH={(w / tier.meters) * 1.75} lookOf={lookOf} nameOf={(p) => (p.who === 'me' && meName ? meName : personName(p))} still={edit} />
     </div>
-  );
-}
-
-function EmporeRailing() {
-  return (
-    <svg className="gym-railing" viewBox="0 0 400 360" preserveAspectRatio="none" aria-hidden="true">
-      <rect x="0" y={EMPORE.floor * 3.6} width="400" height="7" fill="#3b4048" />
-      <line x1="0" y1={EMPORE.floor * 3.6 - 22} x2="400" y2={EMPORE.floor * 3.6 - 22} stroke="#9aa3ad" strokeWidth="3" />
-      {Array.from({ length: 21 }, (_, i) => <line key={i} x1={i * 20} y1={EMPORE.floor * 3.6 - 22} x2={i * 20} y2={EMPORE.floor * 3.6} stroke="#9aa3ad" strokeWidth="1.5" />)}
-      <path d="M330 112 l20 0 l-26 60 l-20 0 z" fill="#2b3038" stroke="#555" />
-      {[0, 1, 2, 3, 4].map((i) => <line key={i} x1={334 - i * 6} y1={122 + i * 11} x2={352 - i * 6} y2={122 + i * 11} stroke="#666" strokeWidth="2" />)}
-    </svg>
   );
 }
 
@@ -113,7 +103,7 @@ const WALL: Record<string, [string, string]> = { beton: ['#5a5e64', '#6b6f75'], 
 const WINDOW_X = [52, 106, 248, 302];
 
 /** Hintergrund aus den gebauten Teilen: Himmel → Rückwand → Seitenwände, Fenster, Spiegel, Licht, Bodenbelag */
-function RoomBackdrop({ gym }: { gym: GymState }) {
+function RoomBackdrop({ gym, upper }: { gym: GymState; upper: boolean }) {
   const has = (b: string) => gym.build.includes(b);
   const back = has('b_wall_back'), sides = has('b_wall_sides');
   const windows = [1, 2, 3, 4].filter((i) => has(`b_window_${i}`)).length;
@@ -131,8 +121,8 @@ function RoomBackdrop({ gym }: { gym: GymState }) {
       </defs>
       {/* draußen: Himmel, Wiese und Bäume – bis Wände gebaut sind */}
       <rect width="400" height="200" fill="url(#gsky)" />
-      <rect y="112" width="400" height="80" fill="#7fbf5a" />
-      {[[30, 112], [90, 108], [330, 110], [380, 114]].map(([x, y], i) => <g key={i}><rect x={x - 2} y={y - 8} width="4" height="10" fill="#6b4a2b" /><circle cx={x} cy={y - 14} r="10" fill="#3f8f3a" /></g>)}
+      {!upper && <rect y="112" width="400" height="80" fill="#7fbf5a" />}
+      {!upper && [[30, 112], [90, 108], [330, 110], [380, 114]].map(([x, y], i) => <g key={i}><rect x={x - 2} y={y - 8} width="4" height="10" fill="#6b4a2b" /><circle cx={x} cy={y - 14} r="10" fill="#3f8f3a" /></g>)}
       <circle cx="350" cy="30" r="14" fill="#fff3bf" />
       {back && (
         <g className="gym-wall-back">
@@ -157,7 +147,9 @@ function RoomBackdrop({ gym }: { gym: GymState }) {
       {[160, 200, 255, 320].map((y) => <line key={y} x1="0" y1={y} x2="400" y2={y} stroke={lineCol} strokeWidth="1.2" />)}
       {/* ohne Rückwand: Name auf einem Aufsteller vorne */}
       {!back && <g className="gym-sign"><rect x="18" y="296" width={Math.min(170, label.length * 9 + 26)} height="26" rx="4" fill="#1b1d21" stroke="#e8222f" strokeWidth="2" /><text x={18 + Math.min(170, label.length * 9 + 26) / 2} y="314" textAnchor="middle" fill="#fff" fontSize="12" fontWeight="900" fontFamily="sans-serif">{label}</text><rect x="40" y="322" width="4" height="18" fill="#555" /><rect x={Math.min(170, label.length * 9 + 26)} y="322" width="4" height="18" fill="#555" /></g>}
-      {gym.build.includes('b_floor2') && <rect x="0" y="0" width="400" height={EMPORE.floor * 3.6} fill="rgba(10,14,20,0.22)" />}
+      {/* 2. Etage: Treppe nach unten in der Ecke, Etagen-Schild */}
+      {upper && <g className="gym-stairs"><polygon points="300,250 392,250 400,262 400,330 300,330" fill="#2b3038" stroke="#555" strokeWidth="2" />{[0, 1, 2, 3, 4, 5].map((i) => <rect key={i} x={306 + i * 3} y={256 + i * 12} width={84 - i * 3} height="6" fill="#4a515b" />)}<rect x="296" y="236" width="4" height="96" fill="#9aa3ad" /><line x1="298" y1="238" x2="398" y2="238" stroke="#9aa3ad" strokeWidth="3" /><text x="345" y="248" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="800" fontFamily="sans-serif">↓ Erdgeschoss</text></g>}
+      {upper && back && <g><rect x="44" y="104" width="58" height="16" rx="3" fill="#e8222f" /><text x="73" y="116" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="900" fontFamily="sans-serif">2. ETAGE</text></g>}
     </svg>
   );
 }

@@ -437,8 +437,9 @@ export function FriendProfile({ userId }: { userId: string }) {
         return (
           <div className="card friend-gym" id="friend-gym">
             <h3>{fg?.name || `Gym von ${name}`}</h3>
-            <p className="muted small">{tier.name} · {machines} {machines === 1 ? 'Gerät' : 'Geräte'}{fg && fg.people.length ? ` · ${fg.people.length} trainieren gerade` : ''}</p>
-            {fg ? <GymRoom gym={fg} tier={tier} /> : <p className="muted small">{name} hat das eigene Gym noch nicht eingerichtet.</p>}
+            <p className="muted small">{tier.name} · {machines} {machines === 1 ? 'Gerät' : 'Geräte'}{fg && fg.people.length ? ` · ${fg.people.length} im Gym` : ''}</p>
+            {fg ? <GymRoom gym={fg} tier={tier} meName={name} /> : <p className="muted small">{name} hat das eigene Gym noch nicht eingerichtet.</p>}
+            {fg && tier.empore && <><h4 className="small">2. Etage</h4><GymRoom gym={fg} tier={tier} floor={1} meName={name} id="friend-gym-2" /></>}
           </div>
         );
       })()}

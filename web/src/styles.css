@@ -2308,3 +2308,33 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .bodygraph-link .level-scale li { text-decoration: none; }
 .bodygraph-link { text-decoration: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Gym: Klötzchen-Figuren laufen herum */
+.gym-walker { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none;
+  transition-property: left, bottom; transition-timing-function: linear; }
+.gym-walker-name { font-size: 0.56rem; font-weight: 800; color: #fff; background: rgba(0,0,0,0.55); border-radius: 6px; padding: 0 5px; margin-top: 1px; white-space: nowrap; order: 3; }
+.gym-say { position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); background: #fff; color: #1b1d21; font-size: 0.6rem; font-weight: 700;
+  padding: 3px 7px; border-radius: 9px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.3); animation: say-pop 0.25s ease-out; z-index: 2; }
+.gym-say::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -4px; border: 4px solid transparent; border-top-color: #fff; }
+@keyframes say-pop { from { transform: translateX(-50%) scale(0.6); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+.block-fig { display: block; overflow: visible; }
+.block-fig .fig-leg, .block-fig .fig-arm { transform-box: fill-box; }
+.block-fig .fig-leg { transform-origin: 50% 0; }
+.block-fig .fig-arm { transform-origin: 50% 8%; }
+.block-fig .fig-db { display: none; }
+.block-fig.fig-walk .fig-leg-l, .block-fig.fig-walk .fig-arm-r { animation: fig-swing 0.5s ease-in-out infinite alternate; }
+.block-fig.fig-walk .fig-leg-r, .block-fig.fig-walk .fig-arm-l { animation: fig-swing 0.5s ease-in-out infinite alternate-reverse; }
+.block-fig.fig-walk { animation: fig-bob 0.25s ease-in-out infinite alternate; }
+.block-fig.fig-reps .fig-db { display: inline; }
+.block-fig.fig-reps .fig-arm { animation: fig-curl 1.2s ease-in-out infinite; }
+.block-fig.fig-reps .fig-arm-r { animation-delay: 0.6s; }
+.block-fig.fig-talk .fig-head { animation: fig-nod 0.6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes fig-swing { from { transform: rotate(-18deg); } to { transform: rotate(18deg); } }
+@keyframes fig-bob { from { transform: translateY(0); } to { transform: translateY(-2%); } }
+@keyframes fig-curl { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-125deg); } }
+@keyframes fig-nod { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) { .block-fig, .block-fig * { animation: none !important; } .gym-walker { transition: none !important; } }
+.gym-person .block-fig { flex: none; }
+.gym-selbtns { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; width: 100%; }
+.gym-selbtns input[type="range"] { flex: 1 1 100px; min-width: 80px; }
+.gym-floors { margin-top: 0; }

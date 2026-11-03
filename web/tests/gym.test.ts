@@ -62,12 +62,21 @@ describe('Neues Gym: vom Boden zum Studio', () => {
     expect(DECO_SHOP.some((d) => HANGING.has(d.id))).toBe(false);
     expect(cleanGym({ v: 2, objects: [{ id: 'gym_bag', x: 5, y: 5, level: 0 }] }, new Set(['gym_bag'])).objects).toEqual([]);
   });
-  test('Leute nur an aufgestellten Geräten, je Gerät eine Person', () => {
-    const g = cleanGym({ v: 2, objects: [{ id: 'bench', x: 10, y: 10, level: 0 }, { id: 'gym_plant', x: 50, y: 50, level: 0 }], people: [
-      { who: 'me', id: 'me', on: 'bench' }, { who: 'npc', id: 'p_anna', on: 'bench' }, { who: 'npc', id: 'p_anna', on: 'gym_plant' },
-      { who: 'npc', id: 'p_unbekannt', on: 'bench' }, { who: 'friend', id: 'u1', on: 'dip', name: 'Ben' },
+  test('Leute: nur du und Freunde, frei im Gym, je Person einmal; Etage nur mit 2. Etage', () => {
+    const g = cleanGym({ v: 2, objects: [{ id: 'bench', x: 10, y: 10, level: 0 }], people: [
+      { who: 'me', id: 'me', on: 'bench' }, { who: 'npc', id: 'p_anna', on: 'bench' }, { who: 'me', id: 'me' },
+      { who: 'friend', id: 'u1', name: 'Ben', level: 1 }, { who: 'alien', id: 'x' },
     ] }, new Set(['bench']));
-    expect(g.people).toEqual([{ who: 'me', id: 'me', on: 'bench' }]);
+    expect(g.people).toEqual([{ who: 'me', id: 'me' }, { who: 'friend', id: 'u1', name: 'Ben' }]);
+    const up = cleanGym({ v: 2, build: ['b_size_m', 'b_wall_back', 'b_floor2'], people: [{ who: 'friend', id: 'u1', name: 'Ben', level: 1 }] }, new Set());
+    expect(up.people).toEqual([{ who: 'friend', id: 'u1', name: 'Ben', level: 1 }]);
+  });
+  test('Geräte: Größe 0,6–1,8 und gerade Ansicht', () => {
+    const g = cleanGym({ v: 2, objects: [{ id: 'bench', x: 10, y: 10, level: 0, size: 5, straight: true }, { id: 'pullup', x: 1, y: 1, level: 0, size: 'x' }, { id: 'dip', x: 1, y: 1, level: 0, size: 1.25 }] }, new Set(['bench', 'pullup', 'dip']));
+    expect(g.objects.map((o) => [o.size, o.straight])).toEqual([[1.8, true], [undefined, undefined], [1.25, undefined]]);
+  });
+  test('Neues Objekt landet auf der gewählten Etage', () => {
+    expect(placeNew(emptyGym(), 'bench', 1).objects[0].level).toBe(1);
   });
   test('Daten werden geprüft: Fremdes, Doppeltes, zu viel und 2. Stock ohne Ausbau fallen raus', () => {
     const owned = new Set(['bench', 'pullup']);

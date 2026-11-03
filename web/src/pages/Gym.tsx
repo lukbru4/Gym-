@@ -1,5 +1,5 @@
-// „Mein Gym“: Start mit einem leeren Boden – mit Trainings-Credits baust du Wände, Fenster, Licht, mehr Fläche und einen
-// 2. Stock, kaufst realistische Geräte und Deko und stellst Leute hinein (du, Freunde, weitere Figuren), die dort trainieren.
+// „Mein Gym“: Start mit einem leeren Boden – mit Trainings-Credits baust du Wände, Fenster, Licht, mehr Fläche und eine
+// 2. Etage, kaufst realistische Geräte und Deko und holst dich und deine Freunde als Figuren ins Gym, die dort herumlaufen.
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
@@ -7,6 +7,7 @@ import { Loading } from '../components/Bits';
 import { ask, notify } from '../components/Dialog';
 import { DecoArt } from '../components/DecoArt';
 import { GymRoom, lookOf, nameOf } from '../components/GymRoom';
+import { BlockFigure } from '../components/GymPeople';
 import { MachineArt, machineHeight } from '../components/MachineArt';
 import { ZoomPan } from '../components/ZoomPan';
 import { setCosmetics, useCosmetics } from '../lib/cosmetics';
@@ -15,7 +16,7 @@ import { addGymLog } from '../lib/activity';
 import { todayISO } from '../lib/stats';
 import {
   addLocalBuy, BUILD_ITEMS, canBuild, cleanGym, DECO_BY_ID, DECO_SHOP, firstNameOf, GYM_ITEMS, gymNameIdeas, hitsFrom, loadGymLocal,
-  localBuys, localSpent, MACHINE_PRICE, machineShopId, MAX_NAME, migrateGym, NPCS, ownedFrom, placeNew, roomFor,
+  localBuys, localSpent, MACHINE_PRICE, machineShopId, MAX_NAME, migrateGym, ownedFrom, placeNew, roomFor, SIZE_MAX, SIZE_MIN,
   saveGymLocal, seenCount, VIEW_NAMES, type BuildItem, type FloorStyle, type GymPerson, type GymRot, type GymState, type WallStyle,
 } from '../lib/gym';
 import { isOffensive } from '../lib/moderation';
@@ -37,7 +38,8 @@ export function Gym() {
   const [gym, setGym] = useState<GymState | null>(null);
   const [edit, setEdit] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
-  const [look, setLook] = useState<{ id: string; rot: GymRot } | null>(null);
+  const [look, setLook] = useState<{ id: string; rot: GymRot; straight?: boolean } | null>(null);
+  const [floorSel, setFloor] = useState<0 | 1>(0);
   const [busy, setBusy] = useState('');
   const [tab, setTab] = useState<Tab>('bauen');
   const [tick, setTick] = useState(0); // lokale Käufe neu lesen
@@ -100,11 +102,12 @@ export function Gym() {
   const ownedDeco = [...DECO_BY_ID.values()].filter((d) => owned.has(d.id) && !['gym_bag', 'gym_lamp', 'gym_rings'].includes(d.id));
   const storage = [...ownedMachines.map((m) => m.id), ...ownedDeco.map((d) => d.id)].filter((id) => !placed.has(id));
   const full = gym.objects.length >= room.max;
+  const floor: 0 | 1 = room.empore ? floorSel : 0;
   const ideas = gymNameIdeas(ideaSeed, { firstName: firstNameOf(displayName(api, user)), focus, tier: room.id }, isOffensive);
 
   const put = (id: string, base: GymState = gym) => {
     if (base.objects.length >= roomFor(base.build).max) { void notify(`In dein Gym passen gerade höchstens ${roomFor(base.build).max} Dinge. Räum etwas ins Lager oder bau mehr Fläche.`, { title: 'Kein Platz mehr' }); return base; }
-    return placeNew(base, id);
+    return placeNew(base, id, floor);
   };
   /** Kaufen (Konto: Server prüft das Guthaben; ohne Konto: Kaufbuch auf dem Gerät) – danach optional gleich verwenden */
   const buy = async (id: string, name: string, price: number, use?: (g: GymState) => GymState) => {
@@ -140,21 +143,22 @@ export function Gym() {
     ...g, build: g.build.includes(b.id) ? g.build : [...g.build, b.id],
     wall: WALL_OF[b.id] ?? g.wall, floor: FLOOR_OF[b.id] ?? g.floor,
   }));
-  const setPerson = (who: GymPerson['who'], id: string, name: string | undefined, on: string) => {
-    const rest = gym.people.filter((p) => !(p.who === who && p.id === id) && p.on !== on);
-    void save({ ...gym, people: on ? [...rest, { who, id, on, ...(name ? { name } : {}) }] : rest });
+  /** Person ins Gym holen (auf eine Etage) oder heimschicken (level null) */
+  const setPerson = (who: GymPerson['who'], id: string, name: string | undefined, level: 0 | 1 | null) => {
+    const rest = gym.people.filter((p) => !(p.who === who && p.id === id));
+    if (level !== null && !gym.people.some((p) => p.who === who && p.id === id)) addGymLog(uid, todayISO(), `${who === 'me' ? 'Du bist' : `${name ?? 'Freund'} ist`} ins Gym gekommen`);
+    void save({ ...gym, people: level === null ? rest : [...rest, { who, id, ...(name ? { name } : {}), ...(level ? { level } : {}) }] });
   };
+  const updSel = (patch: Partial<GymState['objects'][number]>) => setGym({ ...gym, objects: gym.objects.map((o) => (o.id === sel ? { ...o, ...patch } : o)) });
   const selObj = sel ? gym.objects.find((o) => o.id === sel) : undefined;
   const nextBuild = BUILD_ITEMS.find((b) => !gym.build.includes(b.id) && canBuild(b, gym.build) && !WALL_OF[b.id] && !FLOOR_OF[b.id]);
-  const placedMachines = gym.objects.filter((o) => GYM_ITEMS.some((m) => m.id === o.id));
-  const people: { who: GymPerson['who']; id: string; name: string; text: string; price?: number }[] = [
-    { who: 'me', id: 'me', name: 'Du', text: 'Du selbst – trainierst in deinem eigenen Gym.' },
+  const people: { who: GymPerson['who']; id: string; name: string; text: string }[] = [
+    { who: 'me', id: 'me', name: 'Du', text: 'Du selbst – läufst durch dein Gym und machst ein paar Sätze.' },
     ...friends.map((f) => ({ who: 'friend' as const, id: f.user_id, name: f.display_name, text: 'Freund – kommt gratis vorbei.' })),
-    ...NPCS.map((n) => ({ who: 'npc' as const, id: n.id, name: n.name, text: n.text, price: n.price })),
   ];
 
   const room2 = (
-    <GymRoom gym={gym} tier={room} edit={edit} selected={sel} onSelect={setSel} onOpen={(id, rot) => setLook({ id, rot: rot as GymRot })}
+    <GymRoom gym={gym} tier={room} floor={floor} edit={edit} selected={sel} onSelect={setSel} onOpen={(id, rot) => setLook({ id, rot: rot as GymRot })}
       onMove={(id, pos) => setGym({ ...gym, objects: gym.objects.map((o) => (o.id === id ? { ...o, ...pos } : o)) })} />
   );
   return (
@@ -189,18 +193,34 @@ export function Gym() {
         </div>
       )}
 
+      {room.empore && (
+        <div className="seg seg-small gym-floors" role="tablist" aria-label="Etage">
+          {(['Erdgeschoss', '2. Etage'] as const).map((l, i) => (
+            <button key={l} type="button" role="tab" aria-selected={floor === i} className={`seg-tab${floor === i ? ' active' : ''}`} id={`gym-floor-${i}`} onClick={() => { setFloor(i as 0 | 1); setSel(null); }}>
+              {i ? '⬆️ ' : '⬇️ '}{l} <small>({gym.objects.filter((o) => o.level === i).length})</small>
+            </button>
+          ))}
+        </div>
+      )}
       {edit ? room2 : <ZoomPan id="gym-zoom" label="Gym">{room2}</ZoomPan>}
       {!edit && nextBuild && <p className="small gym-next" id="gym-next">Nächster Bau-Schritt: <strong>{nextBuild.name}</strong> für {fmt(nextBuild.price, 0)} Credits</p>}
 
       {edit && (
         <>
-          <p className="muted small">Zieh Geräte und Deko mit dem Finger an ihren Platz{room.empore ? ' – auch hoch in den 2. Stock' : ''}. Antippen wählt aus.</p>
+          <p className="muted small">Zieh Geräte und Deko mit dem Finger an ihren Platz – nach hinten an die Wand oder nach vorne. Antippen wählt aus, dann drehen, gerade/3D und größer oder kleiner machen.{room.empore ? ' Neue Dinge landen auf der Etage, die gerade offen ist.' : ''}</p>
           {selObj && (
             <div className="card gym-selbar" id="gym-selbar">
               <strong>{nameOf(selObj.id)}</strong>
-              <span className="muted small" id="gym-view">Ansicht: {VIEW_NAMES[selObj.rot ?? 0]}</span>
-              <button type="button" className="btn small-btn" id="gym-rotate" onClick={() => setGym({ ...gym, objects: gym.objects.map((o) => (o.id === sel ? { ...o, rot: (((o.rot ?? 0) + 1) % 4) as GymRot } : o)) })}>⟳ Drehen</button>
-              <button type="button" className="btn small-btn" id="gym-store" onClick={() => { setGym({ ...gym, objects: gym.objects.filter((o) => o.id !== sel), people: gym.people.filter((p) => p.on !== sel) }); setSel(null); }}>Ins Lager</button>
+              <span className="muted small" id="gym-view">Ansicht: {VIEW_NAMES[selObj.rot ?? 0]}{selObj.straight ? ' · gerade' : ' · 3D'} · Größe {Math.round((selObj.size ?? 1) * 100)} %</span>
+              <div className="gym-selbtns">
+                <button type="button" className="btn small-btn" id="gym-rotate" onClick={() => updSel({ rot: (((selObj.rot ?? 0) + 1) % 4) as GymRot })}>⟳ Drehen</button>
+                <button type="button" className={`btn small-btn${selObj.straight ? ' primary' : ''}`} id="gym-straight" aria-pressed={!!selObj.straight} onClick={() => updSel({ straight: !selObj.straight || undefined })}>{selObj.straight ? '▭ Gerade' : '🧊 3D'}</button>
+                <button type="button" className="btn small-btn" id="gym-smaller" aria-label="Kleiner" disabled={(selObj.size ?? 1) <= SIZE_MIN} onClick={() => updSel({ size: Math.max(SIZE_MIN, Math.round(((selObj.size ?? 1) - 0.1) * 10) / 10) })}>−</button>
+                <input type="range" id="gym-size" aria-label="Größe" min={SIZE_MIN * 100} max={SIZE_MAX * 100} step={10} value={Math.round((selObj.size ?? 1) * 100)} onChange={(e) => updSel({ size: Number(e.target.value) / 100 })} />
+                <button type="button" className="btn small-btn" id="gym-bigger" aria-label="Größer" disabled={(selObj.size ?? 1) >= SIZE_MAX} onClick={() => updSel({ size: Math.min(SIZE_MAX, Math.round(((selObj.size ?? 1) + 0.1) * 10) / 10) })}>+</button>
+                {room.empore && <button type="button" className="btn small-btn" id="gym-move-floor" onClick={() => { updSel({ level: selObj.level ? 0 : 1 }); setSel(null); }}>{selObj.level ? '⬇️ Ins Erdgeschoss' : '⬆️ In die 2. Etage'}</button>}
+                <button type="button" className="btn small-btn" id="gym-store" onClick={() => { setGym({ ...gym, objects: gym.objects.filter((o) => o.id !== sel) }); setSel(null); }}>Ins Lager</button>
+              </div>
             </div>
           )}
           <h3>Lager <span className="muted small">({gym.objects.length} / {room.max} aufgestellt)</span></h3>
@@ -273,31 +293,29 @@ export function Gym() {
 
       {tab === 'leute' && (
         <div id="gym-people">
-          <p className="muted small">Stell Leute an ein aufgestelltes Gerät – dort trainieren sie die passende Übung.{!api.social && ' Freunde gibt es mit Konto.'}</p>
-          {placedMachines.length === 0 && <p className="notice small">Stell zuerst ein Gerät in dein Gym (Reiter „Geräte“).</p>}
+          <p className="muted small">Hol dich und deine Freunde ins Gym – als Figuren laufen sie herum, machen ein paar Sätze mit Kurzhanteln und reden.{!api.social && ' Freunde gibt es mit Konto.'}</p>
           <ul className="gym-people">
             {people.map((p) => {
               const key = `${p.who}:${p.id}`;
               const cur = gym.people.find((x) => x.who === p.who && x.id === p.id);
-              const need = p.who === 'npc' && !owned.has(p.id);
-              const look = lookOf({ who: p.who, id: p.id, on: '' });
+              const look = lookOf({ who: p.who, id: p.id });
               return (
                 <li key={key} className="card gym-person" data-person-row={key}>
-                  <span className="gym-person-dot" style={{ background: look.shirt, borderColor: look.skin }} aria-hidden="true" />
+                  <BlockFigure look={look} height={46} />
                   <div><strong>{p.name}</strong><small className="muted">{p.text}</small></div>
-                  {need ? (
-                    <button type="button" className="btn small-btn primary" data-buy={p.id} disabled={busy !== ''} onClick={() => void buy(p.id, p.name, p.price!)}>{fmt(p.price!, 0)} 🪙</button>
-                  ) : (
-                    <select aria-label={`${p.name}: an welchem Gerät?`} data-assign={key} value={cur?.on ?? ''} disabled={!placedMachines.length}
-                      onChange={(e) => setPerson(p.who, p.id, p.who === 'friend' ? p.name : undefined, e.target.value)}>
-                      <option value="">– nicht im Gym –</option>
-                      {placedMachines.map((o) => <option key={o.id} value={o.id}>{nameOf(o.id)}{gym.people.some((x) => x.on === o.id && !(x.who === p.who && x.id === p.id)) ? ' (belegt)' : ''}</option>)}
+                  {room.empore ? (
+                    <select aria-label={`${p.name}: wo?`} data-assign={key} value={cur ? String(cur.level ?? 0) : ''}
+                      onChange={(e) => setPerson(p.who, p.id, p.who === 'friend' ? p.name : undefined, e.target.value === '' ? null : (Number(e.target.value) as 0 | 1))}>
+                      <option value="">– nicht im Gym –</option><option value="0">Erdgeschoss</option><option value="1">2. Etage</option>
                     </select>
+                  ) : (
+                    <button type="button" className={`btn small-btn${cur ? '' : ' primary'}`} data-assign={key} onClick={() => setPerson(p.who, p.id, p.who === 'friend' ? p.name : undefined, cur ? null : 0)}>{cur ? 'Heimschicken' : 'Ins Gym holen'}</button>
                   )}
                 </li>
               );
             })}
           </ul>
+          {friends.length === 0 && api.social && <p className="muted small">Noch keine Freunde? Lade sie unter „Freunde“ ein – dann kannst du sie hier ins Gym holen.</p>}
         </div>
       )}
 
@@ -318,17 +336,17 @@ export function Gym() {
         </div>
       )}
 
-      {look && <LookDialog id={look.id} rot={look.rot} onRot={(rot) => setLook({ ...look, rot })} onClose={() => setLook(null)} />}
+      {look && <LookDialog id={look.id} rot={look.rot} straight={!!look.straight} onRot={(rot) => setLook({ ...look, rot })} onStraight={(v) => setLook({ ...look, straight: v })} onClose={() => setLook(null)} />}
       {help && (
         <div className="dialog-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setHelp(false); }}>
           <div className="dialog gym-help" id="gym-help-dialog" role="dialog" aria-modal="true" aria-label="So geht dein Gym">
             <h3>So geht dein Gym</h3>
             <ol className="small">
               <li><strong>Credits verdienen:</strong> fürs Trainieren, für Rekorde und Aufgaben.</li>
-              <li><strong>Bauen:</strong> Du startest mit einem leeren Boden. Kauf zuerst die Rückwand, dann Seitenwände, Fenster, Spiegel, Licht, einen schöneren Boden, mehr Fläche und am Ende einen 2. Stock.</li>
+              <li><strong>Bauen:</strong> Du startest mit einem leeren Boden. Kauf zuerst die Rückwand, dann Seitenwände, Fenster, Spiegel, Licht, einen schöneren Boden, mehr Fläche und am Ende eine 2. Etage (eigener Raum, oben über „2. Etage“ umschalten).</li>
               <li><strong>Geräte:</strong> Alle Geräte kaufst du mit Credits – je seltener, desto teurer ({fmt(MACHINE_PRICE['gewöhnlich'], 0)} bis {fmt(MACHINE_PRICE['legendär'], 0)} Credits).</li>
-              <li><strong>Leute:</strong> Stell dich selbst, Freunde oder weitere Trainierende an ein Gerät – sie trainieren dort.</li>
-              <li><strong>Einrichten:</strong> Verschieben, drehen, ins Lager räumen und deinem Gym einen Namen geben.</li>
+              <li><strong>Leute:</strong> Hol dich selbst und deine Freunde ins Gym – sie laufen herum, machen Sätze und reden.</li>
+              <li><strong>Einrichten:</strong> Verschieben (auch ganz nach hinten), drehen, gerade oder 3D, größer/kleiner, ins Lager räumen und deinem Gym einen Namen geben.</li>
             </ol>
             <p className="muted small">Deine Freunde sehen dein Gym in deinem Profil.</p>
             <button type="button" className="btn primary block" id="gym-help-close" onClick={() => setHelp(false)}>Verstanden</button>
@@ -340,7 +358,7 @@ export function Gym() {
 }
 
 /** Großansicht eines Geräts (oder Deko) – von allen vier Seiten anschauen */
-function LookDialog({ id, rot, onRot, onClose }: { id: string; rot: GymRot; onRot: (r: GymRot) => void; onClose: () => void }) {
+function LookDialog({ id, rot, straight, onRot, onStraight, onClose }: { id: string; rot: GymRot; straight: boolean; onRot: (r: GymRot) => void; onStraight: (v: boolean) => void; onClose: () => void }) {
   const m = GYM_ITEMS.find((i) => i.id === id), d = DECO_BY_ID.get(id);
   const h = m ? machineHeight(m.pattern) : d?.h ?? 1;
   const rarity = m?.rarity ?? (d?.chest ? 'legendär' : 'gewöhnlich');
@@ -350,7 +368,7 @@ function LookDialog({ id, rot, onRot, onClose }: { id: string; rot: GymRot; onRo
         <p className={`rarity r-${rarity}`}>{m ? `${RARITY_LABEL[rarity]} · ${fmt(MACHINE_PRICE[m.rarity], 0)} Credits` : d?.chest ? 'Exklusiv aus der Kiste' : 'Deko'}</p>
         <h3>{nameOf(id)}</h3>
         <div className="gym-look-art">
-          {m ? <MachineArt pattern={m.pattern} view={rot} height={220} />
+          {m ? <MachineArt pattern={m.pattern} view={rot} height={220} straight={straight} />
             : d ? <div style={{ transform: ['', 'scaleX(0.6)', 'scaleX(-1)', 'scaleX(-0.6)'][rot] }}><DecoArt item={d} height={200} /></div> : null}
         </div>
         <p className="muted small" id="gym-look-info">Ansicht {VIEW_NAMES[rot]} · ca. {fmt(h, 1)} m hoch</p>
@@ -359,6 +377,10 @@ function LookDialog({ id, rot, onRot, onClose }: { id: string; rot: GymRot; onRo
             <button key={l} type="button" className={`seg-tab${rot === i ? ' active' : ''}`} aria-pressed={rot === i} data-view={i} onClick={() => onRot(i as GymRot)}>{l}</button>
           ))}
         </div>
+        {m && <div className="seg seg-small" role="group" aria-label="Darstellung">
+          <button type="button" className={`seg-tab${!straight ? ' active' : ''}`} aria-pressed={!straight} id="gym-look-3d" onClick={() => onStraight(false)}>🧊 3D</button>
+          <button type="button" className={`seg-tab${straight ? ' active' : ''}`} aria-pressed={straight} id="gym-look-straight" onClick={() => onStraight(true)}>▭ Gerade</button>
+        </div>}
         <button type="button" className="btn block" id="gym-look-close" onClick={onClose}>Schließen</button>
       </div>
     </div>
@@ -377,7 +399,7 @@ export function GymCard({ balance }: { balance: number }) {
   return (
     <a className="card gym-mini" id="gym-mini" href="#/gym">
       <div className="block-head"><h3>{raw?.name || 'Mein Gym'}</h3><span className="muted small">{fmt(bal, 0)} Credits</span></div>
-      <span className="muted small">{next ? `Nächster Bau-Schritt: ${next.name} (${fmt(next.price, 0)} Credits)` : 'Fertig gebaut – jetzt Geräte und Leute dazu!'}{npcCount ? ` · ${npcCount} ${npcCount === 1 ? 'Person trainiert' : 'Leute trainieren'} gerade` : ''}</span>
+      <span className="muted small">{next ? `Nächster Bau-Schritt: ${next.name} (${fmt(next.price, 0)} Credits)` : 'Fertig gebaut – jetzt Geräte und Leute dazu!'}{npcCount ? ` · ${npcCount} ${npcCount === 1 ? 'Person ist' : 'Leute sind'} gerade im Gym` : ''}</span>
     </a>
   );
 }
