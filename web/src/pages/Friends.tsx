@@ -2,6 +2,7 @@
 // Profil eines Freundes, Feed der Freunde (auf Home) und Einladungslinks (#/freunde/add/CODE).
 import { cleanGym, GYM_ITEMS, migrateGym, roomFor } from '../lib/gym';
 import { GymRoom } from '../components/GymRoom';
+import { FriendPhotos } from '../components/Progress';
 import { TitleBadge, titleFor } from '../components/TitleBadge';
 import { FirstTip } from '../components/FirstTip';
 import { useLive } from '../lib/live';
@@ -429,6 +430,7 @@ export function FriendProfile({ userId }: { userId: string }) {
       <div className="card">
         <BodyGraph levels={levels} skin={eq.skin ?? null} />
       </div>
+      <FriendPhotos userId={userId} name={name} />
       {(() => {
         // Freund hat sein Gym evtl. noch nicht im neuen Format gespeichert: wie beim Umstieg anzeigen
         const fg = d.profile.gym ? cleanGym(migrateGym(d.profile.gym, true, d.sets.filter((x) => !x.is_warmup).length), new Set()) : null;

@@ -188,6 +188,7 @@ export function Account({ section }: { section?: string }) {
     setBusy(true);
     try {
       await api.social?.removeAvatar().catch(() => {}); // Profilbild mitlöschen
+      await api.progress.deleteAllPhotos().catch(() => {}); // Fortschritts-Fotos mitlöschen
       await api.deleteAccount!();
       clearDraft();
     } catch (err) {

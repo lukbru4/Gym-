@@ -1,10 +1,16 @@
 // Monatskalender im Profil: Trainingstage sind markiert und führen zum Training.
 import { useState } from 'react';
+import { useApp } from '../app/context';
+import { useAsync } from '../app/useAsync';
 import { fmtDate } from '../lib/format';
 import { todayISO } from '../lib/stats';
 import type { Workout } from '../lib/types';
 
 export function Calendar({ workouts }: { workouts: Workout[] }) {
+  const { api, dataVersion } = useApp();
+  // Tage mit Fortschritts-Foto bekommen ein 📷
+  const photos = useAsync(() => api.progress.listPhotos(), [api, dataVersion]);
+  const photoDays = new Set(photos.status === 'ok' ? photos.data.map((p) => p.date) : []);
   const [month, setMonth] = useState(todayISO().slice(0, 7));
   const [y, m] = month.split('-').map(Number);
   const first = new Date(Date.UTC(y, m - 1, 1));
@@ -35,9 +41,13 @@ export function Calendar({ workouts }: { workouts: Workout[] }) {
           const d = i + 1;
           const iso = `${month}-${String(d).padStart(2, '0')}`;
           const id = byDate.get(iso);
-          const cls = `cal-day${id ? ' trained' : ''}${iso === today ? ' today' : ''}`;
+          const photo = photoDays.has(iso);
+          const cls = `cal-day${id ? ' trained' : ''}${iso === today ? ' today' : ''}${photo ? ' photo' : ''}`;
+          const cam = photo ? <span className="cal-photo" aria-label="Fortschritts-Foto">📷</span> : null;
           return id ? (
-            <a key={iso} className={cls} href={`#/training/${id}`} aria-label={`${fmtDate(iso)}: Training`}>{d}</a>
+            <a key={iso} className={cls} href={`#/training/${id}`} aria-label={`${fmtDate(iso)}: Training${photo ? ', Foto' : ''}`}>{d}{cam}</a>
+          ) : photo ? (
+            <a key={iso} className={cls} href="#/koerper" aria-label={`${fmtDate(iso)}: Fortschritts-Foto`}>{d}{cam}</a>
           ) : (
             <span key={iso} className={cls}>{d}</span>
           );

@@ -94,6 +94,7 @@ export async function migrateToCloud(
     onProgress(`Trainings: ${++done} von ${workouts.length}`);
   }
   for (const b of data.body_weights || []) await api.saveBodyWeight(b.date, b.weight_kg);
+  for (const m of data.body_measures || []) await api.progress.saveMeasure(m.date, m);
   for (const t of data.templates || []) {
     const exercisesOut: TemplateExercise[] = [];
     for (const e of t.exercises) {

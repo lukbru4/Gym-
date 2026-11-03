@@ -2,6 +2,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { TERMS_VERSION } from '../lib/legal';
 import { publicUrl } from '../lib/platform';
+import { cloudProgress } from './progress';
 import type { BodyWeight, Exercise, Template, User, Workout, WorkoutSet } from '../lib/types';
 import type { Backend } from './backend';
 import { createSocial } from './social';
@@ -58,6 +59,7 @@ function backend(supabase: SupabaseClient): Backend {
   return {
     mode: 'cloud',
     social: createSocial(supabase),
+    progress: cloudProgress(supabase),
     getUser,
     signIn: async (email, password) => check<unknown>(await supabase.auth.signInWithPassword({ email, password })),
     signUp: async (email, password) =>

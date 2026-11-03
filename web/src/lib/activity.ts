@@ -41,7 +41,12 @@ export function activities(i: ActivityInput): Activity[] {
   }
   for (const [d, ml] of Object.entries(i.water ?? {})) if (inR(d) && ml > 0) out.push({ date: d, icon: '💧', text: `${fmt(ml / 1000, 2)} l Wasser getrunken`, kind: 'water' });
   for (const w of i.weights ?? []) if (inR(w.date)) out.push({ date: w.date, icon: '⚖️', text: `Gewicht eingetragen: ${fmt(w.weight_kg, 1)} kg`, kind: 'weight' });
-  for (const g of i.gymLog ?? []) if (inR(g.date)) out.push({ date: g.date, icon: '🏗️', text: g.text, kind: 'gym' });
+  for (const g of i.gymLog ?? []) {
+    if (!inR(g.date)) continue;
+    // Einträge mit eigenem Symbol vorne (📷 Foto, 📏 Maße), sonst Gym-Ausbau
+    const m = g.text.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
+    out.push({ date: g.date, icon: m ? m[1] : '🏗️', text: m ? m[2] : g.text, kind: 'gym' });
+  }
   const order: Activity['kind'][] = ['workout', 'pr', 'gym', 'weight', 'supp', 'water'];
   out.sort((a, b) => (a.date === b.date ? order.indexOf(a.kind) - order.indexOf(b.kind) : a.date < b.date ? 1 : -1));
   // Bestwerte des Zeitraums ganz oben (ohne eigenes Datum)

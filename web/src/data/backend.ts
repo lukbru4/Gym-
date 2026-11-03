@@ -1,5 +1,7 @@
 // Gemeinsame Schnittstelle für den lokalen Speicher (Browser) und die Cloud (Supabase).
 import type { Social } from './social';
+import type { Progress } from './progress';
+import type { Measure } from '../lib/measures';
 import type { Side, BodyWeight, Exercise, ExerciseType, ISODate, MuscleId, Template, TemplateExercise, User, Workout, WorkoutSet } from '../lib/types';
 
 export interface SetInput {
@@ -52,6 +54,8 @@ export interface Backend {
 
   // nur Cloud
   social?: Social;
+  /** Körpermaße und Fortschritts-Fotos */
+  progress: Progress;
   deleteAccount?(): Promise<void>;
   serverCredits?(): Promise<number>;
   // nur lokal
@@ -70,4 +74,6 @@ export interface LocalData {
   sets: (WorkoutSet & { id: number; position: number })[];
   body_weights: BodyWeight[];
   templates: Template[];
+  /** Körpermaße (seit v141, fehlt in älteren Backups) */
+  body_measures?: Measure[];
 }

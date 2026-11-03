@@ -4,6 +4,7 @@ import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
 import { useAsync } from '../app/useAsync';
 import { BodyGraph, previewLevels } from '../components/BodyGraph';
+import { MeasuresSection, PhotosSection } from '../components/Progress';
 import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ChartView } from '../components/ChartView';
 import { Radar } from '../components/Radar';
@@ -229,6 +230,8 @@ export function Body() {
       ) : (
         <p className="muted">Noch keine Einträge.</p>
       )}
+      <MeasuresSection />
+      <PhotosSection weights={list} />
     </>
   );
 }

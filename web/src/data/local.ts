@@ -4,6 +4,7 @@ import { CATALOG, RENAMED } from '../lib/exerciseCatalog';
 import { DEFAULT_MUSCLES } from '../lib/muscles';
 import type { Exercise, ExerciseType, Template, User } from '../lib/types';
 import type { Backend, LocalData } from './backend';
+import { localProgress } from './progress';
 
 export const STORAGE_KEY = 'gym-tracker-data';
 const VERSION = 5;
@@ -95,6 +96,7 @@ export function create(storage: Storage = globalThis.localStorage): Backend {
 
   return {
     mode: 'local',
+    progress: localProgress(() => data.body_measures ?? [], (list) => { data.body_measures = list; persist(); }, newId),
 
     // Auth: lokal gibt es genau einen Nutzer, ohne Login
     getUser: async () => LOCAL_USER,

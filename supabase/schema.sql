@@ -3522,7 +3522,133 @@ revoke all on function public.set_my_gym(jsonb) from public, anon;
 grant execute on function public.set_my_gym(jsonb) to authenticated;
 
 -- ===========================================================================
+-- Datenbank-Update 68: Körpermaße (nur für dich) und Fortschritts-Fotos (pro Foto: nur ich oder Freunde)
+-- ===========================================================================
+create table if not exists public.body_measures (
+  id       bigint generated always as identity primary key,
+  user_id  uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  date     date not null default current_date,
+  chest    numeric(5, 1) check (chest between 10 and 300),
+  waist    numeric(5, 1) check (waist between 10 and 300),
+  hips     numeric(5, 1) check (hips between 10 and 300),
+  arm      numeric(5, 1) check (arm between 10 and 300),
+  thigh    numeric(5, 1) check (thigh between 10 and 300),
+  calf     numeric(5, 1) check (calf between 10 and 300),
+  neck     numeric(5, 1) check (neck between 10 and 300),
+  bodyfat  numeric(4, 1) check (bodyfat between 2 and 70),
+  unique (user_id, date)
+);
+alter table public.body_measures enable row level security;
+drop policy if exists "body_measures: nur eigene" on public.body_measures;
+create policy "body_measures: nur eigene" on public.body_measures for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+grant select, insert, update, delete on public.body_measures to authenticated;
+
+create table if not exists public.progress_photos (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  date        date not null default current_date,
+  pose        text not null default 'front' check (pose in ('front', 'side', 'back', 'other')),
+  shared      boolean not null default false,
+  created_at  timestamptz not null default now()
+);
+create index if not exists progress_photos_user on public.progress_photos (user_id, date);
+-- Gemeldete Fotos blendet die App für die meldende Person aus
+create table if not exists public.photo_hidden (
+  photo_id  uuid not null references public.progress_photos (id) on delete cascade,
+  user_id   uuid not null references auth.users (id) on delete cascade,
+  primary key (photo_id, user_id)
+);
+alter table public.progress_photos enable row level security;
+alter table public.photo_hidden enable row level security;
+-- Lesen direkt nur eigene Fotos; Freunde bekommen geteilte Fotos über friend_photos(). Schreiben nur über die Funktionen unten.
+drop policy if exists "progress_photos: sehen" on public.progress_photos;
+create policy "progress_photos: sehen" on public.progress_photos for select to authenticated
+  using (user_id = auth.uid());
+grant select on public.progress_photos to authenticated;
+revoke insert, update, delete on public.progress_photos from authenticated;
+
+-- Darf viewer die Bilddatei <owner>/<foto>.jpg sehen?
+create or replace function public.can_view_photo(p_name text)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.progress_photos p
+    where p.user_id::text = split_part(p_name, '/', 1)
+      and p.id::text || '.jpg' = split_part(p_name, '/', 2)
+      and (p.user_id = auth.uid() or (p.shared and public.can_see(auth.uid(), p.user_id)))
+  )
+$$;
+revoke all on function public.can_view_photo(text) from public, anon;
+grant execute on function public.can_view_photo(text) to authenticated;
+
+create or replace function public.add_progress_photo(p_date date, p_pose text, p_shared boolean)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare new_id uuid;
+begin
+  if auth.uid() is null then raise exception 'Bitte melde dich an.'; end if;
+  if p_pose not in ('front', 'side', 'back', 'other') then raise exception 'Ungültige Pose.'; end if;
+  if p_date is null or p_date > current_date + 1 or p_date < date '2000-01-01' then raise exception 'Ungültiges Datum.'; end if;
+  perform pg_advisory_xact_lock(hashtext('photos:' || auth.uid()::text));
+  if (select count(*) from public.progress_photos where user_id = auth.uid()) >= 300 then
+    raise exception 'Höchstens 300 Fotos – lösch ältere, um neue hinzuzufügen.';
+  end if;
+  insert into public.progress_photos (user_id, date, pose, shared) values (auth.uid(), p_date, p_pose, coalesce(p_shared, false)) returning id into new_id;
+  return new_id;
+end;
+$$;
+create or replace function public.set_photo_shared(p_id uuid, p_shared boolean)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  update public.progress_photos set shared = coalesce(p_shared, false) where id = p_id and user_id = auth.uid();
+  if not found then raise exception 'Foto nicht gefunden.'; end if;
+end;
+$$;
+create or replace function public.delete_progress_photo(p_id uuid)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  delete from public.progress_photos where id = p_id and user_id = auth.uid();
+end;
+$$;
+-- Geteilte Fotos eines Freundes (ohne die, die ich gemeldet habe)
+create or replace function public.friend_photos(p_user uuid)
+returns table (id uuid, date date, pose text, shared boolean) language sql stable security definer set search_path = '' as $$
+  select p.id, p.date, p.pose, p.shared from public.progress_photos p
+  where p.user_id = p_user and p.shared and p_user <> auth.uid() and public.can_see(auth.uid(), p_user)
+    and not exists (select 1 from public.photo_hidden h where h.photo_id = p.id and h.user_id = auth.uid())
+  order by p.date, p.created_at
+$$;
+create or replace function public.report_photo(p_id uuid, p_reason text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare owner uuid;
+begin
+  select user_id into owner from public.progress_photos where id = p_id and shared and public.can_see(auth.uid(), user_id);
+  if owner is null or owner = auth.uid() then raise exception 'Foto nicht gefunden.'; end if;
+  insert into public.reports (reporter, reported, reason)
+    values (auth.uid(), owner, left('Foto ' || p_id::text || ': ' || coalesce(nullif(btrim(p_reason), ''), 'unpassend'), 500));
+  insert into public.photo_hidden (photo_id, user_id) values (p_id, auth.uid()) on conflict do nothing;
+end;
+$$;
+revoke all on function public.add_progress_photo(date, text, boolean), public.set_photo_shared(uuid, boolean), public.delete_progress_photo(uuid),
+  public.friend_photos(uuid), public.report_photo(uuid, text) from public, anon;
+grant execute on function public.add_progress_photo(date, text, boolean), public.set_photo_shared(uuid, boolean), public.delete_progress_photo(uuid),
+  public.friend_photos(uuid), public.report_photo(uuid, text) to authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('progress-photos', 'progress-photos', false, 1048576, array['image/jpeg'])
+on conflict (id) do update set public = false, file_size_limit = 1048576, allowed_mime_types = array['image/jpeg'];
+drop policy if exists "progress-photos: sehen" on storage.objects;
+create policy "progress-photos: sehen" on storage.objects for select to authenticated
+  using (bucket_id = 'progress-photos' and public.can_view_photo(name));
+drop policy if exists "progress-photos: eigenes hochladen" on storage.objects;
+create policy "progress-photos: eigenes hochladen" on storage.objects for insert to authenticated
+  with check (bucket_id = 'progress-photos' and (storage.foldername(name))[1] = auth.uid()::text
+    and exists (select 1 from public.progress_photos p where p.user_id = auth.uid() and p.id::text || '.jpg' = split_part(name, '/', 2)));
+drop policy if exists "progress-photos: eigenes löschen" on storage.objects;
+create policy "progress-photos: eigenes löschen" on storage.objects for delete to authenticated
+  using (bucket_id = 'progress-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 67 $$;
+returns integer language sql immutable set search_path = '' as $$ select 68 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;
