@@ -2263,3 +2263,24 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .gym-person-dot { width: 28px; height: 28px; border-radius: 50%; border: 5px solid; }
 .gym-person-name { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 0.55rem; font-weight: 800; color: #fff; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 8px; white-space: nowrap; pointer-events: none; z-index: 2; }
 .gym-help ol { padding-left: 1.2rem; display: grid; gap: 6px; }
+
+/* Supplements */
+.supp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.supp-check { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.supp-check.on { border-color: #2f9e44; background: color-mix(in srgb, #2f9e44 12%, var(--surface)); }
+.supp-box { flex: none; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--text-secondary); display: grid; place-items: center; font-weight: 900; color: #fff; }
+.supp-check.on .supp-box { background: #2f9e44; border-color: #2f9e44; }
+.supp-text strong { display: block; } .supp-text small { color: var(--text-secondary); font-size: 0.78rem; }
+.supp-check.on .supp-text strong { text-decoration: line-through; opacity: 0.75; }
+.supp-all { margin: 8px 0 0; color: #2f9e44; font-weight: 700; }
+.supp-items { display: grid; gap: 8px; }
+.supp-item { margin: 0; } .supp-item.off { opacity: 0.6; }
+.supp-row { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; }
+.supp-icon { font-size: 1.6rem; } .supp-main small { display: block; font-size: 0.75rem; }
+.supp-week { display: flex; gap: 4px; margin-top: 8px; }
+.supp-week span { flex: 1; text-align: center; font-size: 0.62rem; font-weight: 700; padding: 3px 0; border-radius: 6px; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-secondary); }
+.supp-week span.on { background: #2f9e44; color: #fff; }
+.supp-edit { display: grid; gap: 8px; margin-top: 10px; }
+.supp-edit label { display: grid; gap: 4px; font-size: 0.82rem; font-weight: 700; }
+.supp-custom { display: flex; gap: 8px; margin: 8px 0; } .supp-custom input { flex: 1; min-width: 0; }
+.rem-supps-link { display: grid; gap: 2px; color: inherit; text-decoration: none; }

@@ -63,10 +63,13 @@ export interface Context {
   weekDone: number;
   weekGoal: number;
   pro: boolean;
+  /** Supplements mit Uhrzeit (aus lib/supplements) – schon heute genommene bekommen heute keine Erinnerung */
+  supps?: { id: string; name: string; dose: string; time: string; days: Day[] | null; icon: string; on: boolean }[];
+  suppsTakenToday?: string[];
 }
 const TRAIN_TEXTS = ['Zeit fürs Training 💪', 'Heute ist Trainingstag 🏋️', 'Dein Training wartet 🔥', 'Auf geht’s – kurz ins Gym? 💪'];
 
-/** Was geplant werden soll (reine Funktion, testbar). IDs: 1100+ Training, 1200+ Essen, 1300+ Wasser, 1400 Serie */
+/** Was geplant werden soll (reine Funktion, testbar). IDs: 1100+ Training, 1200+ Essen, 1300+ Wasser, 1400 Serie, 1500+ Supplements */
 export function buildSchedule(s: ReminderSettings, c: Context): Planned[] {
   const out: Planned[] = [];
   if (s.training.on) {
@@ -94,6 +97,16 @@ export function buildSchedule(s: ReminderSettings, c: Context): Planned[] {
     let n = 0;
     for (let h = fh; h <= th && n < 12; h += every, n++) out.push({ id: 1300 + n, title: 'Trink ein Glas Wasser 💧', body: 'Genug trinken hilft Kraft und Konzentration.', daily: { hour: h, minute: fm }, route: '#/essen' });
   }
+  // Supplements: die nächsten 7 Tage einzeln planen (so fallen Tage weg, an denen es nicht dran oder schon abgehakt ist)
+  (c.supps ?? []).filter((x) => x.on).slice(0, 12).forEach((sp, k) => {
+    const [h, m] = hm(sp.time);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(c.now.getFullYear(), c.now.getMonth(), c.now.getDate() + i, h, m);
+      if (d <= c.now || (sp.days && !sp.days.includes(dayOf(d)))) continue;
+      if (i === 0 && c.suppsTakenToday?.includes(sp.id)) continue;
+      out.push({ id: 1500 + k * 7 + i, title: `Heute ${sp.name} nehmen ${sp.icon}`, body: `${sp.dose ? `${sp.dose} · ` : ''}Tippen und in der App abhaken.`, at: d, route: '#/supplements' });
+    }
+  });
   if (s.streak.on && c.weekDone < c.weekGoal) {
     const [h, m] = hm(s.streak.time);
     const sunday = new Date(c.now.getFullYear(), c.now.getMonth(), c.now.getDate() + ((7 - c.now.getDay()) % 7), h, m);
@@ -116,7 +129,7 @@ export async function applyReminders(c: Omit<Context, 'now' | 'week'>, ask = fal
   if (key === lastKey && !ask) return 'ok';
   try {
     const pending = await LocalNotifications.getPending();
-    const ours = pending.notifications.filter((n) => n.id >= 1100 && n.id < 1500).map((n) => ({ id: n.id }));
+    const ours = pending.notifications.filter((n) => n.id >= 1100 && n.id < 1600 && n.id !== 1499).map((n) => ({ id: n.id }));
     if (ours.length) await LocalNotifications.cancel({ notifications: ours });
     if (!list.length) { lastKey = key; return 'ok'; }
     let { display } = await LocalNotifications.checkPermissions();

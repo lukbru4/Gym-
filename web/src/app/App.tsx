@@ -1,4 +1,6 @@
 import { Gym } from '../pages/Gym';
+import { Supplements } from '../pages/Supplements';
+import { loadSupps, loadTaken, useSuppsTick } from '../lib/supplements';
 import { Welcome } from '../pages/Welcome';
 import { welcomeSeen } from '../lib/onboarding';
 import { useLiveConnection } from '../lib/live';
@@ -81,6 +83,7 @@ const ROUTES: Route[] = [
   [/^#\/mitteilungen$/, () => <Notifications />],
   [/^#\/willkommen$/, () => <Welcome />],
   [/^#\/gym$/, () => <Gym />],
+  [/^#\/supplements$/, () => <Supplements />],
   [/^#\/animationen$/, () => <Animations />],
   [/^#\/animationen\/gross$/, () => <Animations big />],
 ];
@@ -107,10 +110,12 @@ function Shell() {
   // Erinnerungen (nur App fürs Handy): nach jedem neuen Spielstand neu planen – z. B. heute schon trainiert
   const proState = usePro();
   const gameNow = game.status === 'ok' ? game.data : null;
+  const suppTick = useSuppsTick();
   useEffect(() => {
     if (!gameNow) return;
-    void applyReminders({ trainedToday: gameNow.workouts.some((w) => w.date === gameNow.today), weekDone: gameNow.weekDone, weekGoal: gameNow.weekGoal, pro: proState.pro });
-  }, [gameNow, proState.pro]);
+    const uid = user?.id ?? 'local';
+    void applyReminders({ trainedToday: gameNow.workouts.some((w) => w.date === gameNow.today), weekDone: gameNow.weekDone, weekGoal: gameNow.weekGoal, pro: proState.pro, supps: loadSupps(uid), suppsTakenToday: loadTaken(uid)[gameNow.today] ?? [] });
+  }, [gameNow, proState.pro, suppTick]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => void listenReminderTaps(navigate), []);
   // Live: neue Kommentare, Anfeuern, Freundes-Trainings sofort anzeigen
   useLiveConnection(api.social);

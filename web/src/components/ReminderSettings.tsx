@@ -4,9 +4,13 @@ import { applyReminders, DAYS, planWeek, trainingDays, setReminders, testReminde
 import { isNative } from '../lib/platform';
 import { usePro } from '../lib/pro';
 import { useGame } from '../app/gameContext';
+import { useApp } from '../app/context';
+import { loadSupps, loadTaken } from '../lib/supplements';
 
 export function ReminderSettingsCard() {
   const s = useReminders();
+  const { user } = useApp();
+  const uid = user?.id ?? 'local';
   const pro = usePro();
   const gs = useGame();
   const game = gs && gs.status === 'ok' ? gs.data : null;
@@ -15,7 +19,7 @@ export function ReminderSettingsCard() {
   const save = async (next: ReminderSettings) => {
     setReminders(next);
     if (!isNative || !game) return;
-    const r = await applyReminders({ trainedToday: game.workouts.some((w) => w.date === game.today), weekDone: game.weekDone, weekGoal: game.weekGoal, pro: pro.pro }, true);
+    const r = await applyReminders({ trainedToday: game.workouts.some((w) => w.date === game.today), weekDone: game.weekDone, weekGoal: game.weekGoal, pro: pro.pro, supps: loadSupps(uid), suppsTakenToday: loadTaken(uid)[game.today] ?? [] }, true);
     setMsg(r === 'denied' ? 'Mitteilungen sind für Level Up ausgeschaltet. Erlaube sie in den iPhone-Einstellungen → Level Up → Mitteilungen.' : '');
   };
   const days = trainingDays(s, week);
@@ -53,6 +57,7 @@ export function ReminderSettingsCard() {
           <label className="rem-time">Bis<input type="time" value={s.water.to} onChange={(e) => e.target.value && void save({ ...s, water: { ...s.water, to: e.target.value } })} /></label>
         </div>
       </div>
+      <a className="card rem-supps-link" id="rem-supps" href="#/supplements"><strong>💊 Supplements</strong><span className="muted small">Kreatin, Vitamin D & Co.: tägliche Erinnerung und abhaken ›</span></a>
       <div className="card" id="rem-streak">
         <label className="check-row"><input type="checkbox" id="rem-streak-on" checked={s.streak.on} onChange={(e) => toggle('streak', e.target.checked)} /><strong>Serie retten</strong></label>
         <p className="muted small">Sonntags, wenn dein Wochenziel noch nicht erreicht ist.</p>
