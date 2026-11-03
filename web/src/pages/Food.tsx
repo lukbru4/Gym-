@@ -67,7 +67,7 @@ export function Food() {
   const [goalVersion, setGoalVersion] = useState(0);
   const [water, setWater] = useState(() => loadWater(uid, today));
   const [waterStep, setWaterStepState] = useState(getWaterStep);
-  useEffect(() => setWater(loadWater(uid, date)), [uid, date]);
+  useEffect(() => { setWater(loadWater(uid, date)); }, [uid, date]);
   const entries = useAsync(() => (social ? social.foodList(date) : Promise.resolve([] as FoodEntry[])), [social, date, dataVersion]);
   const week = useAsync(
     () => (social ? Promise.all(Array.from({ length: 7 }, (_, i) => addDays(today, i - 6)).map(async (d) => ({ d, kcal: totals(await social.foodList(d)).kcal }))) : Promise.resolve([] as { d: string; kcal: number }[])),

@@ -30,7 +30,7 @@ export function Quiz() {
   const pro = usePro();
   const list = activeQuestions(answers);
   const q: Question | undefined = list[Math.min(step, list.length - 1)];
-  useEffect(() => setFilter(''), [q?.id]);
+  useEffect(() => { setFilter(''); }, [q?.id]);
 
   const store = (next: Answers) => {
     setAnswers(next);

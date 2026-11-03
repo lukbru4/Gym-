@@ -104,7 +104,8 @@ function Shell() {
   // Kopfzeile behält den letzten Stand, während die nächste Seite lädt
   const lastGame = useRef(game.status === 'ok' ? game.data : null);
   if (game.status === 'ok') lastGame.current = game.data;
-  useEffect(() => window.scrollTo(0, 0), [hash]);
+  // in geschweiften Klammern: neuere Browser geben bei scrollTo ein Promise zurück – das darf React nicht als Aufräum-Funktion bekommen
+  useEffect(() => { window.scrollTo(0, 0); }, [hash]);
   // Erinnerungen (nur App fürs Handy): nach jedem neuen Spielstand neu planen – z. B. heute schon trainiert
   const proState = usePro();
   const gameNow = game.status === 'ok' ? game.data : null;
