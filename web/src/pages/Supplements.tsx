@@ -9,6 +9,8 @@ import {
   loadSupps, loadTaken, MAX_SUPPS, newId, PRESETS, saveSupps, streak, today, toggleTaken, useSuppsTick, type Supplement,
 } from '../lib/supplements';
 
+const INVITE_KEY = 'gym-tracker-supps-invite-hidden';
+
 /** Heute fällige Supplements zum Abhaken (Startseite und Supplements-Seite) */
 export function SuppToday({ compact = false }: { compact?: boolean }) {
   const { user } = useApp();
@@ -17,7 +19,16 @@ export function SuppToday({ compact = false }: { compact?: boolean }) {
   const iso = todayISO();
   const list = loadSupps(uid), log = loadTaken(uid);
   const due = today(list, log, iso);
-  if (compact && !list.length) return null;
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem(INVITE_KEY) === '1'; } catch { return false; } });
+  if (compact && !list.length) {
+    if (hidden) return null;
+    return (
+      <div className="card supp-invite" id="supp-invite">
+        <a href="#/supplements"><strong>💊 Supplements</strong><span className="muted small">Tägliche Erinnerung, z. B. „Heute Kreatin nehmen“ – und abhaken.</span><span className="btn small-btn primary">Einrichten</span></a>
+        <button type="button" className="icon-btn" aria-label="Ausblenden" id="supp-invite-close" onClick={() => { try { localStorage.setItem(INVITE_KEY, '1'); } catch { /* nur Komfort */ } setHidden(true); }}>✕</button>
+      </div>
+    );
+  }
   const done = due.filter((s) => s.taken).length;
   return (
     <div className="card supp-today" id={compact ? 'supp-home' : 'supp-today'}>

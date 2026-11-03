@@ -1,11 +1,14 @@
 // Begrüßung oben auf Home: „Guten Abend, Lukas“ plus Fakten zu dieser Woche bzw. diesem Monat.
 import { useState } from 'react';
+import { activities, loadGymLog } from '../lib/activity';
+import { loadWater } from '../lib/nutritionStore';
+import { loadSupps, loadTaken, useSuppsTick } from '../lib/supplements';
 import { useApp } from '../app/context';
 import { displayName } from '../app/profile';
 import { fmt, plural } from '../lib/format';
 import { change, computeRecap, greeting, type Recap, type RecapPeriod } from '../lib/recap';
 import { trainingDaysThisWeek } from '../lib/stats';
-import type { Workout, WorkoutSet } from '../lib/types';
+import type { BodyWeight, Workout, WorkoutSet } from '../lib/types';
 import { useWeekGoal } from '../lib/weekGoal';
 
 const KEY = 'gym-tracker-recap-period';
@@ -83,9 +86,14 @@ function headline(r: Recap): string {
   return `${span} hast du schon einiges geschafft:`;
 }
 
-export function RecapCard({ workouts, sets, today }: { workouts: Workout[]; sets: WorkoutSet[]; today: string }) {
+const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+const dayLabel = (d: string, today: string) => (d === today ? 'Heute' : `${WD[new Date(`${d}T12:00:00`).getDay()]} ${d.slice(8, 10)}.${d.slice(5, 7)}.`);
+
+export function RecapCard({ workouts, sets, today, weights = [] }: { workouts: Workout[]; sets: WorkoutSet[]; today: string; weights?: BodyWeight[] }) {
   const { api, user, exerciseMap } = useApp();
   const [period, setPeriod] = useState(readPeriod);
+  const [allActs, setAllActs] = useState(false);
+  useSuppsTick();
   const choose = (p: RecapPeriod) => {
     setPeriod(p);
     try {
@@ -98,6 +106,18 @@ export function RecapCard({ workouts, sets, today }: { workouts: Workout[]; sets
   const r = computeRecap(workouts, sets, exerciseMap(), today, period, goal);
   const done = trainingDaysThisWeek(workouts, today);
   const name = displayName(api, user);
+  const uid = user?.id ?? 'local';
+  const water: Record<string, number> = {};
+  for (let d = new Date(`${r.from}T12:00:00`); d.toISOString().slice(0, 10) <= today; d.setDate(d.getDate() + 1)) {
+    const iso = d.toISOString().slice(0, 10);
+    const ml = loadWater(uid, iso);
+    if (ml > 0) water[iso] = ml;
+  }
+  const acts = activities({
+    from: r.from, to: today, workouts, sets, exercises: exerciseMap(), prs: r.prs, weights, water,
+    taken: loadTaken(uid), suppNames: new Map(loadSupps(uid).map((s) => [s.id, s.name])), gymLog: loadGymLog(uid),
+  });
+  const shown = allActs ? acts : acts.slice(0, 5);
   return (
     <section className="card recap" id="recap" aria-label="Dein Rückblick">
       <div className="recap-head">
@@ -124,6 +144,21 @@ export function RecapCard({ workouts, sets, today }: { workouts: Workout[]; sets
             </li>
           ))}
         </ul>
+      )}
+      {acts.length > 0 && (
+        <div className="recap-acts" id="recap-acts">
+          <h3>Deine Aktivitäten</h3>
+          <ul>
+            {shown.map((a, i) => (
+              <li key={i} data-act={a.kind}>
+                <span className="act-day">{a.kind === 'pr' ? 'Neu' : dayLabel(a.date, today)}</span>
+                <span aria-hidden="true">{a.icon}</span>
+                <span>{a.text}</span>
+              </li>
+            ))}
+          </ul>
+          {acts.length > 5 && <button type="button" className="link-btn small" id="recap-acts-more" onClick={() => setAllActs(!allActs)}>{allActs ? 'Weniger anzeigen' : `Alle ${acts.length} anzeigen`}</button>}
+        </div>
       )}
     </section>
   );

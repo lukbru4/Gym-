@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
 import { useAsync } from '../app/useAsync';
-import { BodyGraph } from '../components/BodyGraph';
+import { BodyGraph, LevelScale } from '../components/BodyGraph';
 import { CreditsRules, LoadError, Loading, QuestRows, WorkoutList } from '../components/Bits';
 import { ChartView } from '../components/ChartView';
 import { RecapCard } from '../components/Recap';
@@ -113,7 +113,7 @@ export function Home() {
   return (
     <>
       <HomeTabs active="mine" />
-      <RecapCard workouts={g.workouts} sets={g.sets} today={today} />
+      <RecapCard workouts={g.workouts} sets={g.sets} today={today} weights={weights.data} />
       <a className="card title-mini" id="title-mini" href="#/profil"><span>Dein Titel</span><TitleBadge t={titleFor(g.workouts, g.sets, exerciseMap())} /><span className="tile-chev" aria-hidden="true">›</span></a>
       {(() => {
         // Browser: Erinnerung als Hinweis-Karte (in der App fürs Handy kommt sie als Benachrichtigung)
@@ -142,6 +142,7 @@ export function Home() {
       </a>
       <a className="bodygraph-link" href="#/koerper" aria-label="Körpergraph öffnen">
         <BodyGraph levels={levels} />
+        <LevelScale id="home-scale" />
       </a>
       <a className="btn primary block big" href="#/workouts">Workout starten</a>
       <div className="stats-head">

@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
 import { useAsync } from '../app/useAsync';
-import { BodyGraph } from '../components/BodyGraph';
+import { BodyGraph, previewLevels } from '../components/BodyGraph';
 import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ChartView } from '../components/ChartView';
 import { Radar } from '../components/Radar';
@@ -49,6 +49,7 @@ export function Body() {
   const locked = api.mode === 'cloud' && pro.loaded && !pro.pro;
   const weights = useAsync(() => api.listBodyWeights(), [api, dataVersion]);
   const [selected, setSelected] = useState<MuscleId | null>(null);
+  const [preview, setPreview] = useState(false);
   const [date, setDate] = useState(todayISO());
   const [weight, setWeight] = useState('');
   if (game.status === 'loading' || weights.status === 'loading') return <Loading />;
@@ -61,7 +62,7 @@ export function Body() {
   const usedIds = new Set(dated.map((x) => x.exercise_id));
   const unassigned = exercises.filter((e) => e.type === 'strength' && e.user_id && !musclesOf(e).length);
   const list = weights.data;
-  const sel = selected ? levels.get(selected)! : null;
+  const sel = selected ? (preview ? previewLevels() : levels).get(selected) ?? null : null;
 
   const saveWeight = async (e: FormEvent) => {
     e.preventDefault();
@@ -101,7 +102,11 @@ export function Body() {
             <span>Tippe auf einen Muskel</span>
           )}
         </div>
-        <BodyGraph levels={levels} onSelect={setSelected} labels />
+        {preview && <p className="notice small preview-note" id="preview-note">Vorschau: So sehen die Stufen aus – Beispiel, nicht deine Werte.</p>}
+        <BodyGraph levels={preview ? previewLevels() : levels} onSelect={setSelected} labels />
+        <button type="button" className={`btn small-btn${preview ? ' primary' : ''}`} id="preview-toggle" aria-pressed={preview} onClick={() => { setPreview(!preview); setSelected(null); }}>
+          {preview ? '← Meine Werte zeigen' : '🎨 Farben-Vorschau (Gelb bis Lila)'}
+        </button>
         <ul className="legend level-legend" id="level-legend" aria-label="Legende">
           {STRENGTH_LEVELS.map((l) => (
             <li key={l.level}><span className="swatch" style={{ background: `linear-gradient(135deg, ${l.light}, ${l.dark})` }} />{l.name}{l.level > 0 && <small> ({LEVELS[l.level - 1].label})</small>}</li>

@@ -2284,3 +2284,26 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .supp-edit label { display: grid; gap: 4px; font-size: 0.82rem; font-weight: 700; }
 .supp-custom { display: flex; gap: 8px; margin: 8px 0; } .supp-custom input { flex: 1; min-width: 0; }
 .rem-supps-link { display: grid; gap: 2px; color: inherit; text-decoration: none; }
+
+/* Kraft-Farbskala (Beginner Gelb … Ultra Lila) */
+.level-scale { list-style: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 8px 0 0; padding: 0; }
+.level-scale li { display: grid; gap: 3px; font-size: 0.62rem; font-weight: 700; text-align: center; color: #3a3330; }
+.level-scale span { display: block; height: 10px; border-radius: 5px; border: 1px solid rgba(0,0,0,0.12); }
+.bodygraph-link .level-scale { background: #fff; margin: -6px 0 0; padding: 0 10px 10px; border-radius: 0 0 12px 12px; }
+#preview-toggle { display: block; margin: 8px auto; }
+.preview-note { text-align: center; }
+
+.supp-invite { position: relative; }
+.supp-invite a { display: grid; gap: 4px; color: inherit; text-decoration: none; padding-right: 36px; }
+.supp-invite .btn { justify-self: start; margin-top: 4px; }
+.supp-invite .icon-btn { position: absolute; top: 8px; right: 8px; }
+
+/* Rückblick: Deine Aktivitäten */
+.recap-acts { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.recap-acts h3 { margin: 0 0 6px; font-size: 0.95rem; }
+.recap-acts ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.recap-acts li { display: grid; grid-template-columns: 62px 22px 1fr; align-items: baseline; gap: 4px; font-size: 0.85rem; }
+.recap-acts .act-day { color: var(--text-secondary); font-size: 0.75rem; font-weight: 700; }
+.recap-acts .link-btn { background: none; border: 0; padding: 6px 0 0; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
+.bodygraph-link .level-scale li { text-decoration: none; }
+.bodygraph-link { text-decoration: none; }

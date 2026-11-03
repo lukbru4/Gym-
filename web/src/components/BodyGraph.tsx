@@ -1,7 +1,7 @@
 // Körpergraph: Anatomie-Zeichnung (hellgrauer Körper) von vorne und hinten; beanspruchte/trainierte Muskeln sind rot.
 // Die Muskelflächen stammen aus einem MIT-lizenzierten Anatomie-Datensatz (siehe lib/anatomy.ts und THIRD_PARTY.md).
-import { useLayoutEffect, useRef, useState } from 'react';
-import { levelInfo, mixHex, muscleColor } from '../lib/levels';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { levelInfo, mixHex, muscleColor, STRENGTH_LEVELS } from '../lib/levels';
 import { ANATOMY, type AnatomyPart } from '../lib/anatomy';
 import { useCosmetics } from '../lib/cosmetics';
 import { MUSCLE_NAMES, type MuscleLevel } from '../lib/muscles';
@@ -99,9 +99,10 @@ interface FigureProps {
   focus?: Focus;
   labels?: boolean;
   onSelect?: (m: MuscleId) => void;
+  gid: (m: MuscleId) => string;
 }
 
-function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) {
+function Figure({ side, simple, levels, focus, labels, onSelect, gid }: FigureProps) {
   const ref = useRef<SVGGElement>(null);
   const [pos, setPos] = useState<Partial<Record<MuscleId, [number, number]>>>({});
   const data = ANATOMY[side];
@@ -135,16 +136,14 @@ function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) 
         const role = focus?.get(m);
         const title = focus ? `${MUSCLE_NAMES.get(m)}${role === 'p' ? ': Primärer Muskel' : role === 's' ? ': Sekundärer Muskel' : ''}` : `${MUSCLE_NAMES.get(m)}: ${r.level ? levelInfo(r.level).name : 'noch nicht trainiert'}`;
         const cls = focus ? `muscle focus-${role ?? 'off'}` : `muscle lv-${r.level}`;
-        // Kraft-Farbe (Gelb → Orange → Rot → Blau → Lila, innerhalb der Stufe hell → dunkel); untrainiert bleibt weiß
+        // Kraft-Farbe (Gelb → Orange → Rot → Blau → Lila, innerhalb der Stufe hell → dunkel); untrainiert bleibt weiß.
+        // Verlauf liegt im obersten <defs> (eindeutige ID je Körpergraph); dahinter feste Farbe als Ersatz, falls der Verlauf nicht greift (iPhone).
         const col = !focus && r.level > 0 ? muscleColor(r.level, r.gain) : null;
-        const gid = `mc-${side}-${m}`;
-        const paint = col ? { fill: `url(#${gid})`, stroke: mixHex(col, '#000000', 0.35), strokeWidth: 1.2 } : undefined;
-        const grad = col ? <linearGradient id={gid} x1="0.1" y1="0" x2="0.9" y2="1"><stop offset="0" stopColor={mixHex(col, '#ffffff', 0.3)} /><stop offset="1" stopColor={col} /></linearGradient> : null;
+        const paint = col ? { fill: `url(#${gid(m)}) ${col}`, stroke: mixHex(col, '#000000', 0.35), strokeWidth: 1.2 } : undefined;
         const paths = BODY_MAP[m][side]!.map((slug) => (data[slug] ? <g key={slug} data-slug={slug}><PartPaths part={data[slug]} /></g> : null));
         if (!onSelect) {
           return (
-            <g key={m} className={`${cls} static`} data-muscle={m} style={paint}>
-              {grad && <defs>{grad}</defs>}
+            <g key={m} className={`${cls} static`} data-muscle={m} data-level={r.level} style={paint}>
               {paths}
             </g>
           );
@@ -152,7 +151,6 @@ function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) 
         return (
           <g key={m} className={cls} data-muscle={m} data-level={r.level} style={paint} tabIndex={0} role="img" aria-label={title} onClick={() => onSelect(m)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(m)}>
             <title>{title}</title>
-            {grad && <defs>{grad}</defs>}
             {paths}
           </g>
         );
@@ -179,6 +177,12 @@ function Figure({ side, simple, levels, focus, labels, onSelect }: FigureProps) 
 /** skin: Shop-Look; ohne Angabe der eigene ausgerüstete Look */
 export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = false, view = 'both', simple = false, box }: { levels?: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void; skin?: string | null; /** Übungs-/Trainingsansicht: Hauptmuskel (p) und Hilfsmuskel (s) statt Kraft-Stufen */ focus?: Focus; labels?: boolean; /** nur von vorne oder nur von hinten */ view?: 'both' | 'front' | 'back'; simple?: boolean; /** Ausschnitt (x, y, Breite, Höhe) zum Heranzoomen */ box?: [number, number, number, number] }) {
   const own = useCosmetics().equipped.skin;
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const gid = (m: MuscleId) => `mc${uid}-${m}`;
+  const grads = focus ? [] : [...levels.entries()].filter(([, r]) => r.level > 0).map(([m, r]) => {
+    const col = muscleColor(r.level, r.gain);
+    return <linearGradient key={m} id={gid(m)} x1="0.1" y1="0" x2="0.9" y2="1"><stop offset="0" stopColor={mixHex(col, '#ffffff', 0.3)} /><stop offset="1" stopColor={col} /></linearGradient>;
+  });
   return (
     <div className="bodygraph-panel" data-skin={skin === undefined ? own : skin ?? undefined}>
       <svg
@@ -211,10 +215,28 @@ export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = 
           <linearGradient id="mr-white" x1="0.1" y1="0" x2="0.9" y2="1">
             <stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#ece6e1" />
           </linearGradient>
+          {grads}
         </defs>
-        {view !== 'back' && <Figure side="front" simple={simple} levels={levels} focus={focus} labels={labels} onSelect={onSelect} />}
-        {view !== 'front' && <Figure side="back" simple={simple} levels={levels} focus={focus} labels={labels} onSelect={onSelect} />}
+        {view !== 'back' && <Figure side="front" simple={simple} levels={levels} focus={focus} labels={labels} onSelect={onSelect} gid={gid} />}
+        {view !== 'front' && <Figure side="back" simple={simple} levels={levels} focus={focus} labels={labels} onSelect={onSelect} gid={gid} />}
       </svg>
     </div>
   );
+}
+
+/** Farbskala der Kraft-Stufen: Beginner Gelb … Ultra Lila (jeweils hell → dunkel) */
+export function LevelScale({ id }: { id?: string }) {
+  return (
+    <ol className="level-scale" id={id} aria-label="Farben der Kraft-Stufen">
+      {STRENGTH_LEVELS.slice(1).map((l) => (
+        <li key={l.level} data-scale={l.level}><span style={{ background: `linear-gradient(90deg, ${l.light}, ${l.dark})` }} />{l.name}</li>
+      ))}
+    </ol>
+  );
+}
+
+/** Beispielkörper für die Farben-Vorschau: verteilt alle Stufen über die Muskeln (keine echten Daten) */
+export function previewLevels(): Map<MuscleId, MuscleLevel> {
+  const gains = [0.02, 0.1, 0.22, 0.4, 0.75];
+  return new Map(MUSCLE_ORDER.map((m, i) => { const level = (i % 5) + 1; return [m, { level, gain: gains[level - 1], exercises: [] }]; }));
 }

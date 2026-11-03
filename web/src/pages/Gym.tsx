@@ -11,6 +11,8 @@ import { MachineArt, machineHeight } from '../components/MachineArt';
 import { ZoomPan } from '../components/ZoomPan';
 import { setCosmetics, useCosmetics } from '../lib/cosmetics';
 import { fmt } from '../lib/format';
+import { addGymLog } from '../lib/activity';
+import { todayISO } from '../lib/stats';
 import {
   addLocalBuy, BUILD_ITEMS, canBuild, cleanGym, DECO_BY_ID, DECO_SHOP, firstNameOf, GYM_ITEMS, gymNameIdeas, hitsFrom, loadGymLocal,
   localBuys, localSpent, MACHINE_PRICE, machineShopId, MAX_NAME, migrateGym, NPCS, ownedFrom, placeNew, roomFor,
@@ -119,6 +121,7 @@ export function Gym() {
           addLocalBuy(uid, id, price);
           setTick((x) => x + 1);
         }
+        addGymLog(uid, todayISO(), `${name} gekauft`);
       } catch (err) {
         showError(err);
         setBusy('');
@@ -126,7 +129,12 @@ export function Gym() {
       }
       setBusy('');
     }
-    if (use) void save(use(gym));
+    if (use) {
+      const next = use(gym);
+      const verb = next.build.length > gym.build.length ? 'gebaut' : next.objects.length > gym.objects.length ? 'aufgestellt' : next.people.length > gym.people.length ? 'ins Gym geholt' : '';
+      if (verb) addGymLog(uid, todayISO(), `${name} ${verb}`);
+      void save(next);
+    }
   };
   const build = (b: BuildItem) => buy(b.id, b.name, b.price, (g) => ({
     ...g, build: g.build.includes(b.id) ? g.build : [...g.build, b.id],
