@@ -3372,7 +3372,7 @@ begin
     raise exception 'Profil nicht sichtbar';
   end if;
   return jsonb_build_object(
-    'profile', (select jsonb_build_object('id', p.id, 'display_name', p.display_name, 'equipped', p.equipped, 'week_goal', p.week_goal, 'gym', p.gym, 'adventure', p.adventure) from public.profiles p where p.id = p_user),
+    'profile', (select jsonb_build_object('id', p.id, 'display_name', p.display_name, 'equipped', p.equipped, 'week_goal', p.week_goal, 'gym', p.gym) from public.profiles p where p.id = p_user),
     'workouts', coalesce((select jsonb_agg(jsonb_build_object('id', w.id, 'date', w.date)) from public.workouts w where w.user_id = p_user), '[]'::jsonb),
     'sets', coalesce((select jsonb_agg(jsonb_build_object(
               'workout_id', s.workout_id, 'exercise_id', s.exercise_id, 'position', s.position, 'reps', s.reps,
@@ -3388,33 +3388,102 @@ $$;
 -- Version dieses Skripts. Bei JEDER Änderung an dieser Datei erhöhen (und SCHEMA_VERSION in
 -- web/src/data/config.ts genauso) – die App zeigt dem Admin dann „Datenbank-Update nötig“.
 -- ===========================================================================
--- Datenbank-Update 65: Abenteuer – Art und Name des Begleiters (Fortschritt wird aus den Trainings berechnet)
+-- Datenbank-Update 66: Neues Gym – vom Boden zum Studio. Bauteile, Geräte und Leute kauft man mit Credits;
+-- hängende Deko wird nicht mehr verkauft; das Abenteuer (Begleiter) ist entfernt.
 -- ===========================================================================
-alter table public.profiles add column if not exists adventure jsonb;
+alter table public.shop_items drop constraint if exists shop_items_kind_check;
+alter table public.shop_items add constraint shop_items_kind_check check (kind in ('skin', 'scheme', 'accessory', 'title', 'gymdeco', 'gympart', 'gymmachine', 'gymnpc'));
+-- Gym-Bau (Preise müssen zu web/src/lib/gym.ts BUILD_ITEMS, MACHINE_PRICE und NPCS passen)
+insert into public.shop_items (id, kind, name, price) values
+  ('b_wall_back', 'gympart', 'Rückwand', 250),
+  ('b_wall_sides', 'gympart', 'Seitenwände', 300),
+  ('b_style_brick', 'gympart', 'Backstein-Wände', 200),
+  ('b_style_wood', 'gympart', 'Holz-Verkleidung', 200),
+  ('b_style_dark', 'gympart', 'Dunkel modern', 250),
+  ('b_window_1', 'gympart', 'Fenster 1', 80),
+  ('b_window_2', 'gympart', 'Fenster 2', 80),
+  ('b_window_3', 'gympart', 'Fenster 3', 100),
+  ('b_window_4', 'gympart', 'Fenster 4', 100),
+  ('b_mirror', 'gympart', 'Spiegelwand', 200),
+  ('b_lights', 'gympart', 'Deckenstrahler', 150),
+  ('b_floor_rubber', 'gympart', 'Gummimatten-Boden', 150),
+  ('b_floor_wood', 'gympart', 'Holzboden', 200),
+  ('b_size_m', 'gympart', 'Größere Fläche', 500),
+  ('b_size_l', 'gympart', 'Große Halle', 1200),
+  ('b_floor2', 'gympart', '2. Stock', 1500),
+  ('m_bench', 'gymmachine', 'Hantelbank mit Ablage', 150),
+  ('m_pullup', 'gymmachine', 'Klimmzugstange', 150),
+  ('m_dip', 'gymmachine', 'Dip-Barren', 150),
+  ('m_bike', 'gymmachine', 'Fahrradergometer', 150),
+  ('m_run', 'gymmachine', 'Laufband', 150),
+  ('m_erg', 'gymmachine', 'Rudergerät', 150),
+  ('m_legext', 'gymmachine', 'Beinstrecker', 150),
+  ('m_legcurl', 'gymmachine', 'Beinbeuger (liegend)', 150),
+  ('m_pecdeck', 'gymmachine', 'Butterfly-Maschine', 300),
+  ('m_chestpress', 'gymmachine', 'Brustpresse', 300),
+  ('m_pulldown', 'gymmachine', 'Latzug', 300),
+  ('m_seatedrow', 'gymmachine', 'Kabelrudern', 300),
+  ('m_ohp-machine', 'gymmachine', 'Schulterpresse', 300),
+  ('m_legcurl-seated', 'gymmachine', 'Beinbeuger (sitzend)', 300),
+  ('m_preacher', 'gymmachine', 'Scott-Bank', 300),
+  ('m_calf-machine', 'gymmachine', 'Wadenmaschine', 300),
+  ('m_abmachine', 'gymmachine', 'Bauchmaschine', 300),
+  ('m_abductor', 'gymmachine', 'Abduktoren-Maschine', 300),
+  ('m_curl-machine', 'gymmachine', 'Bizepsmaschine', 500),
+  ('m_dipmachine', 'gymmachine', 'Dip-Maschine', 500),
+  ('m_assist-pullup', 'gymmachine', 'Klimmzug-Maschine', 500),
+  ('m_rowmachine', 'gymmachine', 'Rudermaschine', 500),
+  ('m_hipthrust-machine', 'gymmachine', 'Hip-Thrust-Maschine', 500),
+  ('m_hack', 'gymmachine', 'Hackenschmidt', 500),
+  ('m_legpress', 'gymmachine', 'Beinpresse 45°', 500),
+  ('m_triceps', 'gymmachine', 'Kabelturm', 800),
+  ('m_cablefly', 'gymmachine', 'Cable Crossover', 800),
+  ('m_smith', 'gymmachine', 'Smith-Maschine', 800),
+  ('p_anna', 'gymnpc', 'Anna', 200),
+  ('p_max', 'gymnpc', 'Max', 200),
+  ('p_lea', 'gymnpc', 'Lea', 250),
+  ('p_tom', 'gymnpc', 'Tom', 250),
+  ('p_kai', 'gymnpc', 'Trainer Kai', 400),
+  ('p_erna', 'gymnpc', 'Fitte Oma Erna', 300)
+on conflict (id) do update set kind = excluded.kind, name = excluded.name, price = excluded.price;
+-- Hängende Deko (Boxsack, Neonlampe, Turnringe) gibt es nicht mehr zu kaufen
+update public.shop_items set active = false where id in ('gym_bag', 'gym_lamp', 'gym_rings');
 
-create or replace function public.my_adventure()
-returns jsonb language sql stable security definer set search_path = '' as $$
-  select p.adventure from public.profiles p where p.id = auth.uid()
-$$;
-
-create or replace function public.set_my_adventure(p_adv jsonb)
+-- Gym speichern: Name, Aufstellung, gebaute Teile, Wand-/Bodenstil, Leute, Geschenke beim Umstieg
+create or replace function public.set_my_gym(p_gym jsonb)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
   if auth.uid() is null then raise exception 'Bitte melde dich an.'; end if;
-  if p_adv is null or jsonb_typeof(p_adv) <> 'object' or length(p_adv::text) > 500 then raise exception 'Ungültige Daten.'; end if;
-  if coalesce(p_adv->>'species', '') not in ('drache', 'wolf', 'gorilla') then raise exception 'Unbekannter Begleiter.'; end if;
-  if char_length(coalesce(p_adv->>'name', '')) > 16 then raise exception 'Der Name ist zu lang (höchstens 16 Zeichen).'; end if;
-  if public.is_offensive(coalesce(p_adv->>'name', '')) then raise exception 'Bitte wähle einen freundlichen Namen.'; end if;
+  if p_gym is null or jsonb_typeof(p_gym) <> 'object' or length(p_gym::text) > 12000 then raise exception 'Ungültige Gym-Daten.'; end if;
+  if jsonb_typeof(coalesce(p_gym->'objects', '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_gym->'objects', '[]'::jsonb)) > 80 then
+    raise exception 'Zu viele Objekte im Gym.';
+  end if;
+  if jsonb_typeof(coalesce(p_gym->'build', '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_gym->'build', '[]'::jsonb)) > 40
+     or jsonb_typeof(coalesce(p_gym->'people', '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_gym->'people', '[]'::jsonb)) > 20
+     or jsonb_typeof(coalesce(p_gym->'legacy', '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_gym->'legacy', '[]'::jsonb)) > 120 then
+    raise exception 'Ungültige Gym-Daten.';
+  end if;
+  if char_length(coalesce(p_gym->>'name', '')) > 24 then raise exception 'Der Gym-Name ist zu lang (höchstens 24 Zeichen).'; end if;
+  if public.is_offensive(coalesce(p_gym->>'name', '')) then raise exception 'Bitte wähle einen freundlichen Namen.'; end if;
   perform public.my_profile(); -- legt das Profil an, falls es fehlt
-  update public.profiles set adventure = jsonb_build_object('species', p_adv->>'species', 'name', coalesce(p_adv->>'name', ''))
+  update public.profiles set gym = jsonb_build_object(
+      'name', coalesce(p_gym->>'name', ''), 'objects', coalesce(p_gym->'objects', '[]'::jsonb),
+      'build', coalesce(p_gym->'build', '[]'::jsonb), 'people', coalesce(p_gym->'people', '[]'::jsonb),
+      'legacy', coalesce(p_gym->'legacy', '[]'::jsonb),
+      'wall', coalesce(p_gym->>'wall', 'beton'), 'floor', coalesce(p_gym->>'floor', 'fliesen'), 'v', 2)
    where id = auth.uid();
 end;
 $$;
-revoke all on function public.my_adventure(), public.set_my_adventure(jsonb) from public, anon;
-grant execute on function public.my_adventure(), public.set_my_adventure(jsonb) to authenticated;
+revoke all on function public.set_my_gym(jsonb) from public, anon;
+grant execute on function public.set_my_gym(jsonb) to authenticated;
+
+-- Abenteuer entfernt: Funktionen und Spalte weg
+drop function if exists public.my_adventure();
+drop function if exists public.set_my_adventure(jsonb);
+alter table public.profiles drop column if exists adventure;
 
 -- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 65 $$;
+returns integer language sql immutable set search_path = '' as $$ select 66 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

@@ -2241,3 +2241,25 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .title-scale span.on { opacity: 1; outline: 2px solid var(--text); outline-offset: 1px; }
 .title-mini { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; font-weight: 700; padding: 10px 14px; }
 .title-mini .tile-chev { margin-left: auto; }
+
+/* Neues Gym: Bauen, Geräte, Leute, Deko */
+.gym-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.gym-head h2 { margin-bottom: 0; }
+.gym-next { margin: 6px 0 10px; }
+.gym-tabs { margin: 12px 0 10px; }
+.gym-tabs .seg-tab { border: 0; background: none; font: inherit; font-weight: 700; font-size: 0.85rem; padding: 8px 4px; cursor: pointer; color: var(--text-secondary); }
+.gym-tabs .seg-tab.active { background: var(--accent); color: var(--accent-text); }
+.build-card { gap: 4px; padding: 8px 6px; justify-content: flex-start; }
+.build-card strong { font-size: 0.78rem; }
+.build-card small { font-size: 0.62rem; color: var(--text-secondary); line-height: 1.25; flex: 1; }
+.build-card.built { border-color: #2f9e44; }
+.build-card.locked { opacity: 0.55; }
+.build-icon { font-size: 1.4rem; }
+.gym-card-art { border: 0; background: none; padding: 0; width: 100%; cursor: pointer; }
+.gym-people { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.gym-person { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 10px 12px; margin: 0; }
+.gym-person small { display: block; font-size: 0.72rem; }
+.gym-person select { max-width: 46vw; }
+.gym-person-dot { width: 28px; height: 28px; border-radius: 50%; border: 5px solid; }
+.gym-person-name { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 0.55rem; font-weight: 800; color: #fff; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 8px; white-space: nowrap; pointer-events: none; z-index: 2; }
+.gym-help ol { padding-left: 1.2rem; display: grid; gap: 6px; }

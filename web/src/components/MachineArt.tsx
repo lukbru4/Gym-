@@ -1,7 +1,8 @@
 // Gezeichnetes Trainingsgerät ohne Figur (aus den Übungs-Animationen), gezeichnet, sobald es sichtbar ist.
 import { useEffect, useMemo, useRef } from 'react';
 import { PATTERNS } from '../lib/animations';
-import { drawScene, propBounds } from '../lib/drawFigure';
+import { drawScene, propBounds, sceneBounds } from '../lib/drawFigure';
+import type { Look } from '../lib/gym';
 import { project, type V3 } from '../lib/rig';
 import { readColors } from './ExerciseAnim';
 
@@ -11,9 +12,9 @@ export const viewAzimuth = (view: number) => FRONT_AZ + [0, -90, 180, 90][view &
 const ELEV = 16, DIST = 14;
 
 /** Gerät auf einer Fläche: Ausschnitt (in Pixeln bei Maßstab 1 px/m) und Kamera */
-function layout(pattern: string, view: number) {
+function layout(pattern: string, view: number, withFigure = false) {
   const p = PATTERNS[pattern] ?? PATTERNS.bench;
-  const { min, max } = propBounds(p);
+  const { min, max } = withFigure ? sceneBounds(p) : propBounds(p);
   const target: V3 = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
   const cam = { azimuth: viewAzimuth(view), elevation: ELEV, distance: DIST, target, focal: DIST };
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
@@ -33,9 +34,9 @@ export const machineWidth = (pattern: string, view = 0) => { const L = layout(pa
  * - mit pxPerM: maßstabsgetreu (alle Geräte im selben Maßstab, Größe ergibt sich aus dem Gerät)
  * - ohne: füllt die Fläche (height) möglichst gut aus
  */
-export function MachineArt({ pattern, height = 120, className = '', view = 0, pxPerM }: { pattern: string; height?: number; className?: string; view?: number; pxPerM?: number }) {
+export function MachineArt({ pattern, height = 120, className = '', view = 0, pxPerM, person }: { pattern: string; height?: number; className?: string; view?: number; pxPerM?: number; /** jemand trainiert am Gerät (animiert) */ person?: Look }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const L = useMemo(() => layout(pattern, view), [pattern, view]);
+  const L = useMemo(() => layout(pattern, view, Boolean(person)), [pattern, view, Boolean(person)]); // eslint-disable-line react-hooks/exhaustive-deps
   const pad = 4;
   const size = pxPerM ? { width: Math.ceil((L.x1 - L.x0) * pxPerM) + pad * 2, height: Math.ceil((L.y1 - L.y0) * pxPerM) + pad * 2 } : null;
   useEffect(() => {
@@ -51,13 +52,27 @@ export function MachineArt({ pattern, height = 120, className = '', view = 0, px
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       // Mitte des Geräts in die Mitte der Fläche schieben
       ctx.translate(-((L.x0 + L.x1) / 2) * k, -((L.y0 + L.y1) / 2) * k);
-      drawScene(ctx, w, h, L.p, 0, { ...L.cam, focal: DIST * k }, new Map(), readColors(), { figure: false });
+      drawScene(ctx, w, h, L.p, u, { ...L.cam, focal: DIST * k }, new Map(), readColors(), person ? { look: person } : { figure: false });
     };
+    let u = 0;
+    if (person) {
+      // Person trainiert: Bewegung abspielen (ca. 24 Bilder pro Sekunde, nur solange sichtbar)
+      let raf = 0, last = 0, visible = true;
+      const loop = (t: number) => {
+        raf = requestAnimationFrame(loop);
+        if (!visible || t - last < 42) return;
+        u = ((t / 1000) / (L.p.seconds || 3)) % 1; last = t; draw();
+      };
+      const io = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver((es) => { visible = es.some((e) => e.isIntersecting); }) : null;
+      io?.observe(canvas);
+      draw(); raf = requestAnimationFrame(loop);
+      return () => { cancelAnimationFrame(raf); io?.disconnect(); };
+    }
     if (typeof IntersectionObserver === 'undefined') return draw();
     const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { draw(); io.disconnect(); } }, { rootMargin: '120px' });
     io.observe(canvas);
     return () => io.disconnect();
-  }, [L, height, pxPerM, size?.width, size?.height]);
+  }, [L, height, pxPerM, size?.width, size?.height, person?.skin, person?.shirt]); // eslint-disable-line react-hooks/exhaustive-deps
   return <canvas ref={ref} className={`machine-art${pxPerM ? ' to-scale' : ''} ${className}`} style={size ?? { height }} aria-hidden="true" />;
 }
 

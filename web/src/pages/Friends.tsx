@@ -1,7 +1,6 @@
 // Freunde: eigener Code/Einladungslink, Freund hinzufügen, Anfragen, Freundesliste, Rangliste,
 // Profil eines Freundes, Feed der Freunde (auf Home) und Einladungslinks (#/freunde/add/CODE).
-import { MachineArt } from '../components/MachineArt';
-import { chestsEarned, cleanGym, GYM_ITEMS, gymProgress, hitsFrom, tierFor } from '../lib/gym';
+import { cleanGym, GYM_ITEMS, migrateGym, roomFor } from '../lib/gym';
 import { GymRoom } from '../components/GymRoom';
 import { TitleBadge, titleFor } from '../components/TitleBadge';
 import { FirstTip } from '../components/FirstTip';
@@ -431,16 +430,15 @@ export function FriendProfile({ userId }: { userId: string }) {
         <BodyGraph levels={levels} skin={eq.skin ?? null} />
       </div>
       {(() => {
-        const gp = gymProgress(hitsFrom(d.sets));
-        const tier = tierFor(gp.unlocked.length);
-        const fg = d.profile.gym ? cleanGym(d.profile.gym, new Set([...gp.unlocked.map((i) => i.id), ...chestsEarned(gp.unlocked.length).map((c) => c.id)]), tier) : null;
+        // Freund hat sein Gym evtl. noch nicht im neuen Format gespeichert: wie beim Umstieg anzeigen
+        const fg = d.profile.gym ? cleanGym(migrateGym(d.profile.gym, true, d.sets.filter((x) => !x.is_warmup).length), new Set()) : null;
+        const tier = roomFor(fg?.build ?? []);
+        const machines = fg ? fg.objects.filter((o) => GYM_ITEMS.some((m) => m.id === o.id)).length : 0;
         return (
           <div className="card friend-gym" id="friend-gym">
             <h3>{fg?.name || `Gym von ${name}`}</h3>
-            <p className="muted small">{tier.name} · {gp.unlocked.length} von {GYM_ITEMS.length} Geräten gefunden</p>
-            {fg && fg.objects.length > 0
-              ? <GymRoom gym={fg} tier={tier} />
-              : gp.unlocked.length > 0 && <div className="friend-gym-row">{gp.unlocked.slice(-4).reverse().map((it) => <MachineArt key={it.id} pattern={it.pattern} height={64} />)}</div>}
+            <p className="muted small">{tier.name} · {machines} {machines === 1 ? 'Gerät' : 'Geräte'}{fg && fg.people.length ? ` · ${fg.people.length} trainieren gerade` : ''}</p>
+            {fg ? <GymRoom gym={fg} tier={tier} /> : <p className="muted small">{name} hat das eigene Gym noch nicht eingerichtet.</p>}
           </div>
         );
       })()}

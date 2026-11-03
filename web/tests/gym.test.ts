@@ -31,53 +31,104 @@ describe('Mein Gym', () => {
 });
 
 import { readFileSync } from 'node:fs';
-import { firstNameOf, gymNameIdeas, ALL_DECO, chestsEarned, cleanGym, CHEST_DECO, DECO_SHOP, fromSlots, nextTier, placeNew, tierFor, TIERS } from '../src/lib/gym';
+import {
+  firstNameOf, gymNameIdeas, ALL_DECO, BUILD_ITEMS, canBuild, chestsEarned, cleanGym, CHEST_DECO, DECO_SHOP, emptyGym, fromSlots, HANGING,
+  MACHINE_PRICE, machineShopId, migrateGym, NPCS, ownedFrom, placeNew, roomFor, TIERS,
+} from '../src/lib/gym';
 
-describe('Mein Gym gestalten', () => {
-  test('Ausbaustufen nach gefundenen Geräten', () => {
-    expect(tierFor(0).id).toBe('garage');
-    expect(tierFor(6).id).toBe('studio');
-    expect(tierFor(14).id).toBe('halle');
-    expect(tierFor(28).id).toBe('elevation');
-    expect(tierFor(28).empore).toBe(true);
-    expect(nextTier(5)?.id).toBe('studio');
-    expect(nextTier(22)).toBeNull();
-    expect(TIERS.map((t) => t.max)).toEqual([8, 16, 28, 40]);
+describe('Neues Gym: vom Boden zum Studio', () => {
+  test('Start: nur Boden, kleiner Raum ohne 2. Stock', () => {
+    const r = roomFor([]);
+    expect(r).toMatchObject({ id: 's', max: 8, empore: false, meters: 5 });
+    expect(roomFor(['b_size_m']).max).toBe(16);
+    expect(roomFor(['b_size_m', 'b_size_l', 'b_floor2'])).toMatchObject({ id: 'l', max: 40, empore: true, meters: 9 });
   });
-  test('Kisten nach Stein 5, 10, …, 28', () => {
-    expect(chestsEarned(4)).toEqual([]);
-    expect(chestsEarned(5).map((c) => c.id)).toEqual(['chest_trophy']);
-    expect(chestsEarned(28)).toHaveLength(CHEST_DECO.length);
+  test('Bauteile bauen aufeinander auf', () => {
+    const side = BUILD_ITEMS.find((b) => b.id === 'b_wall_sides')!;
+    expect(canBuild(side, [])).toBe(false);
+    expect(canBuild(side, ['b_wall_back'])).toBe(true);
+    expect(canBuild(BUILD_ITEMS.find((b) => b.id === 'b_floor2')!, ['b_wall_back'])).toBe(false);
+    // ungültige Reihenfolge wird beim Prüfen entfernt
+    expect(cleanGym({ v: 2, build: ['b_wall_sides', 'b_window_1', 'quatsch'] }, new Set()).build).toEqual([]);
+    expect(cleanGym({ v: 2, build: ['b_wall_back', 'b_window_1', 'b_window_2'] }, new Set()).build).toEqual(['b_wall_back', 'b_window_1', 'b_window_2']);
   });
-  test('Daten werden geprüft: Fremdes, Doppeltes, zu viel und Empore ohne Ausbau fallen raus', () => {
+  test('Geräte kosten je nach Seltenheit, Kauf-ID m_<gerät>', () => {
+    expect(MACHINE_PRICE).toEqual({ 'gewöhnlich': 150, 'selten': 300, 'episch': 500, 'legendär': 800 });
+    expect(machineShopId('bench')).toBe('m_bench');
+    const o = ownedFrom(['m_bench', 'gym_plant'], ['m_pullup']);
+    expect(o.has('bench') && o.has('pullup') && o.has('gym_plant') && !o.has('dip')).toBe(true);
+  });
+  test('Keine hängende Deko mehr', () => {
+    expect(DECO_SHOP.some((d) => HANGING.has(d.id))).toBe(false);
+    expect(cleanGym({ v: 2, objects: [{ id: 'gym_bag', x: 5, y: 5, level: 0 }] }, new Set(['gym_bag'])).objects).toEqual([]);
+  });
+  test('Leute nur an aufgestellten Geräten, je Gerät eine Person', () => {
+    const g = cleanGym({ v: 2, objects: [{ id: 'bench', x: 10, y: 10, level: 0 }, { id: 'gym_plant', x: 50, y: 50, level: 0 }], people: [
+      { who: 'me', id: 'me', on: 'bench' }, { who: 'npc', id: 'p_anna', on: 'bench' }, { who: 'npc', id: 'p_anna', on: 'gym_plant' },
+      { who: 'npc', id: 'p_unbekannt', on: 'bench' }, { who: 'friend', id: 'u1', on: 'dip', name: 'Ben' },
+    ] }, new Set(['bench']));
+    expect(g.people).toEqual([{ who: 'me', id: 'me', on: 'bench' }]);
+  });
+  test('Daten werden geprüft: Fremdes, Doppeltes, zu viel und 2. Stock ohne Ausbau fallen raus', () => {
     const owned = new Set(['bench', 'pullup']);
     const g = cleanGym({ name: 'X'.repeat(40), objects: [
       { id: 'bench', x: 150, y: -5, level: 1 }, { id: 'bench', x: 1, y: 1, level: 0 }, { id: 'hack-evil', x: 1, y: 1 }, { id: 'pullup', x: '1', y: 2 },
       ...Array.from({ length: 20 }, () => ({ id: 'gym_plant', x: 5, y: 5, level: 0 })),
-    ] }, owned, tierFor(0));
+    ] }, owned);
     expect(g.name).toHaveLength(24);
     expect(g.objects).toEqual([{ id: 'bench', x: 100, y: 0, level: 0 }, { id: 'gym_plant', x: 5, y: 5, level: 0 }]);
-    expect(cleanGym(null, owned, tierFor(0))).toEqual({ name: '', objects: [] });
-    expect(cleanGym({ objects: [{ id: 'bench', x: 5, y: 5, level: 1 }] }, owned, tierFor(28)).objects[0].level).toBe(1);
+    expect(cleanGym(null, owned)).toEqual(emptyGym());
+    expect(cleanGym({ v: 2, build: ['b_wall_back', 'b_size_m', 'b_floor2'], objects: [{ id: 'bench', x: 5, y: 5, level: 1 }] }, owned).objects[0].level).toBe(1);
+  });
+  test('Umstieg: altes Gym behält Geräte, Kisten-Deko und bekommt Wände geschenkt; neue Nutzer starten leer', () => {
+    // 9 Steine (Studio) → 9 Geräte, Pokal (ab 5), Rückwand, Seitenwände, 2 Fenster, Spiegel
+    let hits = 0;
+    for (let n = 0; n < 9; n++) hits += 15 + 8 * n;
+    const m = migrateGym({ name: 'Iron', objects: [{ id: 'bench', x: 10, y: 10, level: 0 }] }, true, hits);
+    expect(m.v).toBe(2);
+    expect(m.name).toBe('Iron');
+    expect(m.legacy.filter((x) => x.startsWith('m_'))).toHaveLength(9);
+    expect(m.legacy).toContain('chest_trophy');
+    expect(m.build).toEqual(expect.arrayContaining(['b_wall_back', 'b_wall_sides', 'b_window_1', 'b_window_2', 'b_mirror']));
+    expect(migrateGym(null, false, hits)).toEqual(emptyGym());
+    const v2 = { ...emptyGym(), name: 'Neu' };
+    expect(migrateGym(v2, true, hits)).toBe(v2);
+  });
+  test('Kisten nach Stein 5, 10, …, 28 (nur noch für den Umstieg)', () => {
+    expect(chestsEarned(4)).toEqual([]);
+    expect(chestsEarned(28)).toHaveLength(CHEST_DECO.length);
+    expect(TIERS.map((t) => t.max)).toEqual([8, 16, 28, 40]);
   });
   test('alte 12-Platz-Aufstellung wird übernommen, neue Dinge stehen nicht aufeinander', () => {
     expect(fromSlots(['bench', null, null, null, null, 'pullup'])).toEqual([{ id: 'bench', x: 12.5, y: 10, level: 0 }, { id: 'pullup', x: 37.5, y: 45, level: 0 }]);
-    let g = { name: '', objects: [] as ReturnType<typeof fromSlots> };
+    let g = emptyGym();
     for (const id of ['a', 'b', 'c', 'd']) g = placeNew(g, id);
-    const pos = g.objects.map((o) => `${o.x}/${o.y}`);
-    expect(new Set(pos).size).toBe(4);
+    expect(new Set(g.objects.map((o) => `${o.x}/${o.y}`)).size).toBe(4);
   });
-  test('Deko-Preise passen zum Server (schema.sql)', () => {
-    const sql = readFileSync(new URL('../../supabase/schema.sql', import.meta.url), 'utf8');
-    const block = sql.slice(sql.indexOf('-- Gym-Deko'), sql.indexOf('on conflict', sql.indexOf('-- Gym-Deko')));
-    const rows = [...block.matchAll(/\('([a-z_]+)',\s*'gymdeco',\s*'[^']+',\s*(\d+)\)/g)].map((m) => ({ id: m[1], price: Number(m[2]) }));
-    expect(rows).toEqual(DECO_SHOP.map(({ id, price }) => ({ id, price })));
+  const sql = readFileSync(new URL('../../supabase/schema.sql', import.meta.url), 'utf8');
+  const rowsOf = (marker: string, kinds: string) => {
+    const block = sql.slice(sql.indexOf(marker), sql.indexOf('on conflict', sql.indexOf(marker)));
+    return [...block.matchAll(new RegExp(`\\('([a-z0-9_-]+)',\\s*'(${kinds})',\\s*'[^']+',\\s*(\\d+)\\)`, 'g'))].map((m) => ({ id: m[1], price: Number(m[3]) }));
+  };
+  test('Deko-Preise passen zum Server (schema.sql), hängende Deko wird nicht mehr verkauft', () => {
+    expect(rowsOf('-- Gym-Deko', 'gymdeco').filter((r) => !HANGING.has(r.id))).toEqual(DECO_SHOP.map(({ id, price }) => ({ id, price })));
+    expect(sql).toMatch(/update public\.shop_items set active = false where id in \('gym_bag', 'gym_lamp', 'gym_rings'\)/);
+  });
+  test('Bauteile, Geräte und Leute: Preise passen zum Server', () => {
+    const rows = rowsOf('-- Gym-Bau', 'gympart|gymmachine|gymnpc');
+    const want = [
+      ...BUILD_ITEMS.map((b) => ({ id: b.id, price: b.price })),
+      ...['bench', 'pullup'].map((id) => ({ id: machineShopId(id), price: 150 })),
+    ];
+    for (const w of want) expect(rows).toContainEqual(w);
+    for (const n of NPCS) expect(rows).toContainEqual({ id: n.id, price: n.price });
+    expect(rows.filter((r) => r.id.startsWith('m_'))).toHaveLength(28);
   });
 });
 
 describe('Ansicht & echte Größen', () => {
   test('übernimmt alte Spiegelung als Ansicht von rechts und prüft rot', () => {
-    const g = cleanGym({ objects: [{ id: 'bench', x: 1, y: 2, level: 0, flip: true }, { id: 'pullup', x: 1, y: 2, level: 0, rot: 2 }, { id: 'dip', x: 1, y: 2, level: 0, rot: 7 }] }, new Set(), TIERS[0]);
+    const g = cleanGym({ objects: [{ id: 'bench', x: 1, y: 2, level: 0, flip: true }, { id: 'pullup', x: 1, y: 2, level: 0, rot: 2 }, { id: 'dip', x: 1, y: 2, level: 0, rot: 7 }] }, new Set());
     expect(g.objects.map((o) => o.rot ?? 0)).toEqual([3, 2, 0]);
   });
   test('alle Deko hat eine echte Höhe, alle Stufen eine Raumbreite', () => {
@@ -121,7 +172,7 @@ describe('Namensideen', () => {
 
 describe('Vintage entfernt', () => {
   test('Stil wird nicht mehr gespeichert, Vintage-Deko nicht mehr im Laden, aber noch aufstellbar', () => {
-    expect(cleanGym({ style: 'vintage', objects: [] }, new Set(), TIERS[0])).toEqual({ name: '', objects: [] });
+    expect(cleanGym({ style: 'vintage', objects: [] }, new Set(), TIERS[0])).toEqual(emptyGym());
     expect(DECO_SHOP.some((d) => d.id.startsWith('gym_v_'))).toBe(false);
     expect(cleanGym({ objects: [{ id: 'gym_v_clubs', x: 1, y: 1, level: 0 }] }, new Set(), TIERS[0]).objects).toHaveLength(1);
   });

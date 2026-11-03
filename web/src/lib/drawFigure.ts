@@ -55,6 +55,23 @@ export function frameOf(p: Pattern): { target: V3; size: number } {
   return { target, size };
 }
 
+const sceneCache = new Map<string, { min: V3; max: V3 }>();
+/** Gerät + Figur über die ganze Bewegung in Metern (für trainierende Leute im Gym) */
+export function sceneBounds(p: Pattern): { min: V3; max: V3 } {
+  const hit = sceneCache.get(p.id);
+  if (hit) return hit;
+  const { min, max } = propBounds(p);
+  const mn: V3 = [...min], mx: V3 = [...max];
+  for (const u of [0, 0.15, 0.3, 0.5, 0.7, 0.85]) {
+    const j = solve({ ...NEUTRAL, ...patternPose(p, u) }, p.anchor);
+    for (const k of Object.values(j) as V3[]) for (let i = 0; i < 3; i++) { mn[i] = Math.min(mn[i], k[i] - 0.12); mx[i] = Math.max(mx[i], k[i] + 0.12); }
+  }
+  mn[1] = Math.min(mn[1], 0);
+  const out = { min: mn, max: mx };
+  sceneCache.set(p.id, out);
+  return out;
+}
+
 const boundsCache = new Map<string, { min: V3; max: V3 }>();
 /** Nur das Gerät (ohne Figur) in echten Metern: kleinste und größte Ecke – für maßstabsgetreue Darstellung */
 export function propBounds(p: Pattern): { min: V3; max: V3 } {
@@ -76,7 +93,7 @@ interface Item { depth: number; draw: () => void }
 export type Focus = Map<Segment, 'p' | 's'>;
 
 /** opts.figure = false: nur das Gerät zeichnen (z. B. für „Mein Gym“) */
-export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p: Pattern, u: number, cam: Camera, hi: Focus, c: Colors, opts: { figure?: boolean } = {}) {
+export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p: Pattern, u: number, cam: Camera, hi: Focus, c: Colors, opts: { figure?: boolean; look?: { skin: string; shirt: string; shorts: string; hair: string } } = {}) {
   ctx.clearRect(0, 0, w, h);
   const pose = { ...NEUTRAL, ...patternPose(p, u) };
   const j = solve(pose, p.anchor);
@@ -103,7 +120,9 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
 
   // ---- Figur: verjüngte, schattierte Körperteile mit Muskelbäuchen ----
   // Menschliche Figur: Hautton, dunkles Shirt, Shorts, helle Schuhe (Muskeln werden rot darübergelegt)
-  const SKIN: Tone = { light: '#f0c9ad', mid: '#d9a585', dark: '#a8735a', edge: '#8a5c46' }, SHIRT = toneOf('#3b4554'), SHOE = toneOf('#4b525e'), SOLE = toneOf('#eceef1'), SHORTS_T = toneOf('#2a2d34');
+  const lk = opts.look;
+  // Aussehen (z. B. Leute im eigenen Gym): Haut, Shirt, Shorts, Haare – sonst die Standard-Figur
+  const SKIN: Tone = lk ? toneOf(lk.skin) : { light: '#f0c9ad', mid: '#d9a585', dark: '#a8735a', edge: '#8a5c46' }, SHIRT = toneOf(lk?.shirt ?? '#3b4554'), SHOE = toneOf('#4b525e'), SOLE = toneOf('#eceef1'), SHORTS_T = toneOf(lk?.shorts ?? '#2a2d34');
   const T = { ...tones(c), body: SKIN };
   const roleOf = (seg?: Segment) => (seg ? hi.get(seg) : undefined);
   const toneFor = (seg?: Segment): Tone => (roleOf(seg) === 'p' ? T.primary : roleOf(seg) === 's' ? T.secondary : T.body);
@@ -211,7 +230,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, p
   taper(j.chest, j.neckTop, 0.068, 0.056, T.body);
   sphere(j.head, 0.105, T.body, 0);
   // kurze dunkle Haare und dunkle Shorts
-  const HAIR = toneOf('#3b2a22'), SHORTS = toneOf('#2a2d34');
+  const HAIR = toneOf(lk?.hair ?? '#3b2a22'), SHORTS = toneOf(lk?.shorts ?? '#2a2d34');
   sphere([j.head[0], j.head[1] + 0.045, j.head[2] - 0.012], 0.1, HAIR, -0.004);
   for (const side of ['L', 'R'] as const) {
     const hip = j[`hip${side}` as 'hipL'], kn = j[`kn${side}` as 'knL'];
