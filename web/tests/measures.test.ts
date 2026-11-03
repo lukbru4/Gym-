@@ -51,3 +51,13 @@ describe('Körpermaße', () => {
     expect(sql).toMatch(/revoke insert, update, delete on public\.progress_photos from authenticated/);
   });
 });
+
+import { isMissingSchema } from '../src/data/progress';
+test('Fehlendes Datenbank-Update wird erkannt', () => {
+  expect(isMissingSchema({ code: 'PGRST205', message: "Could not find the table 'public.progress_photos' in the schema cache" })).toBe(true);
+  expect(isMissingSchema({ code: 'PGRST202', message: 'Could not find the function public.add_progress_photo' })).toBe(true);
+  expect(isMissingSchema({ code: '42P01', message: 'relation "public.body_measures" does not exist' })).toBe(true);
+  expect(isMissingSchema(new Error('Bucket not found'))).toBe(true);
+  expect(isMissingSchema(new Error('Failed to fetch'))).toBe(false);
+  expect(isMissingSchema(null)).toBe(false);
+});

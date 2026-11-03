@@ -4,7 +4,6 @@ import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
 import { useAsync } from '../app/useAsync';
 import { BodyGraph, previewLevels } from '../components/BodyGraph';
-import { MeasuresSection, PhotosSection } from '../components/Progress';
 import { LoadError, Loading, MuscleChips } from '../components/Bits';
 import { ChartView } from '../components/ChartView';
 import { Radar } from '../components/Radar';
@@ -90,6 +89,7 @@ export function Body() {
   return (
     <>
       <h2>Körpergraph</h2>
+      <a className="btn block to-fotos" id="to-fotos" href="#/fotos">📷 Fortschritts-Fotos & 📏 Maße</a>
       {locked && <Paywall reason="Die Auswertung deiner Muskelgruppen (Körpergraph und Radar) gibt es mit Pro. Dein Körpergewicht kannst du weiter kostenlos eintragen." />}
       {!locked && <>
       <div className="card">
@@ -230,8 +230,6 @@ export function Body() {
       ) : (
         <p className="muted">Noch keine Einträge.</p>
       )}
-      <MeasuresSection />
-      <PhotosSection weights={list} />
     </>
   );
 }

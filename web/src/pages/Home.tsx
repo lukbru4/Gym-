@@ -1,6 +1,7 @@
 // Home: Umschalter „Mein Feed | Freunde“, Begrüßung mit Rückblick (laufendes Training: Zeile über der Leiste), Aufgaben, Körpergraph, Wochenstatistik.
 import { GymCard } from './Gym';
 import { SuppToday } from './Supplements';
+import { PhotoInvite } from '../components/Progress';
 import { TitleBadge, titleFor } from '../components/TitleBadge';
 import { StartChecklist } from '../components/StartChecklist';
 import { dueHint, getReminders, planWeek } from '../lib/reminders';
@@ -125,6 +126,7 @@ export function Home() {
       <MigrateCard />
       <StartChecklist workoutCount={g.workouts.length} />
       <SuppToday compact />
+      <PhotoInvite />
       <GymCard balance={g.balance} />
       <CycleCard compact />
       {api.mode === 'local' && (

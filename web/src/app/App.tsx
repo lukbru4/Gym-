@@ -20,6 +20,7 @@ import type { Exercise, User } from '../lib/types';
 import { Account, Backup } from '../pages/Account';
 import { Auth, SetNewPassword } from '../pages/Auth';
 import { Body } from '../pages/Body';
+import { ProgressPage } from '../pages/ProgressPage';
 import { Editor } from '../pages/Editor';
 import { Home } from '../pages/Home';
 import { AcceptInvite, FriendProfile, Friends, FriendsFeed } from '../pages/Friends';
@@ -63,6 +64,7 @@ const ROUTES: Route[] = [
   [/^#\/verlauf$/, () => <History />],
   [/^#\/fortschritt$/, () => <Analysis />],
   [/^#\/koerper$/, () => <Body />],
+  [/^#\/fotos$/, () => <ProgressPage />],
   [/^#\/backup$/, () => <Backup />],
   [/^#\/konto$/, () => <Account />],
   [/^#\/konto\/([a-z]+)$/, (m) => <Account section={m[1]} />],

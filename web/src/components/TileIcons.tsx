@@ -1,7 +1,7 @@
 // Symbole für die Zeilen im Profil (Duoton wie die untere Leiste: leicht gefüllte Fläche + Kontur).
 import type { ReactNode } from 'react';
 
-export type TileIconId = 'aufgaben' | 'medaillen' | 'vorlagen' | 'verlauf' | 'gewicht' | 'essen' | 'einstellungen' | 'shop' | 'backup';
+export type TileIconId = 'aufgaben' | 'medaillen' | 'vorlagen' | 'verlauf' | 'gewicht' | 'essen' | 'einstellungen' | 'shop' | 'backup' | 'fotos';
 
 const PATHS: Record<TileIconId, ReactNode> = {
   aufgaben: (
@@ -29,6 +29,13 @@ const PATHS: Record<TileIconId, ReactNode> = {
     <>
       <rect x="3.8" y="5.2" width="16.4" height="15" rx="2.4" />
       <path className="tile-detail" d="M3.8 10h16.4M8.2 3v4.4M15.8 3v4.4" />
+    </>
+  ),
+  fotos: (
+    <>
+      <rect x="3.2" y="6.2" width="17.6" height="13.6" rx="2.6" />
+      <path d="M8.4 6.2 9.8 3.8h4.4l1.4 2.4" />
+      <circle className="tile-detail" cx="12" cy="13" r="3.4" />
     </>
   ),
   gewicht: (

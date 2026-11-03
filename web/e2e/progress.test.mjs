@@ -17,7 +17,18 @@ const withExif = (jpg, date) => {
   const app1 = [0x45, 0x78, 0x69, 0x66, 0, 0, ...t], len = app1.length + 2;
   return Buffer.concat([jpg.subarray(0, 2), Buffer.from([0xff, 0xe1, len >> 8, len & 255, ...app1]), jpg.subarray(2)]);
 };
-await go(page, '#/koerper'); await page.locator('#measures').waitFor();
+// Einladung auf der Startseite (noch keine Fotos) und Wege zur Seite „Fotos & Maße“
+await page.locator('#photo-invite').waitFor({ timeout: 5000 }).catch(() => {});
+check(await page.locator('#photo-invite').count() === 1, 'Startseite: Einladung zum ersten Fortschritts-Foto');
+await go(page, '#/koerper'); await page.locator('#to-fotos').waitFor();
+await page.click('#to-fotos'); await page.locator('#photos').waitFor();
+check((await page.evaluate(() => location.hash)) === '#/fotos', 'Körper-Seite → „Fotos & Maße“');
+await go(page, '#/profil'); await page.locator('a[href="#/fotos"]').first().waitFor();
+check(true, 'Profil-Kachel „Fotos & Maße“');
+await page.click('#menu-btn');
+await page.click('#menu-fotos'); await page.locator('#photos').waitFor();
+check((await page.evaluate(() => location.hash)) === '#/fotos', 'Menüpunkt „📷 Fotos & Maße“ führt zur Seite');
+await go(page, '#/fotos'); await page.locator('#measures').waitFor();
 // Maße: zwei Messungen
 const enter = async (date, vals) => {
   await page.click('#measure-open');
@@ -82,7 +93,8 @@ await page.locator('#recap-acts').waitFor();
 if (await page.locator('#recap-acts-more').count()) await page.click('#recap-acts-more');
 const acts = await page.locator('#recap-acts').innerText();
 check(acts.includes('📷') && acts.includes('Fortschritts-Foto (Seitlich)') && !acts.includes('(Vorne)'), 'Aktivitäten: heutiges Foto diese Woche, das alte Galerie-Foto (September) nicht');
-await go(page, '#/koerper'); await page.locator('#photos').waitFor();
+check(await page.locator('#photo-invite').count() === 0, 'Einladung verschwindet nach dem ersten Foto');
+await go(page, '#/fotos'); await page.locator('#photos').waitFor();
 await page.waitForFunction(() => document.querySelectorAll('.photo-thumb img').length === 1);
 check(true, 'Foto bleibt nach Neuladen');
 // Kalender
@@ -91,5 +103,12 @@ await go(page, '#/profil'); await page.locator('#calendar').waitFor();
 for (let i = 0; i < 2; i++) await page.click('[data-cal="-1"]');
 await page.locator('.cal-photo').first().waitFor({ timeout: 4000 }).catch(() => {});
 check(await page.locator('.cal-day.photo .cal-photo').count() >= 1, 'Kalender zeigt 📷');
+// Fehlendes Datenbank-Update: klarer Hinweis, Knöpfe gesperrt
+await page.evaluate(() => localStorage.setItem('gym-tracker-test-noschema', '1'));
+await go(page, '#/'); await go(page, '#/fotos'); await page.locator('#schema-missing').first().waitFor();
+check((await page.locator('#schema-missing').first().innerText()).includes('Datenbank-Update 68') && await page.locator('#photo-gallery').isDisabled() && await page.locator('#photo-add').isDisabled(), 'Ohne Update 68: Hinweis mit Anleitung, Knöpfe gesperrt');
+check(await page.locator('#measures #schema-missing').count() === 1, 'Auch bei den Maßen erscheint der Hinweis');
+await page.locator('#photos').screenshot({ path: `${SHOTS}/update-noetig.png` });
+await page.evaluate(() => localStorage.removeItem('gym-tracker-test-noschema'));
 check(page.errors.length === 0, 'Keine Seitenfehler ' + page.errors.join(' | '));
 await b.close();

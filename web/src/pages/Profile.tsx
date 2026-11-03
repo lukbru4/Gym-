@@ -74,6 +74,7 @@ export function Profile() {
         {tile('#/workouts', 'vorlagen', 'Vorlagen')}
         {tile('#/verlauf', 'verlauf', 'Verlauf')}
         {tile('#/koerper', 'gewicht', 'Gewicht')}
+        {tile('#/fotos', 'fotos', 'Fotos & Maße')}
         {tile('#/konto', 'einstellungen', 'Einstellungen')}
         {api.social && tile('#/essen', 'essen', 'Essen', 'Kalorien & Nährwerte tracken')}
         {api.social ? tile('#/shop', 'shop', 'Shop', 'Farben & Titel mit Credits') : tile('#/backup', 'backup', 'Backup', 'Daten sichern und wiederherstellen')}

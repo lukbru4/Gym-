@@ -83,6 +83,7 @@ export function Header({ game }: { game: Game | null }) {
         <div className="menu" id="menu" ref={menuRef}>
           <a href="#/gym" id="menu-gym">🏋️ Mein Gym</a>
           <a href="#/supplements" id="menu-supps">💊 Supplements</a>
+          <a href="#/fotos" id="menu-fotos">📷 Fotos & Maße</a>
           <a href="#/konto">Konto &amp; Einstellungen</a>
           {api.social && <a href="#/shop">Shop</a>}
           {admin && <a href="#/admin" id="menu-admin">🛠 Admin-Menü</a>}

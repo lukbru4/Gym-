@@ -18,7 +18,7 @@ export const redirect = (hash: string) => location.replace(hash);
 export type Section = 'workouts' | 'home' | 'raenge' | 'essen' | 'freunde' | 'profil';
 export function sectionOf(hash: string): Section {
   if (/^#\/(workouts|neu|vorlage|start)/.test(hash)) return 'workouts';
-  if (/^#\/(raenge|rekorde|fortschritt|koerper)/.test(hash)) return 'raenge';
+  if (/^#\/(raenge|rekorde|fortschritt|koerper|fotos)/.test(hash)) return 'raenge';
   if (/^#\/essen/.test(hash)) return 'essen';
   if (/^#\/(profil|aufgaben|medaillen|training|konto|backup|shop|admin)/.test(hash)) return 'profil';
   if (/^#\/freunde/.test(hash)) return 'freunde';

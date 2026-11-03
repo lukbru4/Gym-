@@ -11,7 +11,27 @@ import { photoDate } from '../lib/photoDate';
 import { cleanMeasure, hasValues, latestValues, measureSummary, measureTrend, MEASURES, POSES, poseName, type Measure, type MeasureKey, type Pose, type ProgressPhoto } from '../lib/measures';
 import { todayISO } from '../lib/stats';
 import type { BodyWeight } from '../lib/types';
-import type { FriendPhoto } from '../data/progress';
+import { isMissingSchema, type FriendPhoto } from '../data/progress';
+import { supabaseDashboardUrl } from '../data/config';
+import { WEB_URL } from '../lib/platform';
+
+/** Hinweis, wenn Fotos/Maße nicht geladen werden konnten – beim fehlenden Datenbank-Update mit Anleitung */
+function LoadProblem({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  if (isMissingSchema(error)) {
+    return (
+      <div className="notice small schema-missing" id="schema-missing">
+        <strong>⚙️ Datenbank-Update 68 nötig</strong>
+        <p>Damit Fotos und Maße in deinem Konto gespeichert werden, muss in Supabase einmal das Datenbank-Update laufen: SQL Editor öffnen, den Inhalt von <code>supabase/schema.sql</code> einfügen und auf „Run“ tippen.</p>
+        <div className="row">
+          <a className="btn small-btn primary" href={`${WEB_URL}supabase/einrichten.html`} target="_blank" rel="noopener">1. SQL kopieren</a>
+          <a className="btn small-btn" href={supabaseDashboardUrl('sql/new')} target="_blank" rel="noopener">2. Supabase öffnen</a>
+          <button type="button" className="btn small-btn" onClick={onRetry}>Erneut prüfen</button>
+        </div>
+      </div>
+    );
+  }
+  return <p className="notice small" id="load-problem">Konnte nicht geladen werden. <button type="button" className="link-btn" onClick={onRetry}>Erneut versuchen</button></p>;
+}
 
 const signed = (n: number, unit: string) => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${fmt(Math.abs(n), 1)} ${unit}`;
 
@@ -20,12 +40,14 @@ const signed = (n: number, unit: string) => `${n > 0 ? '+' : n < 0 ? '−' : '±
 // ---------------------------------------------------------------------------------------------
 export function MeasuresSection() {
   const { api, user, showError, dataVersion, dataChanged } = useApp();
-  const list = useAsync(() => api.progress.listMeasures(), [api, dataVersion]);
+  const [retry, setRetry] = useState(0);
+  const list = useAsync(() => api.progress.listMeasures(), [api, dataVersion, retry]);
   const [date, setDate] = useState(todayISO());
   const [vals, setVals] = useState<Record<string, string>>({});
   const [chart, setChart] = useState<MeasureKey | null>(null);
   const [open, setOpen] = useState(false);
-  if (list.status !== 'ok') return null;
+  if (list.status === 'loading') return null;
+  if (list.status === 'error') return <section id="measures"><h2>Körpermaße</h2><LoadProblem error={list.error} onRetry={() => setRetry((x) => x + 1)} /></section>;
   const rows = list.data;
   const last = latestValues(rows);
   const save = async (e: FormEvent) => {
@@ -124,8 +146,10 @@ const monthOf = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('de-
 
 export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
   const { api, user, showError, dataVersion, dataChanged } = useApp();
-  const photos = useAsync(() => api.progress.listPhotos(), [api, dataVersion]);
-  const measures = useAsync(() => api.progress.listMeasures(), [api, dataVersion]);
+  const [retry, setRetry] = useState(0);
+  const photos = useAsync(() => api.progress.listPhotos(), [api, dataVersion, retry]);
+  const measures = useAsync(() => api.progress.listMeasures(), [api, dataVersion, retry]);
+  const broken = photos.status === 'error';
   const list = photos.status === 'ok' ? photos.data : [];
   const urls = usePhotoUrls(list.map((p) => p.id));
   const fileRef = useRef<HTMLInputElement>(null), camRef = useRef<HTMLInputElement>(null);
@@ -187,6 +211,7 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
   return (
     <section id="photos">
       <h2>Fortschritts-Fotos</h2>
+      {broken && <LoadProblem error={photos.error} onRetry={() => setRetry((x) => x + 1)} />}
       <div className="card photo-add">
         <div className="seg seg-small" role="group" aria-label="Pose">
           {POSES.map((p) => <button key={p.id} type="button" className={`seg-tab${pose === p.id ? ' active' : ''}`} aria-pressed={pose === p.id} data-pose={p.id} onClick={() => setPose(p.id)}>{p.name}</button>)}
@@ -200,8 +225,8 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
         <input ref={fileRef} type="file" accept="image/*" multiple id="photo-file" hidden onChange={(e) => void pick(e.target.files, false)} />
         <input ref={camRef} type="file" accept="image/*" capture="user" id="photo-camera" hidden onChange={(e) => void pick(e.target.files, true)} />
         <div className="row photo-buttons">
-          <button type="button" className="btn primary grow" id="photo-gallery" disabled={busy} onClick={() => fileRef.current?.click()}>🖼️ Aus Galerie</button>
-          <button type="button" className="btn grow" id="photo-add" disabled={busy} onClick={() => camRef.current?.click()}>📷 Kamera</button>
+          <button type="button" className="btn primary grow" id="photo-gallery" disabled={busy || broken} onClick={() => fileRef.current?.click()}>🖼️ Aus Galerie</button>
+          <button type="button" className="btn grow" id="photo-add" disabled={busy || broken} onClick={() => camRef.current?.click()}>📷 Kamera</button>
         </div>
         <p className="muted small">Aus der Galerie kannst du mehrere Fotos auf einmal wählen – sie bekommen automatisch ihr Aufnahmedatum, das du vor dem Speichern prüfen kannst. Tipp: gleiches Licht, gleicher Ort, gleiche Pose.{canShare ? ' Bitte keine Nacktfotos – Freunde können Fotos melden.' : ''}</p>
       </div>
@@ -356,6 +381,23 @@ export function FriendPhotos({ userId, name }: { userId: string; name: string })
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Startseite: Einladung zum ersten Fortschritts-Foto
+// ---------------------------------------------------------------------------------------------
+const PHOTO_INVITE_KEY = 'gym-tracker-photo-invite-hidden';
+export function PhotoInvite() {
+  const { api, dataVersion } = useApp();
+  const photos = useAsync(() => api.progress.listPhotos(), [api, dataVersion]);
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem(PHOTO_INVITE_KEY) === '1'; } catch { return false; } });
+  if (hidden || photos.status === 'loading' || (photos.status === 'ok' && photos.data.length > 0)) return null;
+  return (
+    <div className="card supp-invite" id="photo-invite">
+      <a href="#/fotos"><strong>📷 Fortschritts-Fotos</strong><span className="muted small">Fotos aus deiner Galerie oder mit der Kamera – und Vorher/Nachher vergleichen.</span><span className="btn small-btn primary">Los geht's</span></a>
+      <button type="button" className="icon-btn" aria-label="Ausblenden" id="photo-invite-close" onClick={() => { try { localStorage.setItem(PHOTO_INVITE_KEY, '1'); } catch { /* nur Komfort */ } setHidden(true); }}>✕</button>
     </div>
   );
 }

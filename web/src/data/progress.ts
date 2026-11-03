@@ -4,6 +4,17 @@ import { cleanMeasure, MAX_PHOTOS, type Measure, type MeasureValues, type Pose, 
 import type { ISODate } from '../lib/types';
 
 export interface FriendPhoto extends ProgressPhoto { url: string }
+
+/** Fehlt das Datenbank-Update (Tabelle/Funktion/Speicher gibt es noch nicht)? */
+export function isMissingSchema(err: unknown): boolean {
+  const e = err as { code?: string; message?: string } | null;
+  if (!e) return false;
+  if (['42P01', '42883', 'PGRST202', 'PGRST205', 'PGRST204'].includes(e.code ?? '')) return true;
+  return /does not exist|schema cache|bucket not found/i.test(e.message ?? '');
+}
+/** Nur für Browser-Tests: fehlendes Datenbank-Update nachstellen */
+const testNoSchema = () => { try { return localStorage.getItem('gym-tracker-test-noschema') === '1'; } catch { return false; } };
+const noSchemaError = () => Object.assign(new Error("Could not find the table 'public.progress_photos' in the schema cache"), { code: 'PGRST205' });
 export interface Progress {
   /** Fotos dürfen mit Freunden geteilt werden (nur mit Konto) */
   canShare: boolean;
@@ -49,14 +60,14 @@ export function localProgress(get: () => Measure[], set: (list: Measure[]) => vo
   const all = () => idb<StoredPhoto[]>('readonly', (s) => s.getAll() as IDBRequest<StoredPhoto[]>);
   return {
     canShare: false,
-    listMeasures: async () => get().map((m) => ({ ...m })).sort((a, b) => a.date.localeCompare(b.date)),
+    listMeasures: async () => { if (testNoSchema()) throw noSchemaError(); return get().map((m) => ({ ...m })).sort((a, b) => a.date.localeCompare(b.date)); },
     async saveMeasure(date, values) {
       const v = cleanMeasure(values as Record<string, unknown>);
       const list = get().filter((m) => m.date !== date);
       set([...list, { id: get().find((m) => m.date === date)?.id ?? nextId(), date, ...v }]);
     },
     async deleteMeasure(id) { set(get().filter((m) => m.id !== id)); },
-    listPhotos: async () => (await all()).sort((a, b) => a.date.localeCompare(b.date) || (a.created ?? 0) - (b.created ?? 0)).map(({ blob: _b, created: _c, ...p }) => p),
+    listPhotos: async () => { if (testNoSchema()) throw noSchemaError(); return (await all()).sort((a, b) => a.date.localeCompare(b.date) || (a.created ?? 0) - (b.created ?? 0)).map(({ blob: _b, created: _c, ...p }) => p); },
     async addPhoto(blob, date, pose) {
       if ((await all()).length >= MAX_PHOTOS) throw new Error(`Höchstens ${MAX_PHOTOS} Fotos – lösch ältere, um neue hinzuzufügen.`);
       await idb('readwrite', (s) => s.put({ id: uuid(), date, pose, shared: false, blob, created: Date.now() } satisfies StoredPhoto));
