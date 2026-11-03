@@ -89,12 +89,15 @@ function headline(r: Recap): string {
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const dayLabel = (d: string, today: string) => (d === today ? 'Heute' : `${WD[new Date(`${d}T12:00:00`).getDay()]} ${d.slice(8, 10)}.${d.slice(5, 7)}.`);
 
-export function RecapCard({ workouts, sets, today, weights = [] }: { workouts: Workout[]; sets: WorkoutSet[]; today: string; weights?: BodyWeight[] }) {
+/** period/onPeriod: ein gemeinsamer Zeitraum-Schalter für Rückblick und Statistik auf der Startseite */
+export function RecapCard({ workouts, sets, today, weights = [], period: outer, onPeriod }: { workouts: Workout[]; sets: WorkoutSet[]; today: string; weights?: BodyWeight[]; period?: RecapPeriod; onPeriod?: (p: RecapPeriod) => void }) {
   const { api, user, exerciseMap } = useApp();
-  const [period, setPeriod] = useState(readPeriod);
+  const [own, setPeriod] = useState(readPeriod);
+  const period = outer ?? own;
   const [allActs, setAllActs] = useState(false);
   useSuppsTick();
   const choose = (p: RecapPeriod) => {
+    if (onPeriod) return onPeriod(p);
     setPeriod(p);
     try {
       localStorage.setItem(KEY, p);

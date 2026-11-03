@@ -12,7 +12,7 @@ import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
 import { useAsync } from '../app/useAsync';
 import { BodyGraph, LevelScale } from '../components/BodyGraph';
-import { CreditsRules, LoadError, Loading, QuestRows, WorkoutList } from '../components/Bits';
+import { CreditsRules, LoadError, Loading, QuestRows } from '../components/Bits';
 import { ChartView } from '../components/ChartView';
 import { RecapCard } from '../components/Recap';
 import { migrateToCloud, migrationDone, readLocalData } from '../data/migrate';
@@ -115,7 +115,7 @@ export function Home() {
   return (
     <>
       <HomeTabs active="mine" />
-      <RecapCard workouts={g.workouts} sets={g.sets} today={today} weights={weights.data} />
+      <RecapCard workouts={g.workouts} sets={g.sets} today={today} weights={weights.data} period={statsPeriod} onPeriod={pickPeriod} />
       <a className="card title-mini" id="title-mini" href="#/profil"><span>Dein Titel</span><TitleBadge t={titleFor(g.workouts, g.sets, exerciseMap())} /><span className="tile-chev" aria-hidden="true">›</span></a>
       {(() => {
         // Browser: Erinnerung als Hinweis-Karte (in der App fürs Handy kommt sie als Benachrichtigung)
@@ -150,13 +150,6 @@ export function Home() {
       <a className="btn primary block big" href="#/workouts">Workout starten</a>
       <div className="stats-head">
         <h2>{text.title}</h2>
-        <div className="mini-seg" role="tablist" aria-label="Zeitraum der Statistik">
-          {(['week', 'month', 'year'] as const).map((p) => (
-            <button key={p} role="tab" aria-selected={statsPeriod === p} className={statsPeriod === p ? 'active' : ''} onClick={() => pickPeriod(p)} data-stats={p}>
-              {p === 'week' ? 'Woche' : p === 'month' ? 'Monat' : 'Jahr'}
-            </button>
-          ))}
-        </div>
       </div>
       <div className="tiles">
         <div className="tile"><span className="tile-value">{stats.total.workouts}</span><span className="tile-label">Trainings</span></div>
@@ -176,9 +169,6 @@ export function Home() {
         <p className="muted small">Summe aus Wiederholungen × Gewicht aller Kraftsätze</p>
         <ChartView type="bar" labels={labels} series={[{ label: 'Volumen', data: stats.buckets.map((b) => Math.round(b.volume)), color: '--series-1' }]} unit="kg" ariaLabel={`Volumen pro ${text.unit}`} id="c-volume" />
       </div>
-      <h2>Letztes Training</h2>
-      <WorkoutList workouts={g.workouts.slice(0, 1)} sets={g.sets} empty={<p className="muted">Noch keine Trainings erfasst.</p>} />
-      <a className="btn block" href="#/verlauf">Alle Trainings ansehen</a>
       <CreditsRules />
       <p className="muted small center">App-Version {APP_VERSION}</p>
     </>
