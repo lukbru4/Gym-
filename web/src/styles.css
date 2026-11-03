@@ -2307,3 +2307,4 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .recap-acts .link-btn { background: none; border: 0; padding: 6px 0 0; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
 .bodygraph-link .level-scale li { text-decoration: none; }
 .bodygraph-link { text-decoration: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

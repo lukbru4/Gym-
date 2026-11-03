@@ -20,7 +20,7 @@ export function sectionOf(hash: string): Section {
   if (/^#\/(workouts|neu|vorlage|start)/.test(hash)) return 'workouts';
   if (/^#\/(raenge|rekorde|fortschritt|koerper)/.test(hash)) return 'raenge';
   if (/^#\/essen/.test(hash)) return 'essen';
-  if (/^#\/(profil|aufgaben|medaillen|verlauf|training|konto|backup|shop|admin)/.test(hash)) return 'profil';
+  if (/^#\/(profil|aufgaben|medaillen|training|konto|backup|shop|admin)/.test(hash)) return 'profil';
   if (/^#\/freunde/.test(hash)) return 'freunde';
   return 'home';
 }

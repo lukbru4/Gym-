@@ -12,17 +12,19 @@ import { fmt, fmtDate } from '../lib/format';
 import { setVolume } from '../lib/stats';
 import { playerLevel } from '../lib/xp';
 import { ask } from '../components/Dialog';
+import { HomeTabs } from './Home';
 
 export function History() {
   const game = useGame();
-  if (game.status === 'loading') return <Loading />;
+  if (game.status === 'loading') return <><HomeTabs active="history" /><Loading /></>;
   if (game.status === 'error') return <LoadError error={game.error} />;
   const { workouts, sets } = game.data;
   const volume = sets.reduce((n, s) => (s.is_warmup ? n : n + setVolume(s)), 0);
   const firstDate = workouts.length ? workouts[workouts.length - 1].date : null;
   return (
     <>
-      <h2>Verlauf</h2>
+      <HomeTabs active="history" />
+      <h2 className="sr-only">Verlauf</h2>
       {workouts.length > 0 && (
         <div className="tiles" id="history-summary">
           <div className="tile"><span className="tile-value">{workouts.length}</span><span className="tile-label">Trainings{firstDate ? ` seit ${fmtDate(firstDate, false)}` : ''}</span></div>

@@ -22,8 +22,8 @@ import { periodSummary, todayISO, type StatsPeriod } from '../lib/stats';
 import { APP_VERSION } from '../version';
 import { notify } from '../components/Dialog';
 
-export function HomeTabs({ active }: { active: 'mine' | 'friends' }) {
-  const tab = (id: 'mine' | 'friends', href: string, label: string) => (
+export function HomeTabs({ active }: { active: 'mine' | 'history' | 'friends' }) {
+  const tab = (id: 'mine' | 'history' | 'friends', href: string, label: string) => (
     <a className={`seg-tab${active === id ? ' active' : ''}`} href={href} role="tab" aria-selected={active === id}>
       {label}
     </a>
@@ -31,6 +31,7 @@ export function HomeTabs({ active }: { active: 'mine' | 'friends' }) {
   return (
     <nav className="seg" role="tablist" aria-label="Feed">
       {tab('mine', '#/', 'Mein Feed')}
+      {tab('history', '#/verlauf', 'Verlauf')}
       {tab('friends', '#/feed/freunde', 'Freunde')}
     </nav>
   );
