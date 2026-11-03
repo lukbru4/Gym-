@@ -244,12 +244,14 @@ export interface GymState {
   /** gebaute Teile (b_…) */
   build: string[];
   wall: WallStyle; floor: FloorStyle;
+  /** Look der 2. Etage (selbst gewählt) */
+  wall2: WallStyle; floor2: FloorStyle;
   people: GymPerson[];
   /** beim Umstieg geschenkt (Geräte aus Steinen, Kisten-Deko, Bauteile der alten Ausbaustufe) */
   legacy: string[];
   v: 2;
 }
-export const emptyGym = (): GymState => ({ name: '', objects: [], build: [], wall: 'beton', floor: 'fliesen', people: [], legacy: [], v: 2 });
+export const emptyGym = (): GymState => ({ name: '', objects: [], build: [], wall: 'beton', floor: 'fliesen', wall2: 'beton', floor2: 'fliesen', people: [], legacy: [], v: 2 });
 export const MAX_NAME = 24;
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -263,8 +265,9 @@ export function cleanGym(raw: unknown, owned: Set<string>, room?: GymTier): GymS
   const built = ids(r.build, (x) => BUILD_BY_ID.has(x));
   const build = built.filter((b) => (BUILD_BY_ID.get(b)!.needs ?? []).every((n) => built.includes(n)));
   const tier = room ?? roomFor(build);
-  const wall: WallStyle = r.wall === 'brick' || r.wall === 'wood' || r.wall === 'dark' ? r.wall : 'beton';
-  const floor: FloorStyle = r.floor === 'rubber' || r.floor === 'wood' ? r.floor : 'fliesen';
+  const wallOf = (v: unknown): WallStyle => (v === 'brick' || v === 'wood' || v === 'dark' ? v : 'beton');
+  const floorOf = (v: unknown): FloorStyle => (v === 'rubber' || v === 'wood' ? v : 'fliesen');
+  const wall = wallOf(r.wall), floor = floorOf(r.floor), wall2 = wallOf(r.wall2), floor2 = floorOf(r.floor2);
   const seen = new Set<string>();
   const objects: GymObject[] = [];
   for (const o of Array.isArray(r.objects) ? r.objects : []) {
@@ -294,7 +297,7 @@ export function cleanGym(raw: unknown, owned: Set<string>, room?: GymTier): GymS
     people.push({ who, id: id.slice(0, 40), ...(typeof pn === 'string' ? { name: pn.slice(0, 30) } : {}), ...(lv ? { level: 1 as const } : {}) });
     if (people.length >= 20) break;
   }
-  return { name, objects, build, wall, floor, people, legacy, v: 2 };
+  return { name, objects, build, wall, floor, wall2, floor2, people, legacy, v: 2 };
 }
 
 /**
@@ -347,6 +350,34 @@ export function addLocalBuy(uid: string, id: string, price: number) {
   }
 }
 export const localSpent = (uid: string) => localBuys(uid).reduce((s, b) => s + b.price, 0);
+
+/** Alles, was mit dem Abbau von id wegfällt (das Teil selbst und alles, was darauf aufbaut) */
+export function unbuildList(build: string[], id: string): string[] {
+  const gone = new Set([id]);
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const b of build) if (!gone.has(b) && (BUILD_BY_ID.get(b)?.needs ?? []).some((n) => gone.has(n))) { gone.add(b); changed = true; }
+  }
+  return build.filter((b) => gone.has(b));
+}
+/** Teil abbauen: Abhängiges fällt mit weg; ohne 2. Etage kommt deren Einrichtung ins Lager, Leute gehen runter; zu viel fürs Erdgeschoss → Lager */
+export function unbuild(state: GymState, id: string): GymState {
+  const gone = new Set(unbuildList(state.build, id));
+  const build = state.build.filter((b) => !gone.has(b));
+  const tier = roomFor(build);
+  const objects = (tier.empore ? state.objects : state.objects.filter((o) => o.level === 0)).slice(0, tier.max);
+  const people = state.people.map((p) => (tier.empore ? p : { who: p.who, id: p.id, ...(p.name ? { name: p.name } : {}) }));
+  const styleGone = (w: string) => gone.has(`b_style_${w}`);
+  return {
+    ...state, build, objects, people,
+    wall: styleGone(state.wall) || !build.includes('b_wall_back') ? 'beton' : state.wall,
+    wall2: styleGone(state.wall2) || !build.includes('b_wall_back') ? 'beton' : state.wall2,
+    floor: gone.has(`b_floor_${state.floor}`) ? 'fliesen' : state.floor,
+    floor2: gone.has(`b_floor_${state.floor2}`) ? 'fliesen' : state.floor2,
+  };
+}
+/** Alles zurücksetzen: leerer Boden, alles im Lager, Leute heim – Besitz (legacy, Käufe) bleibt */
+export const resetGym = (state: GymState): GymState => ({ ...emptyGym(), name: state.name, legacy: state.legacy });
 
 /** Alte Aufstellung (12 feste Plätze in 3 Reihen) in freie Positionen umrechnen */
 export function fromSlots(layout: (string | null)[]): GymObject[] {

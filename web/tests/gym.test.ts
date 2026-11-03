@@ -33,7 +33,7 @@ describe('Mein Gym', () => {
 import { readFileSync } from 'node:fs';
 import {
   firstNameOf, gymNameIdeas, ALL_DECO, BUILD_ITEMS, canBuild, chestsEarned, cleanGym, CHEST_DECO, DECO_SHOP, emptyGym, fromSlots, HANGING,
-  MACHINE_PRICE, machineShopId, migrateGym, NPCS, ownedFrom, placeNew, roomFor, TIERS,
+  MACHINE_PRICE, machineShopId, migrateGym, NPCS, ownedFrom, placeNew, resetGym, roomFor, TIERS, unbuild, unbuildList,
 } from '../src/lib/gym';
 
 describe('Neues Gym: vom Boden zum Studio', () => {
@@ -74,6 +74,29 @@ describe('Neues Gym: vom Boden zum Studio', () => {
   test('Geräte: Größe 0,6–1,8 und gerade Ansicht', () => {
     const g = cleanGym({ v: 2, objects: [{ id: 'bench', x: 10, y: 10, level: 0, size: 5, straight: true }, { id: 'pullup', x: 1, y: 1, level: 0, size: 'x' }, { id: 'dip', x: 1, y: 1, level: 0, size: 1.25 }] }, new Set(['bench', 'pullup', 'dip']));
     expect(g.objects.map((o) => [o.size, o.straight])).toEqual([[1.8, true], [undefined, undefined], [1.25, undefined]]);
+  });
+  test('Abbauen: Abhängiges fällt mit weg, 2. Etage räumt ins Lager, Leute gehen runter', () => {
+    const build = ['b_wall_back', 'b_wall_sides', 'b_window_1', 'b_window_2', 'b_style_brick', 'b_size_m', 'b_floor2', 'b_lights'];
+    expect(unbuildList(build, 'b_window_1')).toEqual(['b_window_1', 'b_window_2']);
+    expect(unbuildList(build, 'b_wall_back').sort()).toEqual(['b_floor2', 'b_style_brick', 'b_wall_back', 'b_wall_sides', 'b_window_1', 'b_window_2'].sort());
+    const g = cleanGym({ v: 2, build, wall: 'brick', wall2: 'brick', floor2: 'wood', objects: [{ id: 'bench', x: 1, y: 1, level: 0 }, { id: 'pullup', x: 1, y: 1, level: 1 }],
+      people: [{ who: 'me', id: 'me', level: 1 }] }, new Set(['bench', 'pullup']));
+    const a = unbuild(g, 'b_wall_back');
+    expect(a.build).toEqual(['b_size_m', 'b_lights']);
+    expect(a.objects.map((o) => o.id)).toEqual(['bench']);
+    expect(a.people).toEqual([{ who: 'me', id: 'me' }]);
+    expect([a.wall, a.wall2, a.floor2]).toEqual(['beton', 'beton', 'wood']);
+    expect(unbuild(g, 'b_lights').objects).toHaveLength(2);
+  });
+  test('Zurücksetzen: leerer Boden, Name und Geschenktes bleiben', () => {
+    const g = cleanGym({ v: 2, name: 'Iron', build: ['b_wall_back'], legacy: ['bench'], objects: [{ id: 'bench', x: 1, y: 1, level: 0 }], people: [{ who: 'me', id: 'me' }] }, new Set(['bench']));
+    expect(resetGym(g)).toEqual({ ...emptyGym(), name: 'Iron', legacy: ['bench'] });
+  });
+  test('2. Etage: eigener Look wird geprüft', () => {
+    const g = cleanGym({ v: 2, wall2: 'wood', floor2: 'rubber' }, new Set());
+    expect([g.wall2, g.floor2]).toEqual(['wood', 'rubber']);
+    expect([cleanGym({ wall2: 'lava', floor2: 7 }, new Set()).wall2, cleanGym({ floor2: 7 }, new Set()).floor2]).toEqual(['beton', 'fliesen']);
+    expect(sql).toMatch(/'wall2', w2, 'floor2', f2/);
   });
   test('Neues Objekt landet auf der gewählten Etage', () => {
     expect(placeNew(emptyGym(), 'bench', 1).objects[0].level).toBe(1);

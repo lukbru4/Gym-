@@ -2338,3 +2338,6 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .gym-selbtns { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; width: 100%; }
 .gym-selbtns input[type="range"] { flex: 1 1 100px; min-width: 80px; }
 .gym-floors { margin-top: 0; }
+.build-card .link-danger { background: none; border: 0; color: #e03131; text-decoration: underline; padding: 2px 0; font-size: 0.78rem; }
+.build-card.danger-card { border-color: color-mix(in srgb, #e03131 45%, var(--border)); }
+.gym-placed { display: grid; gap: 4px; justify-items: center; }

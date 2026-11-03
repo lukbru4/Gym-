@@ -68,7 +68,7 @@ export function GymRoom({ gym, tier, floor = 0, edit = false, selected, onSelect
   const objects = gym.objects.filter((o) => o.level === lv);
   const people = gym.people.filter((p) => (p.level ?? 0) === lv);
   return (
-    <div ref={ref} className={`gym-room size-${tier.id}${edit ? ' editing' : ''}`} id={id} data-built={gym.build.join(' ')} data-floor={lv}
+    <div ref={ref} className={`gym-room size-${tier.id}${edit ? ' editing' : ''}`} id={id} data-built={gym.build.join(' ')} data-floor={lv} data-wall={lv ? gym.wall2 : gym.wall} data-floorstyle={lv ? gym.floor2 : gym.floor}
       onPointerMove={(e) => { if (drag.current && onMove) onMove(drag.current, toPos(e)); }}
       onPointerUp={() => { drag.current = null; }}
       onPointerCancel={() => { drag.current = null; }}
@@ -108,9 +108,11 @@ function RoomBackdrop({ gym, upper }: { gym: GymState; upper: boolean }) {
   const back = has('b_wall_back'), sides = has('b_wall_sides');
   const windows = [1, 2, 3, 4].filter((i) => has(`b_window_${i}`)).length;
   const label = (gym.name || 'MEIN GYM').toUpperCase();
-  const [w0, w1] = WALL[gym.wall] ?? WALL.beton;
-  const floorFill = gym.floor === 'wood' ? ['#c99a62', '#a87444'] : gym.floor === 'rubber' ? ['#2b2e33', '#1c1e22'] : ['#c9ccd1', '#a9adb3'];
-  const lineCol = gym.floor === 'wood' ? '#8a5a32' : gym.floor === 'rubber' ? '#3a3e44' : '#9399a1';
+  // 2. Etage: eigener Look (wall2/floor2)
+  const wall = upper ? gym.wall2 : gym.wall, floorSt = upper ? gym.floor2 : gym.floor;
+  const [w0, w1] = WALL[wall] ?? WALL.beton;
+  const floorFill = floorSt === 'wood' ? ['#c99a62', '#a87444'] : floorSt === 'rubber' ? ['#2b2e33', '#1c1e22'] : ['#c9ccd1', '#a9adb3'];
+  const lineCol = floorSt === 'wood' ? '#8a5a32' : floorSt === 'rubber' ? '#3a3e44' : '#9399a1';
   return (
     <svg className="gym-room-bg" viewBox="0 0 400 360" preserveAspectRatio="none" aria-hidden="true">
       <defs>
@@ -127,9 +129,9 @@ function RoomBackdrop({ gym, upper }: { gym: GymState; upper: boolean }) {
       {back && (
         <g className="gym-wall-back">
           <rect x={sides ? 0 : 40} y="0" width={sides ? 400 : 320} height="130" fill="url(#gwall)" />
-          {gym.wall === 'brick' && Array.from({ length: 13 }, (_, row) => Array.from({ length: 21 }, (_, i) => <rect key={`${row}-${i}`} x={(sides ? 0 : 40) + i * 20 + (row % 2) * 10 - 10} y={row * 10} width="19" height="9" fill={['#8e3b2a', '#9c4431', '#82352a', '#a14c36'][(row * 7 + i * 3) & 3]} />))}
-          {gym.wall === 'wood' && Array.from({ length: 21 }, (_, i) => <line key={i} x1={(sides ? 0 : 40) + i * 19} y1="0" x2={(sides ? 0 : 40) + i * 19} y2="130" stroke="#6b4423" strokeWidth="1.5" />)}
-          {gym.wall === 'dark' && <rect x={sides ? 0 : 40} y="118" width={sides ? 400 : 320} height="3" fill="#e8222f" opacity="0.8" />}
+          {wall === 'brick' && Array.from({ length: 13 }, (_, row) => Array.from({ length: 21 }, (_, i) => <rect key={`${row}-${i}`} x={(sides ? 0 : 40) + i * 20 + (row % 2) * 10 - 10} y={row * 10} width="19" height="9" fill={['#8e3b2a', '#9c4431', '#82352a', '#a14c36'][(row * 7 + i * 3) & 3]} />))}
+          {wall === 'wood' && Array.from({ length: 21 }, (_, i) => <line key={i} x1={(sides ? 0 : 40) + i * 19} y1="0" x2={(sides ? 0 : 40) + i * 19} y2="130" stroke="#6b4423" strokeWidth="1.5" />)}
+          {wall === 'dark' && <rect x={sides ? 0 : 40} y="118" width={sides ? 400 : 320} height="3" fill="#e8222f" opacity="0.8" />}
           {WINDOW_X.slice(0, windows).map((x) => <g key={x} className="gym-window"><rect x={x} y="22" width="46" height="50" rx="3" fill="url(#gsky)" stroke="#1a1d21" strokeWidth="4" /><line x1={x + 23} y1="22" x2={x + 23} y2="72" stroke="#1a1d21" strokeWidth="3" /></g>)}
           {has('b_mirror') && <g className="gym-mirror"><rect x="160" y="44" width="80" height="80" rx="3" fill="url(#gmirror)" stroke="#8f9aa5" strokeWidth="2" /><path d="M172 50 L190 50 L166 118 L160 118 Z" fill="#fff" opacity="0.14" /></g>}
           <text x="200" y="32" textAnchor="middle" fill="#fff" stroke="#e8222f" strokeWidth="1.2" fontSize={label.length > 16 ? 14 : 18} fontWeight="900" fontStyle="italic" fontFamily="sans-serif" style={{ filter: 'drop-shadow(0 0 4px #e8222f)' }}>{label}</text>
@@ -141,7 +143,7 @@ function RoomBackdrop({ gym, upper }: { gym: GymState; upper: boolean }) {
       {/* Boden (immer da) */}
       <polygon points="40,130 360,130 400,170 400,360 0,360 0,170" fill="url(#gfloor)" />
       {back && <rect x="40" y="126" width="320" height="6" fill="#111316" opacity="0.8" />}
-      {gym.floor === 'wood'
+      {floorSt === 'wood'
         ? Array.from({ length: 13 }, (_, i) => <line key={i} x1={40 + i * 26.7} y1="132" x2={-200 + i * 66.7} y2="360" stroke={lineCol} strokeWidth="1.2" />)
         : [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => <line key={i} x1={40 + i * 40} y1="132" x2={-160 + i * 90} y2="360" stroke={lineCol} strokeWidth="1.2" />)}
       {[160, 200, 255, 320].map((y) => <line key={y} x1="0" y1={y} x2="400" y2={y} stroke={lineCol} strokeWidth="1.2" />)}

@@ -92,5 +92,45 @@ await page.click('#gym-floor-1');
 await page.locator('.gym-walker').first().waitFor({ timeout: 5000 }).catch(() => {});
 check((await page.locator('.gym-walker').count()) === 1, 'Figur ist nach Neuladen noch oben');
 check(credits0 - (await bal()) === 250 + 300 + 80 + 80 + 200 + 150 + 150 + 500 + 1500, 'Credits korrekt abgezogen');
+const credits1 = await bal();
+// Aus dem Lager direkt in die 2. Etage (früher landete es immer unten)
+await page.click('#gym-floor-0'); await page.click('#gym-edit');
+await page.locator('.gym-obj[data-obj="bench"] canvas').click({ force: true }); await page.click('#gym-store');
+await page.click('#gym-floor-1'); await page.click('[data-put="bench"]');
+check((await room.getAttribute('data-floor')) === '1' && (await page.locator('.gym-obj[data-obj="bench"]').count()) === 1, 'Aus dem Lager in die 2. Etage gestellt');
+await page.click('#gym-done');
+// Reiter Geräte: Nach oben / unten ohne Einrichten
+await page.click('[data-tab="geraete"]');
+check((await page.locator('[data-machine="bench"] .gym-placed').innerText()).includes('2. Etage'), 'Geräte-Reiter zeigt: steht in der 2. Etage');
+await page.click('[data-move-floor="bench"]');
+check((await page.locator('[data-move-floor="bench"]').innerText()).includes('Nach oben') && (await page.locator('.gym-obj[data-obj="bench"]').count()) === 0, '⬇️ Nach unten: Hantelbank wieder im Erdgeschoss');
+// eigener Look oben
+await page.click('[data-tab="bauen"]');
+await page.click('[data-use="b_style_brick"]');
+check((await room.getAttribute('data-wall')) === 'brick', 'Oben: Backstein angewendet');
+await page.click('#gym-floor-0');
+await page.click('[data-reset-style]');
+check((await room.getAttribute('data-wall')) === 'beton', 'Unten: Standard-Beton');
+await page.click('#gym-floor-1');
+check((await room.getAttribute('data-wall')) === 'brick', 'Oben bleibt Backstein (eigener Look je Etage)');
+await page.locator('#gym-zoom').screenshot({ path: `${SHOTS}/gym-etage2-look.png` });
+// Abbauen mit Sicherheitsfrage, gratis wieder aufbauen
+await page.click('[data-unbuild="b_wall_sides"]');
+check((await page.locator('#dialog-msg').innerText()).includes('wieder aufbauen kostet nichts'), 'Sicherheitsfrage vor dem Abbauen');
+await page.click('#dialog-cancel');
+check((await room.getAttribute('data-built')).includes('b_wall_sides'), 'Abbrechen: Seitenwände bleiben');
+await page.click('[data-unbuild="b_wall_sides"]'); await page.click('#dialog-ok'); await page.waitForTimeout(200);
+check(!(await room.getAttribute('data-built')).includes('b_wall_sides'), 'Seitenwände abgebaut');
+check((await page.locator('[data-buy="b_wall_sides"]').innerText()) === 'Bauen (gratis)', 'Wieder bauen: gratis');
+await page.click('[data-buy="b_wall_sides"]'); await page.waitForTimeout(200);
+check((await room.getAttribute('data-built')).includes('b_wall_sides') && (await bal()) === credits1, 'Seitenwände wieder da, keine Credits abgezogen');
+// Alles zurücksetzen: nur mit „ABBAUEN“
+await page.click('#gym-reset');
+check(await page.locator('#dialog-ok').isDisabled(), 'Zurücksetzen erst nach Eintippen von ABBAUEN');
+await page.fill('#dialog-input', 'abbauen'); await page.click('#dialog-ok'); await page.waitForTimeout(250);
+check((await room.getAttribute('data-built')) === '' && (await page.locator('.gym-obj').count()) === 0 && (await page.locator('#gym-floor-1').count()) === 0, 'Zurückgesetzt: leerer Boden, keine 2. Etage');
+check((await bal()) === credits1 && (await page.locator('[data-buy="b_wall_back"]').innerText()) === 'Bauen (gratis)', 'Credits unverändert, Gekauftes bleibt (gratis neu bauen)');
+await page.click('[data-tab="geraete"]');
+check((await page.locator('[data-place="bench"]').count()) === 1, 'Hantelbank liegt im Lager');
 check(page.errors.length === 0, 'Keine Seitenfehler ' + page.errors.join(' | '));
 await b.close();

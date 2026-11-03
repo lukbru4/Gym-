@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
 import { Loading } from '../components/Bits';
-import { ask, notify } from '../components/Dialog';
+import { ask, askText, notify } from '../components/Dialog';
 import { DecoArt } from '../components/DecoArt';
 import { GymRoom, lookOf, nameOf } from '../components/GymRoom';
 import { BlockFigure } from '../components/GymPeople';
@@ -16,7 +16,7 @@ import { addGymLog } from '../lib/activity';
 import { todayISO } from '../lib/stats';
 import {
   addLocalBuy, BUILD_ITEMS, canBuild, cleanGym, DECO_BY_ID, DECO_SHOP, firstNameOf, GYM_ITEMS, gymNameIdeas, hitsFrom, loadGymLocal,
-  localBuys, localSpent, MACHINE_PRICE, machineShopId, MAX_NAME, migrateGym, ownedFrom, placeNew, roomFor, SIZE_MAX, SIZE_MIN,
+  localBuys, localSpent, MACHINE_PRICE, machineShopId, MAX_NAME, migrateGym, ownedFrom, placeNew, resetGym, roomFor, SIZE_MAX, SIZE_MIN, unbuild, unbuildList,
   saveGymLocal, seenCount, VIEW_NAMES, type BuildItem, type FloorStyle, type GymPerson, type GymRot, type GymState, type WallStyle,
 } from '../lib/gym';
 import { isOffensive } from '../lib/moderation';
@@ -101,7 +101,6 @@ export function Gym() {
   const ownedMachines = GYM_ITEMS.filter((m) => owned.has(m.id));
   const ownedDeco = [...DECO_BY_ID.values()].filter((d) => owned.has(d.id) && !['gym_bag', 'gym_lamp', 'gym_rings'].includes(d.id));
   const storage = [...ownedMachines.map((m) => m.id), ...ownedDeco.map((d) => d.id)].filter((id) => !placed.has(id));
-  const full = gym.objects.length >= room.max;
   const floor: 0 | 1 = room.empore ? floorSel : 0;
   const ideas = gymNameIdeas(ideaSeed, { firstName: firstNameOf(displayName(api, user)), focus, tier: room.id }, isOffensive);
 
@@ -139,10 +138,32 @@ export function Gym() {
       void save(next);
     }
   };
+  // Stile (Wand/Boden) gelten für die gerade offene Etage
   const build = (b: BuildItem) => buy(b.id, b.name, b.price, (g) => ({
     ...g, build: g.build.includes(b.id) ? g.build : [...g.build, b.id],
-    wall: WALL_OF[b.id] ?? g.wall, floor: FLOOR_OF[b.id] ?? g.floor,
+    ...(floor === 1
+      ? { wall2: WALL_OF[b.id] ?? g.wall2, floor2: FLOOR_OF[b.id] ?? g.floor2 }
+      : { wall: WALL_OF[b.id] ?? g.wall, floor: FLOOR_OF[b.id] ?? g.floor }),
   }));
+  const nameB = (id: string) => BUILD_ITEMS.find((x) => x.id === id)?.name ?? id;
+  /** Teil abbauen – mit Sicherheitsabfrage; Abhängiges fällt mit weg, Besitz bleibt */
+  const tearDown = async (b: BuildItem) => {
+    const also = unbuildList(gym.build, b.id).filter((x) => x !== b.id);
+    const up = gym.build.includes('b_floor2') && (b.id === 'b_floor2' || also.includes('b_floor2')) && gym.objects.some((o) => o.level === 1);
+    const msg = `„${b.name}“ abbauen?${also.length ? ` Dabei fällt auch weg: ${also.map(nameB).join(', ')}.` : ''}${up ? ' Alles aus der 2. Etage kommt ins Lager.' : ''} Du behältst alles Gekaufte – wieder aufbauen kostet nichts.`;
+    if (!(await ask(msg, { title: 'Wirklich abbauen?', ok: 'Abbauen', danger: true }))) return;
+    if (also.includes('b_floor2') || b.id === 'b_floor2') setFloor(0);
+    addGymLog(uid, todayISO(), `${b.name} abgebaut`);
+    void save(unbuild(gym, b.id));
+  };
+  const resetAll = async () => {
+    const t = await askText('Damit baust du alles ab: Wände, Fenster, Böden, Fläche und 2. Etage. Alle Geräte und Deko kommen ins Lager, alle Leute gehen heim. Gekauftes bleibt dir – Credits gibt es aber nicht zurück. Tippe ABBAUEN zum Bestätigen.', { title: 'Gym komplett zurücksetzen?', ok: 'Zurücksetzen', danger: true, requireText: 'ABBAUEN', placeholder: 'ABBAUEN' });
+    if (t === null) return;
+    setFloor(0); setSel(null);
+    addGymLog(uid, todayISO(), 'Gym komplett zurückgesetzt');
+    void save(resetGym(gym));
+  };
+  const moveFloor = (id: string) => void save({ ...gym, objects: gym.objects.map((o) => (o.id === id ? { ...o, level: o.level ? 0 : 1 } : o)) });
   /** Person ins Gym holen (auf eine Etage) oder heimschicken (level null) */
   const setPerson = (who: GymPerson['who'], id: string, name: string | undefined, level: 0 | 1 | null) => {
     const rest = gym.people.filter((p) => !(p.who === who && p.id === id));
@@ -157,6 +178,16 @@ export function Gym() {
     ...friends.map((f) => ({ who: 'friend' as const, id: f.user_id, name: f.display_name, text: 'Freund – kommt gratis vorbei.' })),
   ];
 
+  const PlacedInfo = ({ id }: { id: string }) => {
+    const o = gym.objects.find((x) => x.id === id)!;
+    if (!room.empore) return <span className="muted small">✓ Steht im Gym</span>;
+    return (
+      <span className="gym-placed">
+        <span className="muted small">✓ {o.level ? '2. Etage' : 'Erdgeschoss'}</span>
+        <button type="button" className="btn small-btn" data-move-floor={id} onClick={() => moveFloor(id)}>{o.level ? '⬇️ Nach unten' : '⬆️ Nach oben'}</button>
+      </span>
+    );
+  };
   const room2 = (
     <GymRoom gym={gym} tier={room} floor={floor} edit={edit} selected={sel} onSelect={setSel} onOpen={(id, rot) => setLook({ id, rot: rot as GymRot })}
       onMove={(id, pos) => setGym({ ...gym, objects: gym.objects.map((o) => (o.id === id ? { ...o, ...pos } : o)) })} />
@@ -202,6 +233,7 @@ export function Gym() {
           ))}
         </div>
       )}
+      {floor === 1 && !gym.objects.some((o) => o.level === 1) && <p className="notice small" id="gym-floor-empty">Die 2. Etage ist noch leer – stell Geräte über „Geräte“ hierher (Aufstellen) oder hol sie mit „⬆️ Nach oben“ aus dem Erdgeschoss.</p>}
       {edit ? room2 : <ZoomPan id="gym-zoom" label="Gym">{room2}</ZoomPan>}
       {!edit && nextBuild && <p className="small gym-next" id="gym-next">Nächster Bau-Schritt: <strong>{nextBuild.name}</strong> für {fmt(nextBuild.price, 0)} Credits</p>}
 
@@ -220,6 +252,10 @@ export function Gym() {
                 <button type="button" className="btn small-btn" id="gym-bigger" aria-label="Größer" disabled={(selObj.size ?? 1) >= SIZE_MAX} onClick={() => updSel({ size: Math.min(SIZE_MAX, Math.round(((selObj.size ?? 1) + 0.1) * 10) / 10) })}>+</button>
                 {room.empore && <button type="button" className="btn small-btn" id="gym-move-floor" onClick={() => { updSel({ level: selObj.level ? 0 : 1 }); setSel(null); }}>{selObj.level ? '⬇️ Ins Erdgeschoss' : '⬆️ In die 2. Etage'}</button>}
                 <button type="button" className="btn small-btn" id="gym-store" onClick={() => { setGym({ ...gym, objects: gym.objects.filter((o) => o.id !== sel) }); setSel(null); }}>Ins Lager</button>
+                <button type="button" className="btn small-btn danger" id="gym-store-floor" onClick={async () => {
+                  if (!(await ask(`Alles ${floor ? 'aus der 2. Etage' : 'aus dem Erdgeschoss'} ins Lager räumen?`, { title: 'Alles wegräumen?', ok: 'Ins Lager', danger: true }))) return;
+                  setGym({ ...gym, objects: gym.objects.filter((o) => o.level !== floor) }); setSel(null);
+                }}>Alles hier ins Lager</button>
               </div>
             </div>
           )}
@@ -229,7 +265,7 @@ export function Gym() {
               {storage.map((id) => {
                 const m = GYM_ITEMS.find((i) => i.id === id), d = DECO_BY_ID.get(id);
                 return (
-                  <button key={id} type="button" className="gym-card" data-put={id} onClick={() => { if (full) return void put(id); setGym(placeNew(gym, id)); }}>
+                  <button key={id} type="button" className="gym-card" data-put={id} onClick={() => setGym(put(id))}>
                     {m ? <MachineArt pattern={m.pattern} height={60} /> : d ? <DecoArt item={d} height={60} /> : null}
                     <span>{nameOf(id)}</span>
                   </button>
@@ -251,23 +287,31 @@ export function Gym() {
           {BUILD_ITEMS.map((b) => {
             const built = gym.build.includes(b.id), can = canBuild(b, gym.build), have = owned.has(b.id);
             const style = WALL_OF[b.id] ?? FLOOR_OF[b.id];
-            const active = WALL_OF[b.id] ? gym.wall === WALL_OF[b.id] : FLOOR_OF[b.id] ? gym.floor === FLOOR_OF[b.id] : built;
+            const curWall = floor ? gym.wall2 : gym.wall, curFloor = floor ? gym.floor2 : gym.floor;
+            const active = WALL_OF[b.id] ? curWall === WALL_OF[b.id] : FLOOR_OF[b.id] ? curFloor === FLOOR_OF[b.id] : built;
             return (
               <div key={b.id} className={`gym-card build-card${built ? ' built' : ''}${can ? '' : ' locked'}`} data-build={b.id}>
                 <span className="build-icon" aria-hidden="true">{{ wand: '🧱', fenster: '🪟', licht: '💡', boden: '⬛', flaeche: '📐', stock: '🏗️' }[b.group]}</span>
                 <strong>{b.name}</strong>
                 <small>{b.text}</small>
                 {!can ? <span className="muted small">🔒 erst {b.needs!.filter((n) => !gym.build.includes(n)).map((n) => BUILD_ITEMS.find((x) => x.id === n)?.name).join(', ')}</span>
-                  : style && have ? <button type="button" className="btn small-btn" data-use={b.id} disabled={active} onClick={() => void build(b)}>{active ? '✓ Aktiv' : 'Anwenden'}</button>
+                  : style && have ? <button type="button" className="btn small-btn" data-use={b.id} disabled={active} onClick={() => void build(b)}>{active ? `✓ Aktiv${room.empore ? (floor ? ' oben' : ' unten') : ''}` : room.empore ? (floor ? 'Oben anwenden' : 'Unten anwenden') : 'Anwenden'}</button>
                     : built ? <span className="muted small">✓ Gebaut</span>
-                      : <button type="button" className="btn small-btn primary" data-buy={b.id} disabled={busy !== ''} onClick={() => void build(b)}>{have ? 'Bauen' : `${fmt(b.price, 0)} 🪙`}</button>}
+                      : <button type="button" className="btn small-btn primary" data-buy={b.id} disabled={busy !== ''} onClick={() => void build(b)}>{have ? 'Bauen (gratis)' : `${fmt(b.price, 0)} 🪙`}</button>}
+                {built && <button type="button" className="btn small-btn link-danger" data-unbuild={b.id} onClick={() => void tearDown(b)}>Abbauen</button>}
               </div>
             );
           })}
-          {(gym.wall !== 'beton' || gym.floor !== 'fliesen') && (
+          {((floor ? gym.wall2 : gym.wall) !== 'beton' || (floor ? gym.floor2 : gym.floor) !== 'fliesen') && (
             <div className="gym-card build-card">
-              <span className="build-icon" aria-hidden="true">↩️</span><strong>Standard</strong><small>Beton-Wände und Fliesenboden</small>
-              <button type="button" className="btn small-btn" data-reset-style onClick={() => void save({ ...gym, wall: 'beton', floor: 'fliesen' })}>Anwenden</button>
+              <span className="build-icon" aria-hidden="true">↩️</span><strong>Standard{room.empore ? (floor ? ' (oben)' : ' (unten)') : ''}</strong><small>Beton-Wände und Fliesenboden</small>
+              <button type="button" className="btn small-btn" data-reset-style onClick={() => void save(floor ? { ...gym, wall2: 'beton', floor2: 'fliesen' } : { ...gym, wall: 'beton', floor: 'fliesen' })}>Anwenden</button>
+            </div>
+          )}
+          {gym.build.length > 0 && (
+            <div className="gym-card build-card danger-card">
+              <span className="build-icon" aria-hidden="true">🧨</span><strong>Gym zurücksetzen</strong><small>Alles abbauen, Geräte ins Lager – Gekauftes bleibt dir.</small>
+              <button type="button" className="btn small-btn danger" id="gym-reset" onClick={() => void resetAll()}>Zurücksetzen</button>
             </div>
           )}
         </div>
@@ -282,8 +326,8 @@ export function Gym() {
                 <button type="button" className="gym-card-art" aria-label={`${m.name} ansehen`} onClick={() => setLook({ id: m.id, rot: 0 })}><MachineArt pattern={m.pattern} height={64} /></button>
                 <span>{m.name}</span>
                 <span className={`rarity r-${m.rarity} small`}>{RARITY_LABEL[m.rarity]}</span>
-                {have ? (placed.has(m.id) ? <span className="muted small">✓ Steht im Gym</span>
-                  : <button type="button" className="btn small-btn" data-place={m.id} onClick={() => void save(put(m.id))}>Aufstellen</button>)
+                {have ? (placed.has(m.id) ? <PlacedInfo id={m.id} />
+                  : <button type="button" className="btn small-btn" data-place={m.id} onClick={() => void save(put(m.id))}>{room.empore && floor ? 'Aufstellen (2. Etage)' : 'Aufstellen'}</button>)
                   : <button type="button" className="btn small-btn primary" data-buy={machineShopId(m.id)} disabled={busy !== ''} onClick={() => void buy(machineShopId(m.id), m.name, price, (g) => put(m.id, g))}>{fmt(price, 0)} 🪙</button>}
               </div>
             );
@@ -327,8 +371,8 @@ export function Gym() {
               <div key={d.id} className="gym-card" data-deco={d.id}>
                 <DecoArt item={d} height={64} />
                 <span>{d.name}</span>
-                {have ? (placed.has(d.id) ? <span className="muted small">✓ Steht im Gym</span>
-                  : <button type="button" className="btn small-btn" data-place={d.id} onClick={() => void save(put(d.id))}>Aufstellen</button>)
+                {have ? (placed.has(d.id) ? <PlacedInfo id={d.id} />
+                  : <button type="button" className="btn small-btn" data-place={d.id} onClick={() => void save(put(d.id))}>{room.empore && floor ? 'Aufstellen (2. Etage)' : 'Aufstellen'}</button>)
                   : <button type="button" className="btn small-btn primary" data-buy={d.id} disabled={busy !== ''} onClick={() => void buy(d.id, d.name, d.price, (g) => put(d.id, g))}>{fmt(d.price, 0)} 🪙</button>}
               </div>
             );
@@ -347,6 +391,8 @@ export function Gym() {
               <li><strong>Geräte:</strong> Alle Geräte kaufst du mit Credits – je seltener, desto teurer ({fmt(MACHINE_PRICE['gewöhnlich'], 0)} bis {fmt(MACHINE_PRICE['legendär'], 0)} Credits).</li>
               <li><strong>Leute:</strong> Hol dich selbst und deine Freunde ins Gym – sie laufen herum, machen Sätze und reden.</li>
               <li><strong>Einrichten:</strong> Verschieben (auch ganz nach hinten), drehen, gerade oder 3D, größer/kleiner, ins Lager räumen und deinem Gym einen Namen geben.</li>
+              <li><strong>2. Etage:</strong> Oben umschalten, dann „Aufstellen“ – oder bei Geräten „⬆️ Nach oben“. Wände und Boden wählst du oben selbst.</li>
+              <li><strong>Abbauen:</strong> Jedes gebaute Teil lässt sich wieder abbauen (mit Sicherheitsfrage) und gratis neu bauen. Ganz unten bei „Bauen“ kannst du alles zurücksetzen.</li>
             </ol>
             <p className="muted small">Deine Freunde sehen dein Gym in deinem Profil.</p>
             <button type="button" className="btn primary block" id="gym-help-close" onClick={() => setHelp(false)}>Verstanden</button>

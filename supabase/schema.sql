@@ -3319,7 +3319,7 @@ $rt$;
 alter table public.profiles add column if not exists gym jsonb;
 
 alter table public.shop_items drop constraint if exists shop_items_kind_check;
-alter table public.shop_items add constraint shop_items_kind_check check (kind in ('skin', 'scheme', 'accessory', 'title', 'gymdeco'));
+alter table public.shop_items add constraint shop_items_kind_check check (kind in ('skin', 'scheme', 'accessory', 'title', 'gymdeco', 'gympart', 'gymmachine', 'gymnpc'));
 -- Gym-Deko (Preise müssen zu web/src/lib/gym.ts DECO_SHOP passen)
 insert into public.shop_items (id, kind, name, price) values
   ('gym_sign_cali', 'gymdeco', 'Schild „Calisthenics-Bereich“', 150),
@@ -3483,7 +3483,46 @@ drop function if exists public.set_my_adventure(jsonb);
 alter table public.profiles drop column if exists adventure;
 
 -- ===========================================================================
+-- Datenbank-Update 67: 2. Etage mit eigenem Look (wall2/floor2) – set_my_gym speichert sie mit (nur erlaubte Werte)
+-- ===========================================================================
+create or replace function public.set_my_gym(p_gym jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  w text := coalesce(p_gym->>'wall', 'beton');
+  f text := coalesce(p_gym->>'floor', 'fliesen');
+  w2 text := coalesce(p_gym->>'wall2', 'beton');
+  f2 text := coalesce(p_gym->>'floor2', 'fliesen');
+begin
+  if auth.uid() is null then raise exception 'Bitte melde dich an.'; end if;
+  if p_gym is null or jsonb_typeof(p_gym) <> 'object' or length(p_gym::text) > 12000 then raise exception 'Ungültige Gym-Daten.'; end if;
+  if jsonb_typeof(coalesce(p_gym->'objects', '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_gym->'objects', '[]'::jsonb)) > 80 then
+    raise exception 'Zu viele Objekte im Gym.';
+  end if;
+  if jsonb_typeof(coalesce(p_gym->'build', '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_gym->'build', '[]'::jsonb)) > 40
+     or jsonb_typeof(coalesce(p_gym->'people', '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_gym->'people', '[]'::jsonb)) > 20
+     or jsonb_typeof(coalesce(p_gym->'legacy', '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_gym->'legacy', '[]'::jsonb)) > 120 then
+    raise exception 'Ungültige Gym-Daten.';
+  end if;
+  if char_length(coalesce(p_gym->>'name', '')) > 24 then raise exception 'Der Gym-Name ist zu lang (höchstens 24 Zeichen).'; end if;
+  if public.is_offensive(coalesce(p_gym->>'name', '')) then raise exception 'Bitte wähle einen freundlichen Namen.'; end if;
+  if w not in ('beton', 'brick', 'wood', 'dark') then w := 'beton'; end if;
+  if w2 not in ('beton', 'brick', 'wood', 'dark') then w2 := 'beton'; end if;
+  if f not in ('fliesen', 'rubber', 'wood') then f := 'fliesen'; end if;
+  if f2 not in ('fliesen', 'rubber', 'wood') then f2 := 'fliesen'; end if;
+  perform public.my_profile(); -- legt das Profil an, falls es fehlt
+  update public.profiles set gym = jsonb_build_object(
+      'name', coalesce(p_gym->>'name', ''), 'objects', coalesce(p_gym->'objects', '[]'::jsonb),
+      'build', coalesce(p_gym->'build', '[]'::jsonb), 'people', coalesce(p_gym->'people', '[]'::jsonb),
+      'legacy', coalesce(p_gym->'legacy', '[]'::jsonb),
+      'wall', w, 'floor', f, 'wall2', w2, 'floor2', f2, 'v', 2)
+   where id = auth.uid();
+end;
+$$;
+revoke all on function public.set_my_gym(jsonb) from public, anon;
+grant execute on function public.set_my_gym(jsonb) to authenticated;
+
+-- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 66 $$;
+returns integer language sql immutable set search_path = '' as $$ select 67 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;
