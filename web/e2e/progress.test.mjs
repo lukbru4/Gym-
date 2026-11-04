@@ -66,37 +66,49 @@ await page.waitForFunction(() => document.querySelectorAll('.photo-thumb img').l
 check(true, 'Zwei Fotos in der Zeitleiste');
 check((await page.locator('.photo-month h3').allTextContents()).some((t) => t.toLowerCase().includes('september 2026')), 'Galerie-Foto steht im September');
 check((await page.locator('.photo-thumb .photo-meta').allInnerTexts()).some((t) => t.includes('Seitlich')), 'Pose wird angezeigt');
+// Vorher/Nachher nur mit gleicher Pose an verschiedenen Tagen: September „Vorne“ + heute „Seitlich“ reicht nicht
+check(await page.locator('#photo-compare').count() === 0 && (await page.locator('#compare-hint').innerText()).includes('derselben Pose'), 'Verschiedene Posen: kein Vergleich, Hinweis');
+// heute noch ein „Vorne“-Foto (grün) aus der Galerie
+await page.setInputFiles('#photo-file', [{ name: 'IMG_0003.jpg', mimeType: 'image/jpeg', buffer: await img('#2b8a3e', 'HEUTE') }]);
+await page.locator('#photo-review').waitFor();
+await page.selectOption('[data-review-pose="0"]', 'front');
+await page.click('#review-save'); await page.locator('#photo-review').waitFor({ state: 'detached' });
+await page.waitForFunction(() => document.querySelectorAll('.photo-thumb img').length === 3);
 await page.click('#photo-compare');
 await page.locator('#photo-compare-view img').first().waitFor();
 check(await page.locator('#photo-compare-view img').count() === 2, 'Vorher / Nachher übereinander');
+check((await page.locator('#photo-compare-view').innerText()).includes('Pose: Vorne'), 'Verglichen wird die Pose „Vorne“');
+const afterOpts = await page.locator('[data-compare="1"] option').count(), beforeOpts = await page.locator('[data-compare="0"] option').count();
+check(afterOpts === 1 && beforeOpts === 1, 'Auswahl nur Fotos derselben Pose, „Nachher“ später als „Vorher“');
 await page.fill('#compare-slider', '30');
 check((await page.locator('.compare-before').getAttribute('style')).includes('70%'), 'Schieberegler blendet über');
 const colorAt = (x) => page.locator('.compare-stage').evaluate(async (el, xx) => {
   const imgs = el.querySelectorAll('img'); const after = imgs[0], before = imgs[1];
-  const pick = (im) => { const c = document.createElement('canvas'); c.width = 4; c.height = 4; const g = c.getContext('2d'); g.drawImage(im, 0, 0, 4, 4); return g.getImageData(1, 1, 1, 1).data[2] > 120 ? 'blau' : 'rot'; };
+  const pick = (im) => { const c = document.createElement('canvas'); c.width = 4; c.height = 4; const g = c.getContext('2d'); g.drawImage(im, 0, 0, 4, 4); const d = g.getImageData(1, 1, 1, 1).data; return d[0] > 150 ? 'rot' : d[1] > 100 ? 'grün' : 'blau'; };
   return xx < 50 ? pick(before) : pick(after);
 }, x);
-check((await colorAt(10)) === 'rot' && (await colorAt(90)) === 'blau', 'Vorher = erstes Foto (rot), Nachher = zweites (blau)');
+check((await colorAt(10)) === 'rot' && (await colorAt(90)) === 'grün', 'Vorher = September „Vorne“ (rot), Nachher = heute „Vorne“ (grün), das seitliche Foto nicht');
+check((await page.locator('#compare-diff').innerText()).match(/\d+ Tage dazwischen/), 'Tage dazwischen');
 await page.locator('#photo-compare-view').screenshot({ path: `${SHOTS}/vergleich.png` });
 // Großansicht + Löschen mit Abfrage
 await page.locator('.photo-thumb').first().click();
 await page.click('#photo-delete');
 await page.click('#dialog-cancel');
-check(await page.locator('.photo-thumb').count() === 2, 'Abbrechen: Foto bleibt');
+check(await page.locator('.photo-thumb').count() === 3, 'Abbrechen: Foto bleibt');
 await page.click('#photo-delete'); await page.click('#dialog-ok');
-await page.waitForFunction(() => document.querySelectorAll('.photo-thumb').length === 1);
-check(true, 'Foto gelöscht');
+await page.waitForFunction(() => document.querySelectorAll('.photo-thumb').length === 2);
+check(await page.locator('#photo-compare-view').count() === 0 && await page.locator('#photo-compare').count() === 0, 'Foto gelöscht – Vergleich nicht mehr möglich');
 // bleibt nach Neuladen (IndexedDB)
 await page.reload(); await page.locator('#recap').waitFor();
 // Aktivitäten
 await page.locator('#recap-acts').waitFor();
 if (await page.locator('#recap-acts-more').count()) await page.click('#recap-acts-more');
 const acts = await page.locator('#recap-acts').innerText();
-check(acts.includes('📷') && acts.includes('Fortschritts-Foto (Seitlich)') && !acts.includes('(Vorne)'), 'Aktivitäten: heutiges Foto diese Woche, das alte Galerie-Foto (September) nicht');
+check(acts.includes('📷') && acts.includes('Fortschritts-Foto (Seitlich)'), 'Aktivitäten: Fortschritts-Fotos von heute');
 check(await page.locator('#photo-invite').count() === 0, 'Einladung verschwindet nach dem ersten Foto');
 await go(page, '#/fotos'); await page.locator('#photos').waitFor();
-await page.waitForFunction(() => document.querySelectorAll('.photo-thumb img').length === 1);
-check(true, 'Foto bleibt nach Neuladen');
+await page.waitForFunction(() => document.querySelectorAll('.photo-thumb img').length === 2);
+check(true, 'Fotos bleiben nach Neuladen');
 // Kalender
 await go(page, '#/profil'); await page.locator('#calendar').waitFor();
 // übrig ist das Galerie-Foto vom 01.09. → im Kalender zum September blättern

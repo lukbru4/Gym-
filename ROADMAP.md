@@ -189,6 +189,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 143: Eigene Seite „Fotos & Maße“ (#/fotos) – erreichbar über Menü, Körper-Seite, Profil-Kachel und Einladung auf der Startseite; klarer Hinweis mit Anleitung, wenn Datenbank-Update 68 fehlt (Knöpfe gesperrt statt unverständlicher Fehler)
 - [x] Schritt 144: Startseite aufgeräumt – „Letztes Training“ + „Alle Trainings ansehen“ unten entfernt (steht im Reiter Verlauf), nur noch ein Woche/Monat/Jahr-Schalter oben für Rückblick und Statistik
 - [x] Schritt 145: Studio smarter – Scheibenrechner (im Training bei Langhantel-Übungen und unter Ränge → Rechner, Stange/Scheiben einstellbar, gezeichnete Stange), „🔥 Aufwärmen“ plant Aufwärmsätze bis zum Arbeitsgewicht, Supersätze (A1/A2, Pause erst nach der Runde, „weiter mit …“, bleibt in Vorlagen); Gewichtsvorschlag (+2,5 kg) war schon da
+- [x] Schritt 146: Vorher/Nachher vergleicht nur Fotos derselben Pose an verschiedenen Tagen (Pose-Umschalter, „Nachher“ immer später als „Vorher“, Hinweis wenn noch kein passendes Paar da ist)
 - [ ] Später: iPhone-Widget „Heute nehmen“ – braucht eine WidgetKit-Erweiterung (Swift) in Xcode auf einem Mac; Daten aus der App über eine App Group teilen
 - [ ] Ideen fürs Gym: Gym von Freunden anfeuern, Boden- und Wandfarben aus dem Shop
 - [ ] Echte Push-Nachrichten von Freunden, wenn die App zu ist (braucht Apple-Push-Schlüssel / Firebase, **Lukas**: Apple-Developer-Konto)

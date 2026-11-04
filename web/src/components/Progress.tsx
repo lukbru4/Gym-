@@ -8,7 +8,7 @@ import { addGymLog } from '../lib/activity';
 import { fmt, fmtDate, fmtShortDate } from '../lib/format';
 import { toMaxJpeg } from '../lib/image';
 import { photoDate } from '../lib/photoDate';
-import { cleanMeasure, hasValues, latestValues, measureSummary, measureTrend, MEASURES, POSES, poseName, type Measure, type MeasureKey, type Pose, type ProgressPhoto } from '../lib/measures';
+import { cleanMeasure, comparablePoses, defaultPair, hasValues, latestValues, measureSummary, measureTrend, MEASURES, POSES, poseName, type Measure, type MeasureKey, type Pose, type ProgressPhoto } from '../lib/measures';
 import { todayISO } from '../lib/stats';
 import type { BodyWeight } from '../lib/types';
 import { isMissingSchema, type FriendPhoto } from '../data/progress';
@@ -202,11 +202,10 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
     for (const p of [...list].reverse()) g.set(monthOf(p.date), [...(g.get(monthOf(p.date)) ?? []), p]);
     return [...g.entries()];
   }, [list]);
+  const comparable = comparablePoses(list);
   const startCompare = () => {
-    if (list.length < 2) return;
-    const last = list[list.length - 1];
-    const first = list.find((p) => p.pose === last.pose && p.id !== last.id) ?? list[0];
-    setCmp([first.id, last.id]);
+    const pair = comparable.length ? defaultPair(list, comparable[0]) : null;
+    if (pair) setCmp(pair);
   };
   return (
     <section id="photos">
@@ -230,7 +229,8 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
         </div>
         <p className="muted small">Aus der Galerie kannst du mehrere Fotos auf einmal wählen – sie bekommen automatisch ihr Aufnahmedatum, das du vor dem Speichern prüfen kannst. Tipp: gleiches Licht, gleicher Ort, gleiche Pose.{canShare ? ' Bitte keine Nacktfotos – Freunde können Fotos melden.' : ''}</p>
       </div>
-      {list.length >= 2 && !cmp && <button type="button" className="btn block" id="photo-compare" onClick={startCompare}>↔️ Vorher / Nachher vergleichen</button>}
+      {comparable.length > 0 && !cmp && <button type="button" className="btn block" id="photo-compare" onClick={startCompare}>↔️ Vorher / Nachher vergleichen</button>}
+      {list.length > 0 && comparable.length === 0 && <p className="muted small" id="compare-hint">↔️ Für Vorher / Nachher brauchst du zwei Fotos mit <strong>derselben Pose</strong> an <strong>verschiedenen Tagen</strong> – z. B. heute „Vorne“ und in ein paar Wochen wieder „Vorne“.</p>}
       {cmp && <Compare photos={list} urls={urls} pair={cmp} onPair={setCmp} onClose={() => setCmp(null)} weights={weights} measures={measures.status === 'ok' ? measures.data : []} />}
       {list.length === 0 && <p className="muted small" id="photo-empty">Noch keine Fotos. Mach heute dein erstes – in ein paar Wochen wirst du froh sein!</p>}
       {groups.map(([month, ps]) => (
@@ -305,8 +305,13 @@ function Compare({ photos, urls, pair, onPair, onClose, weights, measures }: {
   const [pos, setPos] = useState(50);
   const a = photos.find((p) => p.id === pair[0]), b = photos.find((p) => p.id === pair[1]);
   if (!a || !b) return null;
-  // Reihenfolge wie in der Liste (nach Datum, am selben Tag nach Aufnahme)
-  const [before, after] = photos.indexOf(a) <= photos.indexOf(b) ? [a, b] : [b, a];
+  // nur gleiche Pose, „Nachher“ mindestens einen Tag nach „Vorher“
+  const [before, after] = a.date <= b.date ? [a, b] : [b, a];
+  const poses = comparablePoses(photos);
+  const same = photos.filter((p) => p.pose === before.pose).sort((x, y) => x.date.localeCompare(y.date));
+  const lastDate = same[same.length - 1].date;
+  const beforeOpts = same.filter((p) => p.date < lastDate);
+  const afterOpts = same.filter((p) => p.date > before.date);
   const near = <T extends { date: string }>(rows: T[], d: string) => [...rows].filter((r) => r.date <= d).sort((x, y) => y.date.localeCompare(x.date))[0] ?? [...rows].sort((x, y) => x.date.localeCompare(y.date))[0];
   const w0 = near(weights, before.date), w1 = near(weights, after.date);
   const diffs: string[] = [];
@@ -317,15 +322,26 @@ function Compare({ photos, urls, pair, onPair, onClose, weights, measures }: {
     if (typeof x === 'number' && typeof y === 'number' && x !== y) diffs.push(`${d.name} ${signed(Math.round((y - x) * 10) / 10, d.unit)}`);
   }
   const days = Math.round((Date.parse(after.date) - Date.parse(before.date)) / 864e5);
-  const pick = (i: 0 | 1, id: string) => onPair(i === 0 ? [id, pair[1]] : [pair[0], id]);
+  const pick = (i: 0 | 1, id: string) => {
+    if (i === 1) return onPair([before.id, id]);
+    const nb = photos.find((p) => p.id === id)!;
+    // „Nachher“ muss später sein – sonst das neueste Foto der Pose nehmen
+    onPair([id, after.date > nb.date ? after.id : same[same.length - 1].id]);
+  };
   return (
     <div className="card photo-compare" id="photo-compare-view">
       <div className="block-head"><h3>Vorher / Nachher</h3><button type="button" className="icon-btn" aria-label="Vergleich schließen" onClick={onClose}>✕</button></div>
+      {poses.length > 1 && (
+        <div className="seg seg-small" role="group" aria-label="Pose vergleichen">
+          {poses.map((p) => <button key={p} type="button" className={`seg-tab${before.pose === p ? ' active' : ''}`} aria-pressed={before.pose === p} data-compare-pose={p} onClick={() => { const d = defaultPair(photos, p); if (d) onPair(d); }}>{poseName(p)}</button>)}
+        </div>
+      )}
+      <p className="muted small">Pose: <strong>{poseName(before.pose)}</strong> – verglichen werden nur Fotos mit derselben Pose von verschiedenen Tagen.</p>
       <div className="row pair">
         {([0, 1] as const).map((i) => (
           <label key={i} className="grow small">{i ? 'Nachher' : 'Vorher'}
-            <select data-compare={i} value={pair[i]} onChange={(e) => pick(i, e.target.value)}>
-              {photos.map((p) => <option key={p.id} value={p.id}>{fmtDate(p.date)} · {poseName(p.pose)}</option>)}
+            <select data-compare={i} value={i ? after.id : before.id} onChange={(e) => pick(i, e.target.value)}>
+              {(i ? afterOpts : beforeOpts).map((p) => <option key={p.id} value={p.id}>{fmtDate(p.date)}</option>)}
             </select>
           </label>
         ))}

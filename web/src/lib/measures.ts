@@ -55,3 +55,18 @@ export const POSES: { id: Pose; name: string }[] = [{ id: 'front', name: 'Vorne'
 export const poseName = (p: string) => POSES.find((x) => x.id === p)?.name ?? 'Sonstiges';
 export interface ProgressPhoto { id: string; date: ISODate; pose: Pose; shared: boolean }
 export const MAX_PHOTOS = 300;
+
+// ---- Vorher/Nachher: nur gleiche Pose, mindestens einen Tag auseinander --------------------------
+/** Posen, für die es Fotos an mindestens zwei verschiedenen Tagen gibt (neueste Pose zuerst) */
+export function comparablePoses(list: ProgressPhoto[]): Pose[] {
+  const days = new Map<Pose, Set<string>>();
+  for (const p of list) days.set(p.pose, (days.get(p.pose) ?? new Set()).add(p.date));
+  const latest = (pose: Pose) => [...list].filter((p) => p.pose === pose).map((p) => p.date).sort().pop() ?? '';
+  return [...days.entries()].filter(([, d]) => d.size >= 2).map(([pose]) => pose).sort((a, b) => latest(b).localeCompare(latest(a)));
+}
+/** Standard-Paar einer Pose: erstes und neuestes Foto (verschiedene Tage) */
+export function defaultPair(list: ProgressPhoto[], pose: Pose): [string, string] | null {
+  const ps = list.filter((p) => p.pose === pose).sort((a, b) => a.date.localeCompare(b.date));
+  if (ps.length < 2 || ps[0].date === ps[ps.length - 1].date) return null;
+  return [ps[0].id, ps[ps.length - 1].id];
+}

@@ -61,3 +61,15 @@ test('Fehlendes Datenbank-Update wird erkannt', () => {
   expect(isMissingSchema(new Error('Failed to fetch'))).toBe(false);
   expect(isMissingSchema(null)).toBe(false);
 });
+
+import { comparablePoses, defaultPair } from '../src/lib/measures';
+test('Vorher/Nachher nur mit gleicher Pose und an verschiedenen Tagen', () => {
+  const ph = (id: string, date: string, pose: 'front' | 'side') => ({ id, date, pose, shared: false });
+  expect(comparablePoses([ph('a', '2026-11-01', 'front'), ph('b', '2026-11-01', 'front')])).toEqual([]);
+  expect(comparablePoses([ph('a', '2026-10-01', 'front'), ph('b', '2026-11-01', 'side')])).toEqual([]);
+  const list = [ph('a', '2026-09-01', 'front'), ph('b', '2026-10-01', 'side'), ph('c', '2026-10-02', 'front'), ph('d', '2026-11-03', 'side'), ph('e', '2026-11-03', 'side')];
+  expect(comparablePoses(list)).toEqual(['side', 'front']);
+  expect(defaultPair(list, 'front')).toEqual(['a', 'c']);
+  expect(defaultPair(list, 'side')).toEqual(['b', 'e']);
+  expect(defaultPair([ph('x', '2026-11-03', 'front'), ph('y', '2026-11-03', 'front')], 'front')).toBeNull();
+});
