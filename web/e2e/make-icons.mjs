@@ -1,13 +1,14 @@
-// Erzeugt alle App-Symbole (Web, iOS, Android) aus public/icon.svg (weiße Haiflosse auf Schwarz). Aufruf: node make-icons.mjs
+// Erzeugt alle App-Symbole (Web, iOS, Android) aus public/icon-master.png (Umriss des Handtuchs aus dem Foto, weiß auf Schwarz). Aufruf: node make-icons.mjs
 import { readFileSync } from 'node:fs';
 import { launch } from './lib.mjs';
-const svg = readFileSync('../public/icon.svg', 'utf8');
-const sized = (s) => svg.replace('<svg ', `<svg width="${s}" height="${s}" style="display:block" `);
+const src = `data:image/png;base64,${readFileSync('../public/icon-master.png').toString('base64')}`;
+const sized = (s) => `<img src="${src}" width="${s}" height="${s}" style="display:block">`;
 const b = await launch();
 const page = await b.newPage({ deviceScaleFactor: 1 });
 const shot = async (file, s, html, transparent = false) => {
   await page.setViewportSize({ width: s, height: s });
   await page.setContent(`<html><body style="margin:0;background:${transparent ? 'transparent' : '#000'}">${html}</body></html>`);
+  await page.evaluate(() => Promise.all([...document.images].map((i) => i.decode())));
   await page.screenshot({ path: file, omitBackground: transparent, clip: { x: 0, y: 0, width: s, height: s } });
 };
 for (const [file, s] of [['../public/icon-512.png', 512], ['../public/icon-192.png', 192], ['../public/apple-touch-icon.png', 180], ['../public/favicon-64.png', 64],
