@@ -8,6 +8,7 @@ import { ask, askText, notify } from '../components/Dialog';
 import { DecoArt } from '../components/DecoArt';
 import { GymRoom, lookOf, nameOf } from '../components/GymRoom';
 import { BlockFigure } from '../components/GymPeople';
+import { MyCheers } from '../components/GymSocial';
 import { MachineArt, machineHeight } from '../components/MachineArt';
 import { ZoomPan } from '../components/ZoomPan';
 import { setCosmetics, useCosmetics } from '../lib/cosmetics';
@@ -235,6 +236,7 @@ export function Gym() {
       )}
       {floor === 1 && !gym.objects.some((o) => o.level === 1) && <p className="notice small" id="gym-floor-empty">Die 2. Etage ist noch leer – stell Geräte über „Geräte“ hierher (Aufstellen) oder hol sie mit „⬆️ Nach oben“ aus dem Erdgeschoss.</p>}
       {edit ? room2 : <ZoomPan id="gym-zoom" label="Gym">{room2}</ZoomPan>}
+      {!edit && <MyCheers />}
       {!edit && nextBuild && <p className="small gym-next" id="gym-next">Nächster Bau-Schritt: <strong>{nextBuild.name}</strong> für {fmt(nextBuild.price, 0)} Credits</p>}
 
       {edit && (

@@ -13,10 +13,12 @@ const FLOOR_TOP = 36; // Rückwand endet bei 36 % der Raumhöhe
 export const nameOf = (id: string) => MACHINE.get(id)?.name ?? DECO_BY_ID.get(id)?.name ?? id;
 export const rarityOf = (id: string) => MACHINE.get(id)?.rarity ?? (DECO_BY_ID.get(id)?.chest ? 'legendär' : 'gewöhnlich');
 
+/** Besucher-Figur (du im Gym eines Freundes, nur in deiner Ansicht) */
+export const VISITOR = '__visitor';
 /** Aussehen einer Person im Gym (Freunde bekommen je nach Name eine eigene Shirt-Farbe) */
 const FRIEND_SHIRTS = ['#0ca678', '#f76707', '#ae3ec9', '#1098ad', '#f03e3e', '#74b816'];
 export function lookOf(p: GymPerson): Look {
-  if (p.who === 'me') return ME_LOOK;
+  if (p.who === 'me' || p.id === VISITOR) return ME_LOOK;
   let h = 0;
   for (const ch of p.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const HAIR = ['#2b2b2b', '#6b4423', '#d9a441', '#8b5a2b', '#1b1b1b'], SKIN = ['#e8b996', '#f1c7a5', '#c68642', '#8d5524', '#f6d5b8'];
@@ -43,7 +45,8 @@ function widthOf(o: GymObject) {
 /** Pfeil: aus welcher Richtung man das Gerät gerade sieht */
 const VIEW_ARROWS = ['👁 vorne', '👁 links', '👁 hinten', '👁 rechts'];
 
-export function GymRoom({ gym, tier, floor = 0, edit = false, selected, onSelect, onMove, onOpen, meName, id = 'gym-room' }: {
+export function GymRoom({ gym, tier, floor = 0, edit = false, selected, onSelect, onMove, onOpen, meName, visitorName, id = 'gym-room' }: {
+  /** du läufst als Besucher mit (Gym eines Freundes) */ visitorName?: string;
   id?: string;
   gym: GymState; tier: GymTier; /** Name für „me“ (im Gym eines Freundes dessen Name) */ meName?: string; /** 0 Erdgeschoss, 1 zweite Etage */ floor?: 0 | 1; edit?: boolean; selected?: string | null; onOpen?: (id: string, rot: number) => void;
   onSelect?: (id: string | null) => void; onMove?: (id: string, pos: Pick<GymObject, 'x' | 'y'>) => void;
@@ -66,7 +69,7 @@ export function GymRoom({ gym, tier, floor = 0, edit = false, selected, onSelect
   };
   const lv = tier.empore ? floor : 0;
   const objects = gym.objects.filter((o) => o.level === lv);
-  const people = gym.people.filter((p) => (p.level ?? 0) === lv);
+  const people = [...gym.people.filter((p) => (p.level ?? 0) === lv), ...(visitorName && lv === 0 ? [{ who: 'friend' as const, id: VISITOR, name: visitorName }] : [])];
   return (
     <div ref={ref} className={`gym-room size-${tier.id}${edit ? ' editing' : ''}`} id={id} data-built={gym.build.join(' ')} data-floor={lv} data-wall={lv ? gym.wall2 : gym.wall} data-floorstyle={lv ? gym.floor2 : gym.floor}
       onPointerMove={(e) => { if (drag.current && onMove) onMove(drag.current, toPos(e)); }}

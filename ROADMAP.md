@@ -191,8 +191,8 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 145: Studio smarter – Scheibenrechner (im Training bei Langhantel-Übungen und unter Ränge → Rechner, Stange/Scheiben einstellbar, gezeichnete Stange), „🔥 Aufwärmen“ plant Aufwärmsätze bis zum Arbeitsgewicht, Supersätze (A1/A2, Pause erst nach der Runde, „weiter mit …“, bleibt in Vorlagen); Gewichtsvorschlag (+2,5 kg) war schon da
 - [x] Schritt 146: Vorher/Nachher vergleicht nur Fotos derselben Pose an verschiedenen Tagen (Pose-Umschalter, „Nachher“ immer später als „Vorher“, Hinweis wenn noch kein passendes Paar da ist)
 - [x] Schritt 147–150: Neues App-Symbol – Logo aus der Mitte des Fotos des Nutzers nachgezeichnet (Haispitze oben, Halbkreis unten), weiß auf Schwarz (Vektor public/icon.svg, alle Größen per e2e/make-icons.mjs: Web/PWA, Favicon, iOS 1024, Android inkl. rund und adaptiv)
+- [x] Schritt 151 (Datenbank-Update 69): Gym mit Freunden – Übersicht „Gyms der Freunde“ (#/gyms), beim Besuch läufst du als Figur mit, 🔥 Gym anfeuern (1× pro Tag, +5 Credits für den Freund, Mitteilung), 🎁 Credits schenken (10–200, max. 300/Tag, Nachricht mit Wortfilter, Mitteilung); Geschenke zählen nur fürs Guthaben, nicht für die Rangliste
 - [ ] Später: iPhone-Widget „Heute nehmen“ – braucht eine WidgetKit-Erweiterung (Swift) in Xcode auf einem Mac; Daten aus der App über eine App Group teilen
-- [ ] Ideen fürs Gym: Gym von Freunden anfeuern, Boden- und Wandfarben aus dem Shop
 - [ ] Echte Push-Nachrichten von Freunden, wenn die App zu ist (braucht Apple-Push-Schlüssel / Firebase, **Lukas**: Apple-Developer-Konto)
 - [ ] Foto-KI einrichten (**Lukas**): Funktion anlegen, Secrets `ANTHROPIC_API_KEY` und `FOOD_MODEL` eintragen (siehe supabase/functions/food-photo/README.md)
 - [x] Onboarding nach der Registrierung (Schritt 123) – Pro-Abo/Bezahlseite gibt es schon als Demo

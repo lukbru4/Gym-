@@ -89,6 +89,11 @@ export interface Social {
   uploadDishPhoto(dishId: string, blob: Blob): Promise<void>;
   /** Mein Gym: Aufstellung im Konto */
   myGym(): Promise<unknown>;
+  /** Gym mit Freunden: anfeuern (1× pro Tag), Statistik, Credits schenken, Gyms aller Freunde */
+  cheerGym(userId: string): Promise<boolean>;
+  cheerStats(userId: string): Promise<CheerStats | null>;
+  giftCredits(userId: string, amount: number, message: string): Promise<number>;
+  friendGyms(): Promise<FriendGym[]>;
   setMyGym(gym: { name: string; objects: unknown[] }): Promise<void>;
   /** Live-Signale (Supabase Realtime, privater Kanal „user:<id>“); liefert eine Abmelde-Funktion */
   subscribeLive(onSignal: (s: LiveSignal) => void): Promise<() => void>;
@@ -131,7 +136,9 @@ export interface Social {
 }
 
 export interface LiveSignal { kind: string; workout_id: number | null }
-export type NotificationKind = 'like' | 'comment' | 'friend_request' | 'friend_accepted' | 'challenge_invite' | 'challenge_accepted' | 'challenge_declined';
+export type NotificationKind = 'like' | 'comment' | 'friend_request' | 'friend_accepted' | 'challenge_invite' | 'challenge_accepted' | 'challenge_declined' | 'gym_cheer' | 'gift';
+export interface CheerStats { count: number; mine_today: boolean; recent: string[] }
+export interface FriendGym { user_id: string; display_name: string; gym: unknown; cheers: number; cheered_today: boolean }
 export interface AppNotification { kind: NotificationKind; at: string; actor: string; actor_name: string; workout_id: number | null; challenge_id: number | null; body: string | null; unread: boolean }
 export interface CatalogRow { id: string; kind: string; name: string; price: number; palette: CustomPalette | null }
 export interface AdminEntry { user_id: string; display_name: string | null; email: string | null; since: string; is_owner: boolean }
@@ -238,6 +245,10 @@ export function createSocial(supabase: SupabaseClient): Social {
       await rpc('set_dish_photo', { p_dish: dishId, p_on: true });
     },
     myGym: () => rpc('my_gym'),
+    cheerGym: (p_user) => rpc('cheer_gym', { p_user }),
+    cheerStats: (p_user) => rpc('gym_cheer_stats', { p_user }),
+    giftCredits: (p_user, p_amount, p_message) => rpc('gift_credits', { p_user, p_amount, p_message: p_message || null }),
+    friendGyms: () => rpc('friend_gyms'),
     setMyGym: async (p_gym) => {
       await rpc('set_my_gym', { p_gym });
     },

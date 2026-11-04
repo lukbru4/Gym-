@@ -82,6 +82,7 @@ export function Header({ game }: { game: Game | null }) {
       {open && (
         <div className="menu" id="menu" ref={menuRef}>
           <a href="#/gym" id="menu-gym">🏋️ Mein Gym</a>
+          {api.social && <a href="#/gyms" id="menu-gyms">👥 Gyms der Freunde</a>}
           <a href="#/supplements" id="menu-supps">💊 Supplements</a>
           <a href="#/fotos" id="menu-fotos">📷 Fotos & Maße</a>
           <a href="#/konto">Konto &amp; Einstellungen</a>

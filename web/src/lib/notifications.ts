@@ -49,6 +49,12 @@ export function describe(n: AppNotification): { text: string; href: string; icon
     case 'challenge_invite': return { icon: '⚔️', text: `${who} fordert dich heraus (${METRIC[n.body ?? ''] ?? 'Challenge'})`, href: '#/freunde' };
     case 'challenge_accepted': return { icon: '⚔️', text: `${who} hat deine Challenge angenommen – los geht’s!`, href: '#/freunde' };
     case 'challenge_declined': return { icon: '🏳️', text: `${who} hat deine Challenge abgelehnt`, href: '#/freunde' };
+    case 'gym_cheer': return { icon: '🔥', text: `${who} hat dein Gym angefeuert (+5 Credits)`, href: '#/gym' };
+    case 'gift': {
+      const [amount, ...msg] = (n.body ?? '').split('|');
+      const m = msg.join('|');
+      return { icon: '🎁', text: `${who} hat dir ${amount} Credits geschenkt${m ? `: „${m}“` : ''}`, href: '#/gym' };
+    }
   }
 }
 export function ago(at: string, now = Date.now()): string {

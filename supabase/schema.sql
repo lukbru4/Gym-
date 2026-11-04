@@ -3648,7 +3648,190 @@ create policy "progress-photos: eigenes löschen" on storage.objects for delete 
   using (bucket_id = 'progress-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ===========================================================================
+-- Datenbank-Update 69: Gym mit Freunden – anfeuern (1× pro Tag, +5 Credits) und Credits schenken.
+-- Die Rangliste (credits_total) bleibt unverändert; Geschenke und Anfeuer-Bonus zählen nur fürs Guthaben.
+-- ===========================================================================
+create table if not exists public.gym_cheers (
+  from_user  uuid not null references auth.users (id) on delete cascade,
+  to_user    uuid not null references auth.users (id) on delete cascade,
+  day        date not null default current_date,
+  created_at timestamptz not null default now(),
+  primary key (from_user, to_user, day),
+  check (from_user <> to_user)
+);
+create index if not exists gym_cheers_to on public.gym_cheers (to_user, created_at desc);
+create table if not exists public.credit_gifts (
+  id         bigint generated always as identity primary key,
+  from_user  uuid not null references auth.users (id) on delete cascade,
+  to_user    uuid not null references auth.users (id) on delete cascade,
+  amount     integer not null check (amount between 10 and 200),
+  message    text check (message is null or char_length(message) <= 80),
+  created_at timestamptz not null default now(),
+  check (from_user <> to_user)
+);
+create index if not exists credit_gifts_from on public.credit_gifts (from_user, created_at);
+create index if not exists credit_gifts_to on public.credit_gifts (to_user, created_at desc);
+alter table public.gym_cheers enable row level security;
+alter table public.credit_gifts enable row level security;
+-- direkt lesen/schreiben nicht erlaubt – nur über die Funktionen unten
+revoke all on public.gym_cheers, public.credit_gifts from anon, authenticated;
+
+-- Guthaben: verdient (wie Rangliste) + Geschenke + Anfeuer-Bonus − Käufe − verschenkt
+create or replace function public.credits_bonus(p_user uuid)
+returns integer language sql stable security definer set search_path = '' as $$
+  select coalesce((select sum(amount) from public.credit_gifts where to_user = p_user), 0)::int
+       + 5 * (select count(*) from public.gym_cheers where to_user = p_user)::int
+$$;
+create or replace function public.credits_given(p_user uuid)
+returns integer language sql stable security definer set search_path = '' as $$
+  select coalesce(sum(amount), 0)::int from public.credit_gifts where from_user = p_user
+$$;
+create or replace function public.wallet_balance(p_user uuid)
+returns integer language sql stable security definer set search_path = '' as $$
+  select public.credits_total(p_user) + public.credits_bonus(p_user) - public.credits_spent(p_user) - public.credits_given(p_user)
+$$;
+revoke all on function public.credits_bonus(uuid), public.credits_given(uuid), public.wallet_balance(uuid) from public, anon, authenticated;
+
+create or replace function public.my_wallet()
+returns table (earned integer, spent integer, balance integer)
+language sql stable security definer set search_path = '' as $$
+  select t.e, t.s, t.e - t.s
+  from (select public.credits_total(auth.uid()) + public.credits_bonus(auth.uid()) as e,
+               public.credits_spent(auth.uid()) + public.credits_given(auth.uid()) as s) t
+  where auth.uid() is not null
+$$;
+
+create or replace function public.buy_item(p_item text)
+returns integer language plpgsql security definer set search_path = '' as $$
+declare
+  me uuid := auth.uid();
+  item public.shop_items;
+  bal integer;
+begin
+  if me is null then raise exception 'nicht angemeldet'; end if;
+  if public.is_owner(me) then raise exception 'Als Besitzer hast du schon alles.'; end if;
+  perform pg_advisory_xact_lock(hashtext('shop:' || me::text));
+  select * into item from public.shop_items where id = p_item and active;
+  if not found then raise exception 'Diesen Artikel gibt es nicht.'; end if;
+  if exists (select 1 from public.purchases where user_id = me and item_id = p_item) then
+    raise exception 'Das hast du schon gekauft.';
+  end if;
+  bal := public.wallet_balance(me);
+  if bal < item.price then
+    raise exception 'Nicht genug Credits: Dir fehlen noch %.', item.price - bal;
+  end if;
+  insert into public.purchases (user_id, item_id, price) values (me, p_item, item.price);
+  return bal - item.price;
+end;
+$$;
+
+-- Gym eines Freundes anfeuern: 1× pro Tag und Freund
+create or replace function public.cheer_gym(p_user uuid)
+returns boolean language plpgsql security definer set search_path = '' as $$
+declare me uuid := auth.uid();
+begin
+  if me is null then raise exception 'Bitte melde dich an.'; end if;
+  if p_user is null or p_user = me then raise exception 'Dein eigenes Gym kannst du nicht anfeuern.'; end if;
+  if not public.are_friends(me, p_user) or public.is_blocked(me, p_user) then raise exception 'Nur Gyms von Freunden kannst du anfeuern.'; end if;
+  insert into public.gym_cheers (from_user, to_user, day) values (me, p_user, current_date) on conflict do nothing;
+  return found;
+end;
+$$;
+-- Anfeuern-Statistik eines Gyms (eigenes oder von Freunden): Anzahl, heute schon von mir?, letzte Besucher
+create or replace function public.gym_cheer_stats(p_user uuid)
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select case when auth.uid() is null or not (p_user = auth.uid() or (public.are_friends(auth.uid(), p_user) and not public.is_blocked(auth.uid(), p_user))) then null else
+    jsonb_build_object(
+      'count', (select count(*) from public.gym_cheers where to_user = p_user),
+      'mine_today', exists (select 1 from public.gym_cheers where to_user = p_user and from_user = auth.uid() and day = current_date),
+      'recent', coalesce((select jsonb_agg(x.name) from (
+          select coalesce(pr.display_name, 'Jemand') as name from public.gym_cheers g left join public.profiles pr on pr.id = g.from_user
+          where g.to_user = p_user and not public.is_blocked(auth.uid(), g.from_user) order by g.created_at desc limit 5) x), '[]'::jsonb))
+  end
+$$;
+-- Credits schenken: nur Freunden, 10–200, höchstens 300 pro Tag, nie mehr als das eigene Guthaben
+create or replace function public.gift_credits(p_user uuid, p_amount integer, p_message text)
+returns integer language plpgsql security definer set search_path = '' as $$
+declare
+  me uuid := auth.uid();
+  msg text := nullif(btrim(coalesce(p_message, '')), '');
+  bal integer; today integer;
+begin
+  if me is null then raise exception 'Bitte melde dich an.'; end if;
+  if p_user is null or p_user = me then raise exception 'Du kannst dir nicht selbst etwas schenken.'; end if;
+  if not public.are_friends(me, p_user) or public.is_blocked(me, p_user) then raise exception 'Credits kannst du nur Freunden schenken.'; end if;
+  if p_amount is null or p_amount < 10 or p_amount > 200 then raise exception 'Du kannst 10 bis 200 Credits auf einmal schenken.'; end if;
+  if msg is not null and (char_length(msg) > 80 or public.is_offensive(msg)) then raise exception 'Bitte schreib eine kurze, freundliche Nachricht.'; end if;
+  perform pg_advisory_xact_lock(hashtext('shop:' || me::text));
+  select coalesce(sum(amount), 0) into today from public.credit_gifts where from_user = me and created_at >= date_trunc('day', now());
+  if today + p_amount > 300 then raise exception 'Heute kannst du noch % Credits verschenken (höchstens 300 pro Tag).', greatest(0, 300 - today); end if;
+  bal := public.wallet_balance(me);
+  if bal < p_amount then raise exception 'Nicht genug Credits: Du hast %.', bal; end if;
+  insert into public.credit_gifts (from_user, to_user, amount, message) values (me, p_user, p_amount, msg);
+  return bal - p_amount;
+end;
+$$;
+-- Gyms aller Freunde (für die Übersicht „Gyms der Freunde“), ohne Trainingsdaten
+create or replace function public.friend_gyms()
+returns table (user_id uuid, display_name text, gym jsonb, cheers integer, cheered_today boolean)
+language sql stable security definer set search_path = '' as $$
+  select p.id, coalesce(p.display_name, 'Freund'), p.gym,
+         (select count(*) from public.gym_cheers g where g.to_user = p.id)::int,
+         exists (select 1 from public.gym_cheers g where g.to_user = p.id and g.from_user = auth.uid() and g.day = current_date)
+    from public.profiles p
+   where auth.uid() is not null and p.id <> auth.uid()
+     and public.are_friends(auth.uid(), p.id) and not public.is_blocked(auth.uid(), p.id)
+   order by lower(coalesce(p.display_name, ''))
+$$;
+revoke all on function public.cheer_gym(uuid), public.gym_cheer_stats(uuid), public.gift_credits(uuid, integer, text), public.friend_gyms() from public, anon;
+grant execute on function public.cheer_gym(uuid), public.gym_cheer_stats(uuid), public.gift_credits(uuid, integer, text), public.friend_gyms() to authenticated;
+
+-- Mitteilungen: Anfeuern und Geschenke dazu
+create or replace function public.my_notifications()
+returns table (kind text, at timestamptz, actor uuid, actor_name text, workout_id bigint, challenge_id bigint, body text, unread boolean)
+language sql stable security definer set search_path = '' as $$
+  with me as (select auth.uid() as id),
+  seen as (select coalesce((select p.notif_seen_at from public.profiles p where p.id = (select id from me)), '-infinity'::timestamptz) as t),
+  ev as (
+    select 'like'::text as kind, l.created_at as at, l.user_id as actor, w.id as workout_id, null::bigint as challenge_id, null::text as body
+      from public.likes l join public.workouts w on w.id = l.workout_id
+     where w.user_id = (select id from me) and l.user_id <> w.user_id
+    union all
+    select 'comment', c.created_at, c.user_id, w.id, null, left(c.body, 120)
+      from public.comments c join public.workouts w on w.id = c.workout_id
+     where w.user_id = (select id from me) and c.user_id <> w.user_id
+    union all
+    select 'friend_request', f.created_at, f.requester, null, null, null
+      from public.friendships f where f.addressee = (select id from me) and f.status = 'pending'
+    union all
+    select 'friend_accepted', f.accepted_at, f.addressee, null, null, null
+      from public.friendships f where f.requester = (select id from me) and f.status = 'accepted' and f.accepted_at is not null
+    union all
+    select 'challenge_invite', h.created_at, h.creator, null, h.id, h.metric
+      from public.challenges h where h.opponent = (select id from me) and h.status = 'pending'
+    union all
+    select case when h.status = 'active' then 'challenge_accepted' else 'challenge_declined' end, h.responded_at, h.opponent, null, h.id, h.metric
+      from public.challenges h where h.creator = (select id from me) and h.responded_at is not null
+    union all
+    select 'gym_cheer', g.created_at, g.from_user, null, null, null
+      from public.gym_cheers g where g.to_user = (select id from me)
+    union all
+    select 'gift', c.created_at, c.from_user, null, null, c.amount::text || '|' || coalesce(c.message, '')
+      from public.credit_gifts c where c.to_user = (select id from me)
+  )
+  select e.kind, e.at, e.actor, coalesce(p.display_name, 'Jemand'), e.workout_id, e.challenge_id, e.body, e.at > (select t from seen)
+    from ev e left join public.profiles p on p.id = e.actor
+   where (select id from me) is not null and e.at > now() - interval '30 days'
+     and not public.is_blocked((select id from me), e.actor)
+   order by e.at desc
+   limit 50
+$$;
+
+revoke all on function public.my_notifications() from public, anon;
+grant execute on function public.my_notifications() to authenticated;
+
+-- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 68 $$;
+returns integer language sql immutable set search_path = '' as $$ select 69 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

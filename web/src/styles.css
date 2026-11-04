@@ -2400,3 +2400,12 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .next-up { position: sticky; top: 60px; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; margin: 0 0 10px;
   border-radius: 12px; background: #7950f2; color: #fff; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
 .next-up .icon-btn { color: #fff; }
+
+/* Gym mit Freunden */
+.gym-social { display: grid; gap: 6px; margin-top: 8px; }
+.gym-my-cheers { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
+.friend-gyms { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.friend-gym-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; color: inherit; text-decoration: none; margin: 0; }
+.friend-gym-icon { font-size: 1.6rem; }
+.friend-gym-text small { display: block; }
+.friend-gym-cheers { font-weight: 800; }

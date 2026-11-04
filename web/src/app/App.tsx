@@ -21,6 +21,7 @@ import { Account, Backup } from '../pages/Account';
 import { Auth, SetNewPassword } from '../pages/Auth';
 import { Body } from '../pages/Body';
 import { ProgressPage } from '../pages/ProgressPage';
+import { FriendGyms } from '../pages/FriendGyms';
 import { Editor } from '../pages/Editor';
 import { Home } from '../pages/Home';
 import { AcceptInvite, FriendProfile, Friends, FriendsFeed } from '../pages/Friends';
@@ -85,6 +86,7 @@ const ROUTES: Route[] = [
   [/^#\/mitteilungen$/, () => <Notifications />],
   [/^#\/willkommen$/, () => <Welcome />],
   [/^#\/gym$/, () => <Gym />],
+  [/^#\/gyms$/, () => <FriendGyms />],
   [/^#\/supplements$/, () => <Supplements />],
   [/^#\/animationen$/, () => <Animations />],
   [/^#\/animationen\/gross$/, () => <Animations big />],
