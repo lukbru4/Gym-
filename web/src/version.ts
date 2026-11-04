@@ -1,3 +1,3 @@
 // Muss sich bei jeder Veröffentlichung ändern: Die App vergleicht sie mit version.json auf dem Server
 // und bietet dann ein Update an. version.json wird beim Build aus diesem Wert erzeugt (vite.config.ts).
-export const APP_VERSION = '2026-11-04 · 152 (Einstellungen im Konto gesichert)';
+export const APP_VERSION = '2026-11-04 · 153 (Körpergraph: Farbskala Gelb bis Lila repariert)';

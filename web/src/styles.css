@@ -1854,10 +1854,6 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .bodygraph.anat .muscle.lv-5 { fill: url(#mr-l5); stroke: #3d0c07; }
 .bodygraph.anat .muscle.focus-p { fill: url(#mr-l3); stroke: #7a241b; }
 .bodygraph.anat .muscle.focus-s { fill: url(#mr-l1); stroke: #a8665a; }
-.legend li:nth-child(1) .swatch { background: #ffffff !important; border-color: #bcaba0; }
-.legend li:nth-child(2) .swatch { background: #e49885 !important; } .legend li:nth-child(3) .swatch { background: #d06c57 !important; }
-.legend li:nth-child(4) .swatch { background: #b9402e !important; } .legend li:nth-child(5) .swatch { background: #981f13 !important; }
-.legend li:nth-child(6) .swatch { background: #6e170e !important; }
 .muscle-legend i.p { background: #b9402e; } .muscle-legend i.s { background: #e49885; }
 /* Muskel-Radar auf weißem Grund: dunkle Schrift, kräftige Fläche */
 .bodygraph-panel .radar .radar-labels { fill: #5d4a43; }
@@ -2409,3 +2405,6 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .friend-gym-icon { font-size: 1.6rem; }
 .friend-gym-text small { display: block; }
 .friend-gym-cheers { font-weight: 800; }
+
+/* Kraft-Legende: Farbfelder mit Verlauf hell → dunkel (Beginner Gelb … Ultra Lila) */
+.level-legend li .swatch { width: 18px; height: 18px; border-radius: 5px; }
