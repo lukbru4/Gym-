@@ -20,3 +20,11 @@ test('Mitteilungen: Anfeuern und Geschenk', () => {
   expect(describeNotif({ ...base, kind: 'gift', body: '50|Weiter so!' } as never).text).toBe('Tom hat dir 50 Credits geschenkt: „Weiter so!“');
   expect(describeNotif({ ...base, kind: 'gift', body: '25|' } as never).text).toBe('Tom hat dir 25 Credits geschenkt');
 });
+
+test('Datenbank 70: nur eigene Einstellungen, nicht im Freundesprofil', () => {
+  const sql = readFileSync(new URL('../../supabase/schema.sql', import.meta.url), 'utf8');
+  expect(sql).toMatch(/alter table public\.profiles add column if not exists settings jsonb/);
+  expect(sql).toMatch(/update public\.profiles set settings = p where id = auth\.uid\(\)/);
+  const fp = sql.slice(sql.lastIndexOf('create or replace function public.friend_profile'));
+  expect(fp.slice(0, fp.indexOf('$$;'))).not.toMatch(/settings/);
+});

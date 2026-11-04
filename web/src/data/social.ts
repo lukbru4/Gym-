@@ -89,6 +89,9 @@ export interface Social {
   uploadDishPhoto(dishId: string, blob: Blob): Promise<void>;
   /** Mein Gym: Aufstellung im Konto */
   myGym(): Promise<unknown>;
+  /** Einstellungen im Konto (nur für mich) */
+  mySettings(): Promise<unknown>;
+  setMySettings(s: Record<string, unknown>): Promise<void>;
   /** Gym mit Freunden: anfeuern (1× pro Tag), Statistik, Credits schenken, Gyms aller Freunde */
   cheerGym(userId: string): Promise<boolean>;
   cheerStats(userId: string): Promise<CheerStats | null>;
@@ -245,6 +248,8 @@ export function createSocial(supabase: SupabaseClient): Social {
       await rpc('set_dish_photo', { p_dish: dishId, p_on: true });
     },
     myGym: () => rpc('my_gym'),
+    mySettings: () => rpc('my_settings'),
+    setMySettings: (p) => rpc('set_my_settings', { p }),
     cheerGym: (p_user) => rpc('cheer_gym', { p_user }),
     cheerStats: (p_user) => rpc('gym_cheer_stats', { p_user }),
     giftCredits: (p_user, p_amount, p_message) => rpc('gift_credits', { p_user, p_amount, p_message: p_message || null }),

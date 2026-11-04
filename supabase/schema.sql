@@ -3831,7 +3831,30 @@ revoke all on function public.my_notifications() from public, anon;
 grant execute on function public.my_notifications() to authenticated;
 
 -- ===========================================================================
+-- Datenbank-Update 70: Einstellungen im Konto (Supplements, Erinnerungen, Trainingsplan, Ziele, Farben …),
+-- damit nach Neuinstallation oder auf einem neuen Gerät nichts neu eingerichtet werden muss. Nur für dich sichtbar.
+-- ===========================================================================
+alter table public.profiles add column if not exists settings jsonb not null default '{}'::jsonb;
+
+create or replace function public.my_settings()
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select coalesce((select p.settings from public.profiles p where p.id = auth.uid()), '{}'::jsonb)
+$$;
+create or replace function public.set_my_settings(p jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'Bitte melde dich an.'; end if;
+  if p is null or jsonb_typeof(p) <> 'object' then raise exception 'Ungültige Einstellungen.'; end if;
+  if (select count(*) from jsonb_object_keys(p)) > 200 or length(p::text) > 200000 then raise exception 'Zu viele Einstellungen.'; end if;
+  perform public.my_profile(); -- legt das Profil an, falls es fehlt
+  update public.profiles set settings = p where id = auth.uid();
+end;
+$$;
+revoke all on function public.my_settings(), public.set_my_settings(jsonb) from public, anon;
+grant execute on function public.my_settings(), public.set_my_settings(jsonb) to authenticated;
+
+-- ===========================================================================
 create or replace function public.schema_version()
-returns integer language sql immutable set search_path = '' as $$ select 69 $$;
+returns integer language sql immutable set search_path = '' as $$ select 70 $$;
 revoke all on function public.schema_version() from public, anon;
 grant execute on function public.schema_version() to authenticated;

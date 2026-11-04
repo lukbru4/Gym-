@@ -21,6 +21,7 @@ import { Account, Backup } from '../pages/Account';
 import { Auth, SetNewPassword } from '../pages/Auth';
 import { Body } from '../pages/Body';
 import { ProgressPage } from '../pages/ProgressPage';
+import { startCloudSettings } from '../lib/cloudSettings';
 import { FriendGyms } from '../pages/FriendGyms';
 import { Editor } from '../pages/Editor';
 import { Home } from '../pages/Home';
@@ -121,6 +122,8 @@ function Shell() {
     void applyReminders({ trainedToday: gameNow.workouts.some((w) => w.date === gameNow.today), weekDone: gameNow.weekDone, weekGoal: gameNow.weekGoal, pro: proState.pro, supps: loadSupps(uid), suppsTakenToday: loadTaken(uid)[gameNow.today] ?? [] });
   }, [gameNow, proState.pro, suppTick]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => void listenReminderTaps(navigate), []);
+  // Einstellungen im Konto sichern und auf neuem Gerät/nach Neuinstallation wiederherstellen (nur mit Konto)
+  useEffect(() => { void startCloudSettings(api.social ?? null, api.social && user ? user.id : null); }, [api, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Live: neue Kommentare, Anfeuern, Freundes-Trainings sofort anzeigen
   useLiveConnection(api.social);
   // Gekaufte/ausgerüstete Shop-Artikel einmal laden (fehlt das SQL noch, bleibt alles beim Standard)

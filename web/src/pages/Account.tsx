@@ -1,4 +1,5 @@
 // Konto & Einstellungen sowie Backup (nur lokaler Modus).
+import { SyncStatus } from '../components/SyncStatus';
 import { ReminderSettingsCard } from '../components/ReminderSettings';
 import { ask, askText } from '../components/Dialog';
 import { useState, type ChangeEvent, type ReactNode } from 'react';
@@ -227,6 +228,7 @@ export function Account({ section }: { section?: string }) {
             <p className="muted small">
               „Konto löschen“ entfernt dein Konto und alle deine Trainings, Vorlagen und Einträge endgültig vom Server.
             </p>
+            <SyncStatus />
           </>
         ) : (
           <>
