@@ -1,7 +1,7 @@
-// Erzeugt alle App-Symbole (Web, iOS, Android) aus public/icon-master.png (Umriss des Handtuchs aus dem Foto, weiß auf Schwarz). Aufruf: node make-icons.mjs
+// Erzeugt alle App-Symbole (Web, iOS, Android) aus public/icon.svg (Logo aus der Mitte des Fotos: Haispitze oben, Halbkreis unten – weiß auf Schwarz). Aufruf: node make-icons.mjs
 import { readFileSync } from 'node:fs';
 import { launch } from './lib.mjs';
-const src = `data:image/png;base64,${readFileSync('../public/icon-master.png').toString('base64')}`;
+const src = `data:image/svg+xml;base64,${readFileSync('../public/icon.svg').toString('base64')}`;
 const sized = (s) => `<img src="${src}" width="${s}" height="${s}" style="display:block">`;
 const b = await launch();
 const page = await b.newPage({ deviceScaleFactor: 1 });

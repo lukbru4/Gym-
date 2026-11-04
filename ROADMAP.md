@@ -190,7 +190,7 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
 - [x] Schritt 144: Startseite aufgeräumt – „Letztes Training“ + „Alle Trainings ansehen“ unten entfernt (steht im Reiter Verlauf), nur noch ein Woche/Monat/Jahr-Schalter oben für Rückblick und Statistik
 - [x] Schritt 145: Studio smarter – Scheibenrechner (im Training bei Langhantel-Übungen und unter Ränge → Rechner, Stange/Scheiben einstellbar, gezeichnete Stange), „🔥 Aufwärmen“ plant Aufwärmsätze bis zum Arbeitsgewicht, Supersätze (A1/A2, Pause erst nach der Runde, „weiter mit …“, bleibt in Vorlagen); Gewichtsvorschlag (+2,5 kg) war schon da
 - [x] Schritt 146: Vorher/Nachher vergleicht nur Fotos derselben Pose an verschiedenen Tagen (Pose-Umschalter, „Nachher“ immer später als „Vorher“, Hinweis wenn noch kein passendes Paar da ist)
-- [x] Schritt 147–149: Neues App-Symbol – Umriss des Handtuchs aus dem Foto des Nutzers, weiß mit den Löchern, außen schwarz (Quelle public/icon-master.png, alle Größen per e2e/make-icons.mjs: Web/PWA, Favicon, iOS 1024, Android inkl. rund und adaptiv)
+- [x] Schritt 147–150: Neues App-Symbol – Logo aus der Mitte des Fotos des Nutzers nachgezeichnet (Haispitze oben, Halbkreis unten), weiß auf Schwarz (Vektor public/icon.svg, alle Größen per e2e/make-icons.mjs: Web/PWA, Favicon, iOS 1024, Android inkl. rund und adaptiv)
 - [ ] Später: iPhone-Widget „Heute nehmen“ – braucht eine WidgetKit-Erweiterung (Swift) in Xcode auf einem Mac; Daten aus der App über eine App Group teilen
 - [ ] Ideen fürs Gym: Gym von Freunden anfeuern, Boden- und Wandfarben aus dem Shop
 - [ ] Echte Push-Nachrichten von Freunden, wenn die App zu ist (braucht Apple-Push-Schlüssel / Firebase, **Lukas**: Apple-Developer-Konto)

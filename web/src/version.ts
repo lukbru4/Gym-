@@ -1,3 +1,3 @@
 // Muss sich bei jeder Veröffentlichung ändern: Die App vergleicht sie mit version.json auf dem Server
 // und bietet dann ein Update an. version.json wird beim Build aus diesem Wert erzeugt (vite.config.ts).
-export const APP_VERSION = '2026-11-04 · 149 (App-Symbol: Umriss aus deinem Foto, außen schwarz)';
+export const APP_VERSION = '2026-11-04 · 150 (App-Symbol: Logo aus der Mitte deines Fotos)';
