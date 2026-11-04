@@ -2384,3 +2384,19 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .to-fotos { margin: 0 0 12px; }
 .schema-missing { display: grid; gap: 6px; }
 .schema-missing p { margin: 0; }
+
+/* Studio: Scheibenrechner, Aufwärmen, Supersätze */
+.block-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+.plate-calc { display: grid; gap: 8px; }
+.plate-input { display: grid; gap: 4px; font-size: 0.82rem; font-weight: 700; }
+.plate-bar { width: 100%; height: auto; background: color-mix(in srgb, var(--text) 5%, transparent); border-radius: 12px; }
+.plate-result { margin: 0; font-size: 1.05rem; }
+.plate-settings { display: grid; gap: 6px; }
+.plate-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.plate-chip { background: transparent; color: var(--text); border: 2px solid; opacity: 0.45; cursor: pointer; }
+.plate-chip.on { opacity: 1; }
+.card.block.in-superset { border-left: 4px solid #7950f2; position: relative; }
+.superset-tag { display: inline-block; font-size: 0.72rem; font-weight: 800; color: #fff; background: #7950f2; border-radius: 8px; padding: 1px 8px; margin-bottom: 6px; }
+.next-up { position: sticky; top: 60px; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; margin: 0 0 10px;
+  border-radius: 12px; background: #7950f2; color: #fff; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+.next-up .icon-btn { color: #fff; }

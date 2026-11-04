@@ -25,6 +25,8 @@ export type RowField = 'reps' | 'weight_kg' | 'duration_min' | 'distance_km';
 export interface Block {
   exercise_id: number;
   rest_seconds?: number | null;
+  /** Supersatz: mit der nächsten Übung verbunden (abwechselnd, Pause erst nach der Runde) */
+  superset?: boolean;
   sets: Row[];
 }
 
@@ -180,6 +182,7 @@ export function stateFromTemplate(t: Template, exerciseById: ExerciseLookup, opt
         return {
           exercise_id: e.exercise_id,
           rest_seconds: e.rest_seconds ?? null,
+          ...(e.superset ? { superset: true } : {}),
           sets: e.sets.map((s) => ({
             ...emptySet(type, Boolean(s.warmup)),
             ...(type !== 'cardio' && s.side ? { side: s.side } : {}),
@@ -214,6 +217,7 @@ export function templateBlocks(t: Pick<Template, 'exercises'>, exerciseById: Exe
       return {
         exercise_id: e.exercise_id,
         rest_seconds: e.rest_seconds ?? null,
+        ...(e.superset ? { superset: true } : {}),
         sets: e.sets.map((s) =>
           type === 'cardio'
             ? { duration_min: toInput(s.duration_min), distance_km: toInput(s.distance_km) }
@@ -277,6 +281,7 @@ export function templateFromBlocks(blocks: Block[], exerciseById: ExerciseLookup
   return blocks.map((b) => ({
     exercise_id: b.exercise_id,
     rest_seconds: b.rest_seconds ?? null,
+    ...(b.superset ? { superset: true } : {}),
     sets: b.sets.map((row) => parseRowLoose(row, exerciseById(b.exercise_id)!.type === 'cardio')),
   }));
 }
@@ -288,6 +293,7 @@ export function templateFromWorkout(blocks: Block[], exerciseById: ExerciseLooku
     return {
       exercise_id: b.exercise_id,
       rest_seconds: b.rest_seconds ?? null,
+      ...(b.superset ? { superset: true } : {}),
       sets: b.sets.map((row) => {
         const v = parseRowSafe(row, cardio);
         if (cardio) {
@@ -312,4 +318,29 @@ export function blockFor(ex: Exercise, prevSets: WorkoutSet[] | undefined): Bloc
     ? prevSets.map((p) => ({ ...emptySet(ex.type, Boolean(p.is_warmup)), ...(ex.type !== 'cardio' && p.side ? { side: p.side } : {}), done: false }))
     : [emptySet(ex.type)];
   return { exercise_id: ex.id, rest_seconds: null, sets };
+}
+
+/** Supersatz-Gruppen: zusammenhängende verbundene Übungen bekommen A, B, … und 1, 2, … (sonst null) */
+export function supersetLabels(blocks: Pick<Block, 'superset'>[]): (string | null)[] {
+  const out: (string | null)[] = blocks.map(() => null);
+  let group = 0;
+  for (let i = 0; i < blocks.length; i++) {
+    if (!blocks[i].superset || i === blocks.length - 1 || (i > 0 && blocks[i - 1].superset)) continue;
+    const letter = String.fromCharCode(65 + (group++ % 26));
+    let j = i, n = 1;
+    out[j] = `${letter}${n}`;
+    while (blocks[j].superset && j + 1 < blocks.length) { j++; out[j] = `${letter}${++n}`; }
+  }
+  return out;
+}
+/** Nach einem Satz in Block bi: nächster Block der Runde (Supersatz) oder null = Runde zu Ende → Pause */
+export function nextInRound(blocks: Pick<Block, 'superset'>[], bi: number): number | null {
+  if (blocks[bi]?.superset && bi + 1 < blocks.length) return bi + 1;
+  return null;
+}
+/** Erster Block der Supersatz-Gruppe, zu der bi gehört */
+export function roundStart(blocks: Pick<Block, 'superset'>[], bi: number): number {
+  let i = bi;
+  while (i > 0 && blocks[i - 1].superset) i--;
+  return i;
 }

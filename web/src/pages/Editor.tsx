@@ -33,6 +33,9 @@ import {
   templateBlocks,
   templateFromBlocks,
   templateFromWorkout,
+  nextInRound,
+  roundStart,
+  supersetLabels,
   type Block,
   type EditorMode,
   type EditorState,
@@ -45,6 +48,9 @@ import type { Exercise, ExerciseType, MuscleId, WorkoutSet } from '../lib/types'
 import type { SetInput } from '../data/backend';
 import { ask } from '../components/Dialog';
 import { PICK_SPECS, pickNumber } from '../components/NumberPicker';
+import { PlateDialog } from '../components/PlateCalc';
+import { getSetup, isBarbell, warmupSets } from '../lib/plates';
+import { stepFor } from '../lib/progression';
 
 interface Loaded { state: EditorState; prev: Map<number, WorkoutSet[]> }
 
@@ -78,6 +84,8 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
   const { api, user, exerciseById, exercises, addExercise, showError, dataChanged } = useApp();
   const [state, setState] = useState(initial);
   const [picking, setPicking] = useState(false);
+  /** Supersatz: „Weiter mit …“-Hinweis nach einem Satz */
+  const [nextUp, setNextUp] = useState<{ bi: number; text: string } | null>(null);
   const [newEx, setNewEx] = useState<{ name: string; type: ExerciseType; muscles: MuscleId[] } | null>(null);
   const [saving, setSaving] = useState(false);
   const [, tick] = useState(0);
@@ -144,6 +152,21 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
       return showError(err);
     }
     update((s) => void (s.blocks[bi].sets[si] = { ...filled, done: true }));
+    // Supersatz: innerhalb der Runde keine Pause, direkt zur nächsten Übung; nach der Runde Pause und zurück zum Anfang
+    const next = nextInRound(state.blocks, bi);
+    const scrollTo = (i: number) => requestAnimationFrame(() => document.querySelectorAll('.card.block')[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    const nameOf = (i: number) => exerciseById(state.blocks[i].exercise_id)?.name ?? 'nächste Übung';
+    if (next !== null) {
+      setNextUp({ bi: next, text: `Supersatz – ohne Pause weiter mit ${nameOf(next)}` });
+      scrollTo(next);
+      return;
+    }
+    const start = roundStart(state.blocks, bi);
+    if (start < bi) {
+      const open = state.blocks.slice(start, bi + 1).some((b, k) => b.sets.some((r, j) => !r.done && !(start + k === bi && j === si)));
+      setNextUp(open ? { bi: start, text: `Runde geschafft – Pause, dann wieder ${nameOf(start)}` } : null);
+      if (open) scrollTo(start);
+    } else setNextUp(null);
     startRest(block.rest_seconds ?? getDefaultRest());
   }
 
@@ -322,9 +345,13 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
         <div className="deload-banner" id="deload-banner"><strong>Entlastungswoche:</strong> etwa 10 % weniger Gewicht und ein Satz weniger je Übung – Technik und Erholung stehen heute im Vordergrund.</div>
       )}
       <WorkoutMuscles exercises={state.blocks.map((b) => exerciseById(b.exercise_id)).filter((e): e is Exercise => Boolean(e))} title={live ? 'Heute trainierst du' : 'Diese Muskeln trainierst du'} />
+      {nextUp && <div className="next-up" id="next-up" role="status"><span>➡️ {nextUp.text}</span><button type="button" className="icon-btn" aria-label="Hinweis schließen" onClick={() => setNextUp(null)}>✕</button></div>}
       {state.blocks.map((b, bi) => (
         <BlockCard
           key={bi}
+          superLabel={supersetLabels(state.blocks)[bi]}
+          canLink={bi < state.blocks.length - 1}
+          nextName={bi < state.blocks.length - 1 ? exerciseById(state.blocks[bi + 1].exercise_id)?.name : undefined}
           block={b}
           bi={bi}
           mode={mode}
@@ -446,10 +473,15 @@ function BlockCard(props: {
   placeholders: (si: number) => Partial<Record<RowField, string>>;
   update: (fn: (s: EditorState) => void) => void;
   onDone: (si: number) => void;
+  /** Supersatz-Etikett (A1, A2 …) */
+  superLabel?: string | null;
+  canLink?: boolean;
+  nextName?: string;
 }) {
   const { block: b, bi, mode, exercise: ex, update } = props;
   const [info, setInfo] = useState(false);
   const [swapOpen, setSwapOpen] = useState(false);
+  const [plates, setPlates] = useState<number | null>(null);
   const live = mode === 'live';
   const cardio = ex.type === 'cardio';
   const uni = !cardio && isUnilateral(b);
@@ -473,6 +505,20 @@ function BlockCard(props: {
     update((st) => {
       for (const r of st.blocks[bi].sets) if (!r.warmup && !r.done && !r.weight_kg) r.weight_kg = String(suggestion.weight);
     });
+  };
+  // Scheibenrechner und Aufwärmsätze (Langhantel-/Kraftübungen)
+  const barbell = !cardio && isBarbell(ex.name);
+  const workWeight = (() => {
+    const row = b.sets.find((r) => !r.warmup && !r.done) ?? b.sets.find((r) => !r.warmup);
+    const v = parseNum(row?.weight_kg ?? '') || parseNum(row ? props.placeholders(b.sets.indexOf(row)).weight_kg ?? '' : '') || suggestion?.weight || 0;
+    return Number.isFinite(v) && v > 0 ? v : 0;
+  })();
+  const canWarm = !cardio && !uni && workWeight > 0 && !b.sets.some((r) => r.warmup) && b.sets.length > 0;
+  const addWarmups = () => {
+    const setup = getSetup();
+    const ws = warmupSets(workWeight, barbell ? setup.bar : 0, barbell ? 2.5 : Math.min(2.5, stepFor(workWeight)));
+    if (!ws.length) return;
+    update((st) => void st.blocks[bi].sets.unshift(...ws.map((w) => ({ warmup: true, weight_kg: String(w.weight), reps: String(w.reps), done: false }))));
   };
   /** Zeile entfernen – einseitig immer das ganze Paar L+R */
   const removeRow = (st: EditorState, si: number) => {
@@ -512,7 +558,8 @@ function BlockCard(props: {
   };
 
   return (
-    <div className="card block">
+    <div className={`card block${props.superLabel ? ' in-superset' : ''}`} data-superset={props.superLabel ?? undefined}>
+      {props.superLabel && <span className="superset-tag" aria-label={`Supersatz ${props.superLabel}`}>🔗 {props.superLabel}</span>}
       <div className="block-head">
         <div className="block-thumb"><ExerciseThumb ex={ex} height={64} /></div>
         <h3>{ex.name} <button type="button" className="info-btn" data-action="exercise-info" aria-label={`Anleitung und Animation: ${ex.name}`} onClick={() => setInfo(true)}>▶</button></h3>
@@ -589,6 +636,19 @@ function BlockCard(props: {
           <button type="button" className="btn small-btn" data-action="take-suggestion" onClick={takeSuggestion}>Gewicht übernehmen</button>
         </div>
       )}
+      {!cardio && (barbell || canWarm || props.canLink || b.superset) && (
+        <div className="block-tools">
+          {barbell && <button type="button" className="btn small-btn" data-action="plates" onClick={() => setPlates(workWeight || 20)}>🏋️ Scheiben{workWeight ? ` (${fmt(workWeight, 2)} kg)` : ''}</button>}
+          {canWarm && <button type="button" className="btn small-btn" data-action="add-warmups" onClick={addWarmups}>🔥 Aufwärmen</button>}
+          {(props.canLink || b.superset) && (
+            <button type="button" className={`btn small-btn${b.superset ? ' primary' : ''}`} data-action="superset" aria-pressed={Boolean(b.superset)}
+              onClick={() => update((st) => { st.blocks[bi].superset = !st.blocks[bi].superset || undefined; })}>
+              {b.superset ? '🔗 Supersatz lösen' : `🔗 Supersatz mit ${props.nextName ?? 'nächster Übung'}`}
+            </button>
+          )}
+        </div>
+      )}
+      {plates !== null && <PlateDialog weight={plates} onClose={() => setPlates(null)} />}
       {live && !cardio && allDone && (
         <div className="feedback" id={`feedback-${bi}`}>
           <span className="muted small">Wie war die Übung?</span>

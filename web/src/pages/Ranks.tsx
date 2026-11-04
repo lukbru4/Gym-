@@ -13,6 +13,7 @@ import { performedExercises } from '../lib/performed';
 import { fmt, fmtDate, fmtShortDate, plural } from '../lib/format';
 import { strengthLevels } from '../lib/muscles';
 import { rankFromPoints } from '../lib/ranks';
+import { PlateCalc } from '../components/PlateCalc';
 import { estimate1RM, exerciseProgress, todayISO, type CardioPoint, type StrengthPoint } from '../lib/stats';
 import { KG_PER_WEIGHT_LEVEL, exerciseLevel, weightLevel, type Progress } from '../lib/xp';
 
@@ -258,6 +259,11 @@ export function OneRmCalculator() {
         <table className="table"><thead><tr><th>% 1RM</th><th>Gewicht</th><th>ca. Wdh.</th></tr></thead>
           <tbody>{table.map((r) => <tr key={r.p}><td>{r.p} %</td><td>{fmt(r.w)} kg</td><td>{r.r}</td></tr>)}</tbody></table>
         <p className="muted small">Nach der Epley-Formel (Gewicht × (1 + Wdh. / 30)); die Wiederholungszahlen sind Richtwerte.</p>
+      </div>
+      <div className="card" id="plate-card">
+        <h3>🏋️ Scheibenrechner</h3>
+        <p className="muted small">Welche Scheiben kommen auf jede Seite der Stange?</p>
+        <PlateCalc id="plate-page" />
       </div>
     </>
   );

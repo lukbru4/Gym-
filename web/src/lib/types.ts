@@ -71,6 +71,8 @@ export interface TemplateSet {
 export interface TemplateExercise {
   exercise_id: number;
   rest_seconds?: number | null;
+  /** Supersatz: mit der nächsten Übung abwechselnd */
+  superset?: boolean;
   sets: TemplateSet[];
 }
 
