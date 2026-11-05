@@ -1,4 +1,5 @@
 // Tab „Gerichte“: Gericht suchen, Zutaten und Portion anpassen, als eine Mahlzeit oder einzeln eintragen.
+import { Icon } from './Icon';
 import { useMemo, useState } from 'react';
 import { DISH_BY_ID, dishNutrition, searchDishes, sumIngredients, type Dish } from '../lib/dishes';
 import { toggleFavorite, useFavorites } from '../lib/dishFavorites';
@@ -103,7 +104,7 @@ function GroupTile({ g, big, onOpen }: { g: DishGroup; big?: boolean; onOpen: (g
   const cover = big ? coverOf(g) : undefined;
   return (
     <button type="button" className={big ? 'dish-tile big' : 'dish-tile'} data-group={g.id} onClick={() => onOpen(g)}>
-      {cover ? <DishImage dish={cover} className="dish-tile-img" /> : <span className="dish-tile-emoji" aria-hidden="true">{g.emoji}</span>}
+      {cover ? <DishImage dish={cover} className="dish-tile-img" /> : <span className="dish-tile-emoji" aria-hidden="true"><Icon name={g.emoji} size={34} /></span>}
       <span className="dish-tile-title">{g.title}</span>
       <span className="dish-tile-count">{dishesOf(g).length} Gerichte{big ? ' ›' : ''}</span>
     </button>
@@ -146,7 +147,7 @@ export function Dishes({ onAdd, onAddMany }: { onAdd: (e: NewEntry) => Promise<v
         <div id="dish-group" data-group={group.id}>
           <div className="dish-group-head">
             <button type="button" className="btn small-btn" id="dish-group-back" onClick={() => setGroup(null)}>‹ Zurück</button>
-            <h3>{group.emoji} {group.title}</h3>
+            <h3><Icon name={group.emoji} size={20} /> {group.title}</h3>
           </div>
           {list(dishesOf(group))}
         </div>

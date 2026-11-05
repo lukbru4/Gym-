@@ -40,7 +40,7 @@ describe('Körpermaße', () => {
   });
   test('Aktivitäten: eigenes Symbol für Fotos und Maße', () => {
     const a = activities({ from: '2026-11-01', to: '2026-11-03', workouts: [], sets: [], exercises: new Map(), gymLog: [{ date: '2026-11-02', text: '📷 Fortschritts-Foto (Vorne)' }, { date: '2026-11-02', text: 'Rückwand gebaut' }] });
-    expect(a.map((x) => [x.icon, x.text])).toEqual([['📷', 'Fortschritts-Foto (Vorne)'], ['🏗️', 'Rückwand gebaut']]);
+    expect(a.map((x) => [x.icon, x.text])).toEqual([['camera', 'Fortschritts-Foto (Vorne)'], ['brick', 'Rückwand gebaut']]);
   });
   test('Datenbank 68: Tabellen, privater Speicher, nur eigene Zeilen, Freunde nur geteilte Fotos', () => {
     const sql = readFileSync(new URL('../../supabase/schema.sql', import.meta.url), 'utf8');

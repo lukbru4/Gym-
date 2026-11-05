@@ -1,5 +1,6 @@
 // Tab „Foto“: Gratis-Erkennung auf dem Handy (3 Vorschläge aus unseren Gerichten/Lebensmitteln)
 // und – für Pro – die genaue KI-Analyse mit Mengenschätzung (Server-Funktion food-photo).
+import { Icon } from './Icon';
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { DISH_BY_ID } from '../lib/dishes';
@@ -158,7 +159,7 @@ export function FoodPhoto({ onAdd, onAddMany, onPickFood, onSearch }: {
   return (
     <div className="food-photo">
       <label className={`btn primary block${busy ? ' disabled' : ''}`} id="photo-pick">
-        📷 {file ? 'Anderes Foto' : 'Foto aufnehmen oder auswählen'}
+        <Icon name="camera" size={18} /> {file ? 'Anderes Foto' : 'Foto aufnehmen oder auswählen'}
         <input type="file" id="photo-file" accept="image/*" capture="environment" hidden disabled={Boolean(busy)} onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
       </label>
       {!file && <p className="muted small">Gratis: Die Erkennung läuft auf deinem Handy und schlägt passende Gerichte vor – Menge und Zutaten passt du danach an. Das Foto wird nicht hochgeladen.</p>}
@@ -192,7 +193,7 @@ export function FoodPhoto({ onAdd, onAddMany, onPickFood, onSearch }: {
           {!api.social ? (
             <p className="muted small" id="photo-ai-local">Mit Konto und Pro verfügbar.</p>
           ) : pro.pro ? (
-            <button type="button" className="btn block" id="photo-ai-go" disabled={Boolean(busy)} onClick={analyze}>{busy === 'ai' ? 'Wird analysiert …' : '✨ Mit KI genau analysieren'}</button>
+            <button type="button" className="btn block" id="photo-ai-go" disabled={Boolean(busy)} onClick={analyze}>{busy === 'ai' ? 'Wird analysiert …' : 'Mit KI genau analysieren'}</button>
           ) : (
             <a className="btn block" id="photo-ai-pro" href="#/pro">Mit Pro freischalten</a>
           )}

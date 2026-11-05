@@ -22,7 +22,7 @@ export async function scheduleRestEnd(endAt: number) {
     await LocalNotifications.cancel({ notifications: [{ id: ID }] });
     if (endAt <= Date.now() || !(await allowed())) return;
     await LocalNotifications.schedule({
-      notifications: [{ id: ID, title: 'Pause vorbei 💪', body: 'Weiter geht’s – nächster Satz!', schedule: { at: new Date(endAt), allowWhileIdle: true } }],
+      notifications: [{ id: ID, title: 'Pause vorbei', body: 'Weiter geht’s – nächster Satz!', schedule: { at: new Date(endAt), allowWhileIdle: true } }],
     });
   } catch {
     /* ohne Benachrichtigung weiter */

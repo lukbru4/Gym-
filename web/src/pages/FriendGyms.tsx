@@ -1,4 +1,5 @@
 // Übersicht „Gyms der Freunde“: Name, Größe, Geräte, wie oft angefeuert – antippen öffnet das Gym im Freundesprofil.
+import { Icon } from '../components/Icon';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
 import { LoadError, Loading } from '../components/Bits';
@@ -22,10 +23,10 @@ export function FriendGyms() {
             return (
               <li key={f.user_id}>
                 <a className="card friend-gym-row" href={`#/freunde/profil/${f.user_id}`} data-friend-gym={f.user_id}>
-                  <span className="friend-gym-icon" aria-hidden="true">🏋️</span>
+                  <span className="friend-gym-icon" aria-hidden="true"><Icon name="gym" size={30} /></span>
                   <span className="friend-gym-text"><strong>{g?.name || `Gym von ${f.display_name}`}</strong>
                     <small className="muted">{f.display_name} · {g ? `${tier.name} · ${machines} ${machines === 1 ? 'Gerät' : 'Geräte'}` : 'noch nicht eingerichtet'}</small></span>
-                  <span className="friend-gym-cheers small">🔥 {f.cheers}{f.cheered_today ? ' ✓' : ''}</span>
+                  <span className="friend-gym-cheers small"><Icon name="flame" size={16} /> {f.cheers}{f.cheered_today ? ' ✓' : ''}</span>
                 </a>
               </li>
             );

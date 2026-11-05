@@ -1,4 +1,5 @@
 // Ränge pro Übung, Gesamt-Rang, Rekorde & Level pro Übung, Analyse einer Übung.
+import { Icon } from '../components/Icon';
 import { ChoiceField } from '../components/ChoiceSheet';
 import { pickNumber } from '../components/NumberPicker';
 import { useState } from 'react';
@@ -261,7 +262,7 @@ export function OneRmCalculator() {
         <p className="muted small">Nach der Epley-Formel (Gewicht × (1 + Wdh. / 30)); die Wiederholungszahlen sind Richtwerte.</p>
       </div>
       <div className="card" id="plate-card">
-        <h3>🏋️ Scheibenrechner</h3>
+        <h3><Icon name="plate" size={22} /> Scheibenrechner</h3>
         <p className="muted small">Welche Scheiben kommen auf jede Seite der Stange?</p>
         <PlateCalc id="plate-page" />
       </div>

@@ -1,5 +1,6 @@
 // Übungsseite: Reiter Über · Statistiken · Verlauf. „Über“ zeigt Animation, Hilfe zum Protokollieren, beanspruchte Muskeln
 // (Primär/Sekundär), Ausrüstung und nummerierte Anleitung.
+import { Icon } from './Icon';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { MUSCLE_NAMES, equipmentOf, musclesOf } from '../lib/muscles';
@@ -132,7 +133,7 @@ export function ExerciseInfo({ ex, onClose }: { ex: Pick<Exercise, 'name' | 'typ
           {id === 'generic' && <p className="muted small">Für diese Übung gibt es noch keine eigene Animation – gezeigt wird eine allgemeine Bewegung.</p>}
           {id !== 'generic' && PATTERNS[id].name !== ex.name && <p className="muted small">Bewegungsablauf: {p.name}. Varianten (Gerät, Griff) sehen ähnlich aus.</p>}
           <button type="button" className="log-help-btn" id="log-help" aria-expanded={help} onClick={() => setHelp((h) => !h)}>
-            <span aria-hidden="true">💡</span> Wie protokollieren?
+            <Icon name="info" size={18} /> Wie protokollieren?
           </button>
           {help && (
             <div className="card log-help" id="log-help-panel">

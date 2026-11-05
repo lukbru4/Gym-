@@ -1,4 +1,5 @@
 // Körpergraph (antippbar), Muskel-Radar, Muskelzuordnung eigener Übungen und Körpergewicht.
+import { Icon } from '../components/Icon';
 import { useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
@@ -89,7 +90,7 @@ export function Body() {
   return (
     <>
       <h2>Körpergraph</h2>
-      <a className="btn block to-fotos" id="to-fotos" href="#/fotos">📷 Fortschritts-Fotos & 📏 Maße</a>
+      <a className="btn block to-fotos" id="to-fotos" href="#/fotos"><Icon name="camera" size={18} /> Fortschritts-Fotos & <Icon name="tape" size={18} /> Maße</a>
       {locked && <Paywall reason="Die Auswertung deiner Muskelgruppen (Körpergraph und Radar) gibt es mit Pro. Dein Körpergewicht kannst du weiter kostenlos eintragen." />}
       {!locked && <>
       <div className="card">
@@ -106,7 +107,7 @@ export function Body() {
         {preview && <p className="notice small preview-note" id="preview-note">Vorschau: So sehen die Stufen aus – Beispiel, nicht deine Werte.</p>}
         <BodyGraph levels={preview ? previewLevels() : levels} onSelect={setSelected} labels />
         <button type="button" className={`btn small-btn${preview ? ' primary' : ''}`} id="preview-toggle" aria-pressed={preview} onClick={() => { setPreview(!preview); setSelected(null); }}>
-          {preview ? '← Meine Werte zeigen' : '🎨 Farben-Vorschau (Gelb bis Lila)'}
+          {preview ? '← Meine Werte zeigen' : <><Icon name="palette" size={18} /> Farben-Vorschau (Gelb bis Lila)</>}
         </button>
         <ul className="legend level-legend" id="level-legend" aria-label="Legende">
           {STRENGTH_LEVELS.map((l) => (

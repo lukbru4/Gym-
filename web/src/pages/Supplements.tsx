@@ -1,4 +1,5 @@
 // Supplements: heute abhaken, Liste mit Uhrzeit und Tagen pflegen, tägliche Erinnerung aufs Handy.
+import { Icon, iconFor } from '../components/Icon';
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { ask } from '../components/Dialog';
@@ -24,7 +25,7 @@ export function SuppToday({ compact = false }: { compact?: boolean }) {
     if (hidden) return null;
     return (
       <div className="card supp-invite" id="supp-invite">
-        <a href="#/supplements"><strong>💊 Supplements</strong><span className="muted small">Tägliche Erinnerung, z. B. „Heute Kreatin nehmen“ – und abhaken.</span><span className="btn small-btn primary">Einrichten</span></a>
+        <a href="#/supplements"><strong><Icon name="pill" size={18} /> Supplements</strong><span className="muted small">Tägliche Erinnerung, z. B. „Heute Kreatin nehmen“ – und abhaken.</span><span className="btn small-btn primary">Einrichten</span></a>
         <button type="button" className="icon-btn" aria-label="Ausblenden" id="supp-invite-close" onClick={() => { try { localStorage.setItem(INVITE_KEY, '1'); } catch { /* nur Komfort */ } setHidden(true); }}>✕</button>
       </div>
     );
@@ -33,7 +34,7 @@ export function SuppToday({ compact = false }: { compact?: boolean }) {
   return (
     <div className="card supp-today" id={compact ? 'supp-home' : 'supp-today'}>
       <div className="block-head">
-        <h3>{compact ? <a href="#/supplements">💊 Heute nehmen</a> : '💊 Heute nehmen'}</h3>
+        <h3>{compact ? <a href="#/supplements"><Icon name="pill" size={18} /> Heute nehmen</a> : <><Icon name="pill" size={18} /> Heute nehmen</>}</h3>
         <span className="muted small" id="supp-progress">{due.length ? `${done} / ${due.length}` : ''}</span>
       </div>
       {due.length ? (
@@ -42,13 +43,13 @@ export function SuppToday({ compact = false }: { compact?: boolean }) {
             <li key={s.id}>
               <button type="button" className={`supp-check${s.taken ? ' on' : ''}`} data-take={s.id} aria-pressed={s.taken} onClick={() => toggleTaken(uid, s.id, iso)}>
                 <span className="supp-box" aria-hidden="true">{s.taken ? '✓' : ''}</span>
-                <span className="supp-text"><strong>{s.icon} {s.name}</strong><small>{s.dose ? `${s.dose} · ` : ''}{s.time} Uhr{streak(s, log, iso) > 1 ? ` · 🔥 ${streak(s, log, iso)} Tage in Folge` : ''}</small></span>
+                <span className="supp-text"><strong><Icon name={iconFor(s.icon)} size={18} /> {s.name}</strong><small>{s.dose ? `${s.dose} · ` : ''}{s.time} Uhr{streak(s, log, iso) > 1 ? ` · Serie ${streak(s, log, iso)} Tage in Folge` : ''}</small></span>
               </button>
             </li>
           ))}
         </ul>
-      ) : <p className="muted small">{list.length ? 'Heute ist nichts dran. 👍' : 'Noch keine Supplements eingetragen.'}</p>}
-      {done === due.length && due.length > 0 && <p className="small supp-all" id="supp-all">Alles genommen – stark! 💪</p>}
+      ) : <p className="muted small">{list.length ? 'Heute ist nichts dran.' : 'Noch keine Supplements eingetragen.'}</p>}
+      {done === due.length && due.length > 0 && <p className="small supp-all" id="supp-all">Alles genommen – stark!</p>}
     </div>
   );
 }
@@ -87,7 +88,7 @@ export function Supplements() {
               <span className="supp-icon" aria-hidden="true">{s.icon}</span>
               <div className="supp-main"><strong>{s.name}</strong><small className="muted">{s.dose} · {s.time} Uhr · {s.days ? s.days.join(', ') : 'jeden Tag'}</small></div>
               <label className="switch"><input type="checkbox" checked={s.on} data-supp-on={s.id} onChange={(e) => update(s.id, { on: e.target.checked })} aria-label={`${s.name} aktiv`} /></label>
-              <button type="button" className="icon-btn" data-supp-edit={s.id} aria-label={`${s.name} bearbeiten`} onClick={() => setEdit(edit === s.id ? null : s.id)}>✏️</button>
+              <button type="button" className="icon-btn" data-supp-edit={s.id} aria-label={`${s.name} bearbeiten`} onClick={() => setEdit(edit === s.id ? null : s.id)}><Icon name="pencil" size={18} /></button>
             </div>
             <div className="supp-week" aria-label="Letzte 7 Tage">
               {last7.map((d) => <span key={d} className={(log[d] ?? []).includes(s.id) ? 'on' : ''} title={d}>{DAYS[(new Date(`${d}T12:00:00`).getDay() + 6) % 7]}</span>)}
@@ -118,7 +119,7 @@ export function Supplements() {
           <button key={p.name} type="button" className="chip" data-preset={p.name} disabled={list.length >= MAX_SUPPS} onClick={() => add(p)}>{p.icon} {p.name}</button>
         ))}
       </div>
-      <form className="supp-custom" onSubmit={(e) => { e.preventDefault(); const n = custom.trim(); if (!n) return; add({ name: n, dose: '', time: '08:00', days: null, icon: '💊' }); setCustom(''); }}>
+      <form className="supp-custom" onSubmit={(e) => { e.preventDefault(); const n = custom.trim(); if (!n) return; add({ name: n, dose: '', time: '08:00', days: null, icon: 'pill' }); setCustom(''); }}>
         <input id="supp-custom" value={custom} maxLength={30} placeholder="Eigenes Supplement, z. B. Ashwagandha" onChange={(e) => setCustom(e.target.value)} />
         <button type="submit" className="btn small-btn" disabled={!custom.trim() || list.length >= MAX_SUPPS}>Hinzufügen</button>
       </form>

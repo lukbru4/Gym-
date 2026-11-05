@@ -1,14 +1,15 @@
 // Begrüßung nach der ersten Anmeldung: Name, kurze Erklärung der App in Schritten, dann Trainingsplan.
+import { Icon } from '../components/Icon';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { navigate } from '../app/router';
 import { markWelcomeSeen } from '../lib/onboarding';
 
 const SLIDES = [
-  { icon: '🏋️', title: 'Trainieren & leveln', text: 'Trag deine Trainings ein – Sätze, Gewichte, Wiederholungen. Jede Übung zeigt dir als Animation, wie sie geht. Für jedes Training bekommst du Erfahrung, steigst im Level auf und sammelst Credits für den Shop.' },
-  { icon: '📋', title: 'Dein Plan', text: 'Beantworte ein paar Fragen (Ziel, Erfahrung, Trainingstage) und die App baut dir einen passenden Trainingsplan – mit Wochenplan und Erinnerungen, wenn du möchtest.' },
-  { icon: '👥', title: 'Mit Freunden', text: 'Füge Freunde mit ihrem Freundescode hinzu. Ihr seht eure Trainings, könnt euch anfeuern, kommentieren und in Challenges gegeneinander antreten.' },
-  { icon: '🍽️', title: 'Essen & Kalorien', text: 'Mit Pro trackst du dein Essen: suchen, Barcode scannen, Foto machen oder fertige Gerichte wählen. Dein Kalorienziel wird aus deinem Ziel berechnet.' },
+  { icon: 'dumbbell', title: 'Trainieren & leveln', text: 'Trag deine Trainings ein – Sätze, Gewichte, Wiederholungen. Jede Übung zeigt dir als Animation, wie sie geht. Für jedes Training bekommst du Erfahrung, steigst im Level auf und sammelst Credits für den Shop.' },
+  { icon: 'cards', title: 'Dein Plan', text: 'Beantworte ein paar Fragen (Ziel, Erfahrung, Trainingstage) und die App baut dir einen passenden Trainingsplan – mit Wochenplan und Erinnerungen, wenn du möchtest.' },
+  { icon: 'people', title: 'Mit Freunden', text: 'Füge Freunde mit ihrem Freundescode hinzu. Ihr seht eure Trainings, könnt euch anfeuern, kommentieren und in Challenges gegeneinander antreten.' },
+  { icon: 'apple', title: 'Essen & Kalorien', text: 'Mit Pro trackst du dein Essen: suchen, Barcode scannen, Foto machen oder fertige Gerichte wählen. Dein Kalorienziel wird aus deinem Ziel berechnet.' },
 ];
 
 export function Welcome() {
@@ -43,7 +44,7 @@ export function Welcome() {
       <div className="welcome-dots" aria-hidden="true">{Array.from({ length: last + 1 }, (_, i) => <i key={i} className={i === step ? 'on' : ''} />)}</div>
       {step === 0 && (
         <div className="welcome-slide">
-          <div className="welcome-icon">👋</div>
+          <div className="welcome-icon"><Icon name="thumb" size={56} /></div>
           <h2>Willkommen bei Level Up!</h2>
           <p>Schön, dass du da bist. Wie sollen dich deine Freunde in der App sehen?</p>
           <label className="welcome-name">Dein Name<input id="welcome-name" value={name} maxLength={30} disabled={!loaded} placeholder="z. B. Lukas" onChange={(e) => setName(e.target.value)} /></label>
@@ -52,7 +53,7 @@ export function Welcome() {
       )}
       {step >= 1 && step < last && (
         <div className="welcome-slide">
-          <div className="welcome-icon">{SLIDES[step - 1].icon}</div>
+          <div className="welcome-icon"><Icon name={SLIDES[step - 1].icon} size={56} /></div>
           <h2>{SLIDES[step - 1].title}</h2>
           <p>{SLIDES[step - 1].text}</p>
           <button type="button" className="btn primary block" id="welcome-next" onClick={() => setStep(step + 1)}>Weiter</button>
@@ -60,7 +61,7 @@ export function Welcome() {
       )}
       {step === last && (
         <div className="welcome-slide">
-          <div className="welcome-icon">🚀</div>
+          <div className="welcome-icon"><Icon name="star" size={56} /></div>
           <h2>Los geht’s!</h2>
           <p>Am besten startest du mit deinem Trainingsplan – das dauert etwa 2 Minuten. Auf der Startseite zeigt dir eine kurze Checkliste die nächsten Schritte.</p>
           <button type="button" className="btn primary block" id="welcome-plan" onClick={() => finish('#/trainingsplan')}>Trainingsplan erstellen</button>

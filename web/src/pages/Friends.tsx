@@ -1,5 +1,6 @@
 // Freunde: eigener Code/Einladungslink, Freund hinzufügen, Anfragen, Freundesliste, Rangliste,
 // Profil eines Freundes, Feed der Freunde (auf Home) und Einladungslinks (#/freunde/add/CODE).
+import { Icon } from '../components/Icon';
 import { cleanGym, GYM_ITEMS, migrateGym, roomFor } from '../lib/gym';
 import { GymRoom } from '../components/GymRoom';
 import { FriendPhotos } from '../components/Progress';
@@ -160,7 +161,7 @@ export function Friends() {
   const headline = !accepted.length
     ? 'Trainiere mit Freunden – lade jemanden ein und vergleicht euch.'
     : weekRank === 1 && (me?.week_workouts ?? 0) > 0
-      ? 'Du liegst diese Woche vorne! 🏆'
+      ? 'Du liegst diese Woche vorne!'
       : (me?.week_workouts ?? 0) === 0
         ? 'Diese Woche hast du noch nicht trainiert – hol auf!'
         : `Du bist diese Woche auf Platz ${weekRank} von ${board.length}.`;
@@ -173,8 +174,8 @@ export function Friends() {
         <p className="recap-line" id="friends-headline">{headline}</p>
         {accepted.length > 0 && (
           <ul className="recap-facts">
-            <li><span aria-hidden="true">💪</span><span>Du: {plural(me?.week_workouts ?? 0, 'Training', 'Trainings')} diese Woche</span></li>
-            {topFriend && <li><span aria-hidden="true">🔥</span><span>{topFriend.display_name}: {plural(topFriend.week_workouts, 'Training', 'Trainings')}</span></li>}
+            <li><Icon name="dumbbell" size={18} /><span>Du: {plural(me?.week_workouts ?? 0, 'Training', 'Trainings')} diese Woche</span></li>
+            {topFriend && <li><Icon name="flame" size={18} /><span>{topFriend.display_name}: {plural(topFriend.week_workouts, 'Training', 'Trainings')}</span></li>}
           </ul>
         )}
       </section>
@@ -314,7 +315,7 @@ function FeedCard({ item, social, onChange }: { item: FeedItem; social: Social; 
           aria-label={item.comments === 1 ? '1 Kommentar' : `${item.comments} Kommentare`}
           onClick={() => setOpen((o) => !o)}
         >
-          💬 {item.comments ? item.comments : 'Kommentieren'}
+          <Icon name="chat" size={16} /> {item.comments ? item.comments : 'Kommentieren'}
         </button>
       </div>
       {open && <Comments social={social} workoutId={item.workout_id} onCount={(n) => n !== item.comments && onChange({ ...item, comments: n })} />}
@@ -338,7 +339,7 @@ export function FriendsFeed() {
   else if (!items.length)
     body = (
       <div className="card empty-feed">
-        <div className="empty-icon" aria-hidden="true">👥</div>
+        <div className="empty-icon" aria-hidden="true"><Icon name="people" size={48} /></div>
         <h3>Noch nichts von deinen Freunden</h3>
         <p className="muted">Sobald deine Freunde trainieren, erscheinen ihre Trainings hier – und du kannst sie anfeuern.</p>
         <a className="btn block" href="#/freunde">Freunde einladen</a>

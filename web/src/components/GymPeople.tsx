@@ -40,8 +40,8 @@ export function BlockFigure({ look, height, mode = 'stand', className = '' }: { 
 }
 
 const SAYINGS = [
-  'Noch ein Satz! 💪', 'Nur noch drei Wiederholungen!', 'Heute ist Beintag 🦵', 'Pause? Höchstens 90 Sekunden.', 'Neuer Rekord heute? 🏆',
-  'Trinken nicht vergessen 💧', 'Kreatin schon genommen? ⚡', 'Saubere Technik vor viel Gewicht.', 'Gleich noch Bankdrücken.', 'Spürst du den Pump? 🔥',
+  'Noch ein Satz!', 'Nur noch drei Wiederholungen!', 'Heute ist Beintag', 'Pause? Höchstens 90 Sekunden.', 'Neuer Rekord heute?',
+  'Trinken nicht vergessen!', 'Kreatin schon genommen?', 'Saubere Technik vor viel Gewicht.', 'Gleich noch Bankdrücken.', 'Spürst du den Pump?',
   'Wer schwitzt, gewinnt.', 'Schön, dass du da bist!', 'Langsam runter, explosiv hoch!', 'Klein anfangen, dranbleiben.', 'Einer geht noch!',
 ];
 type Mode = 'stand' | 'walk' | 'reps' | 'talk';

@@ -67,7 +67,7 @@ export interface Context {
   supps?: { id: string; name: string; dose: string; time: string; days: Day[] | null; icon: string; on: boolean }[];
   suppsTakenToday?: string[];
 }
-const TRAIN_TEXTS = ['Zeit fürs Training 💪', 'Heute ist Trainingstag 🏋️', 'Dein Training wartet 🔥', 'Auf geht’s – kurz ins Gym? 💪'];
+const TRAIN_TEXTS = ['Zeit fürs Training!', 'Heute ist Trainingstag', 'Dein Training wartet', 'Auf geht’s – kurz ins Gym?'];
 
 /** Was geplant werden soll (reine Funktion, testbar). IDs: 1100+ Training, 1200+ Essen, 1300+ Wasser, 1400 Serie, 1500+ Supplements */
 export function buildSchedule(s: ReminderSettings, c: Context): Planned[] {
@@ -88,14 +88,14 @@ export function buildSchedule(s: ReminderSettings, c: Context): Planned[] {
     const labels = ['Frühstück', 'Mittagessen', 'Abendessen'];
     s.food.times.slice(0, 3).forEach((t, i) => {
       const [h, m] = hm(t);
-      out.push({ id: 1200 + i, title: `${labels[i] ?? 'Essen'} eintragen 🍽️`, body: 'Kurz eintragen, was du gegessen hast – dauert 10 Sekunden.', daily: { hour: h, minute: m }, route: '#/essen' });
+      out.push({ id: 1200 + i, title: `${labels[i] ?? 'Essen'} eintragen`, body: 'Kurz eintragen, was du gegessen hast – dauert 10 Sekunden.', daily: { hour: h, minute: m }, route: '#/essen' });
     });
   }
   if (s.water.on) {
     const [fh, fm] = hm(s.water.from), [th] = hm(s.water.to);
     const every = Math.max(1, Math.min(6, Math.round(s.water.every)));
     let n = 0;
-    for (let h = fh; h <= th && n < 12; h += every, n++) out.push({ id: 1300 + n, title: 'Trink ein Glas Wasser 💧', body: 'Genug trinken hilft Kraft und Konzentration.', daily: { hour: h, minute: fm }, route: '#/essen' });
+    for (let h = fh; h <= th && n < 12; h += every, n++) out.push({ id: 1300 + n, title: 'Trink ein Glas Wasser', body: 'Genug trinken hilft Kraft und Konzentration.', daily: { hour: h, minute: fm }, route: '#/essen' });
   }
   // Supplements: die nächsten 7 Tage einzeln planen (so fallen Tage weg, an denen es nicht dran oder schon abgehakt ist)
   (c.supps ?? []).filter((x) => x.on).slice(0, 12).forEach((sp, k) => {
@@ -110,7 +110,7 @@ export function buildSchedule(s: ReminderSettings, c: Context): Planned[] {
   if (s.streak.on && c.weekDone < c.weekGoal) {
     const [h, m] = hm(s.streak.time);
     const sunday = new Date(c.now.getFullYear(), c.now.getMonth(), c.now.getDate() + ((7 - c.now.getDay()) % 7), h, m);
-    if (sunday > c.now) out.push({ id: 1400, title: 'Deine Serie ist in Gefahr 🔥', body: `Diese Woche ${c.weekDone} von ${c.weekGoal} Trainings – heute noch eins, dann bleibt die Serie.`, at: sunday, route: '#/workouts' });
+    if (sunday > c.now) out.push({ id: 1400, title: 'Deine Serie ist in Gefahr', body: `Diese Woche ${c.weekDone} von ${c.weekGoal} Trainings – heute noch eins, dann bleibt die Serie.`, at: sunday, route: '#/workouts' });
   }
   return out;
 }
@@ -155,7 +155,7 @@ export async function testReminder(): Promise<boolean> {
   let { display } = await LocalNotifications.checkPermissions();
   if (display !== 'granted') ({ display } = await LocalNotifications.requestPermissions());
   if (display !== 'granted') return false;
-  await LocalNotifications.schedule({ notifications: [{ id: 1499, title: 'So sehen Erinnerungen aus 👋', body: 'Klappt! Du kannst sie in den Einstellungen anpassen.', schedule: { at: new Date(Date.now() + 10000), allowWhileIdle: true } }] });
+  await LocalNotifications.schedule({ notifications: [{ id: 1499, title: 'So sehen Erinnerungen aus', body: 'Klappt! Du kannst sie in den Einstellungen anpassen.', schedule: { at: new Date(Date.now() + 10000), allowWhileIdle: true } }] });
   return true;
 }
 

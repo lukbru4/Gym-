@@ -1,4 +1,5 @@
 // Anmelden / Registrieren / Passwort vergessen (nur im Cloud-Modus) und neues Passwort festlegen.
+import { Icon } from '../components/Icon';
 import { useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
 import { PasswordInput } from '../components/PasswordInput';
@@ -56,7 +57,7 @@ export function Auth() {
   if (mode === 'check-mail')
     return (
       <div className="card auth check-mail" id="check-mail">
-        <div className="big-icon" aria-hidden="true">✉️</div>
+        <div className="big-icon" aria-hidden="true"><Icon name="chat" size={48} /></div>
         <h2>Schau in dein Postfach!</h2>
         <p>
           Wir haben dir eine E-Mail an <strong>{email.trim()}</strong> geschickt.

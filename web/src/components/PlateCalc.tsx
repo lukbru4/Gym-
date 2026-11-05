@@ -1,4 +1,5 @@
 // Scheibenrechner: gezeichnete Stange mit den Scheiben je Seite, Stange und vorhandene Scheiben einstellbar.
+import { Icon } from './Icon';
 import { useState } from 'react';
 import { fmt } from '../lib/format';
 import { ALL_PLATES, BARS, plateColor, platesFor, plateText, setSetup, usePlateSetup } from '../lib/plates';
@@ -46,7 +47,7 @@ export function PlateCalc({ weight: start, id = 'plate-calc' }: { weight?: numbe
           {!res.exact && <p className="notice small" id={`${id}-inexact`}>{total < setup.bar ? `Leichter als die Stange (${fmt(setup.bar)} kg).` : `${fmt(total, 2)} kg geht mit deinen Scheiben nicht genau – möglich sind ${fmt(res.lower, 2)} kg oder ${fmt(res.upper, 2)} kg.`}</p>}
         </>
       )}
-      <button type="button" className="link-btn small" data-plate-settings onClick={() => setSettings(!settings)}>{settings ? 'Einstellungen schließen' : '⚙️ Stange & Scheiben einstellen'}</button>
+      <button type="button" className="link-btn small" data-plate-settings onClick={() => setSettings(!settings)}>{settings ? 'Einstellungen schließen' : 'Stange & Scheiben einstellen'}</button>
       {settings && (
         <div className="plate-settings">
           <div className="small"><strong>Stange</strong></div>
@@ -71,7 +72,7 @@ export function PlateDialog({ weight, onClose }: { weight?: number; onClose: () 
   return (
     <div className="dialog-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="dialog" id="plate-dialog" role="dialog" aria-modal="true" aria-label="Scheibenrechner">
-        <h3>🏋️ Scheibenrechner</h3>
+        <h3><Icon name="plate" size={22} /> Scheibenrechner</h3>
         <PlateCalc weight={weight} id="plate-dialog-calc" />
         <button type="button" className="btn block" id="plate-close" onClick={onClose}>Schließen</button>
       </div>

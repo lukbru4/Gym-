@@ -1,4 +1,5 @@
 // Editor für Live-Training (mit Pause-Timer und „Vorherig“), gespeichertes Training bearbeiten und Vorlagen.
+import { Icon } from '../components/Icon';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
 import { navigate } from '../app/router';
@@ -345,7 +346,7 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
         <div className="deload-banner" id="deload-banner"><strong>Entlastungswoche:</strong> etwa 10 % weniger Gewicht und ein Satz weniger je Übung – Technik und Erholung stehen heute im Vordergrund.</div>
       )}
       <WorkoutMuscles exercises={state.blocks.map((b) => exerciseById(b.exercise_id)).filter((e): e is Exercise => Boolean(e))} title={live ? 'Heute trainierst du' : 'Diese Muskeln trainierst du'} />
-      {nextUp && <div className="next-up" id="next-up" role="status"><span>➡️ {nextUp.text}</span><button type="button" className="icon-btn" aria-label="Hinweis schließen" onClick={() => setNextUp(null)}>✕</button></div>}
+      {nextUp && <div className="next-up" id="next-up" role="status"><span><Icon name="arrow" size={18} /> {nextUp.text}</span><button type="button" className="icon-btn" aria-label="Hinweis schließen" onClick={() => setNextUp(null)}>✕</button></div>}
       {state.blocks.map((b, bi) => (
         <BlockCard
           key={bi}
@@ -559,7 +560,7 @@ function BlockCard(props: {
 
   return (
     <div className={`card block${props.superLabel ? ' in-superset' : ''}`} data-superset={props.superLabel ?? undefined}>
-      {props.superLabel && <span className="superset-tag" aria-label={`Supersatz ${props.superLabel}`}>🔗 {props.superLabel}</span>}
+      {props.superLabel && <span className="superset-tag" aria-label={`Supersatz ${props.superLabel}`}>Supersatz {props.superLabel}</span>}
       <div className="block-head">
         <div className="block-thumb"><ExerciseThumb ex={ex} height={64} /></div>
         <h3>{ex.name} <button type="button" className="info-btn" data-action="exercise-info" aria-label={`Anleitung und Animation: ${ex.name}`} onClick={() => setInfo(true)}>▶</button></h3>
@@ -638,12 +639,12 @@ function BlockCard(props: {
       )}
       {!cardio && (barbell || canWarm || props.canLink || b.superset) && (
         <div className="block-tools">
-          {barbell && <button type="button" className="btn small-btn" data-action="plates" onClick={() => setPlates(workWeight || 20)}>🏋️ Scheiben{workWeight ? ` (${fmt(workWeight, 2)} kg)` : ''}</button>}
-          {canWarm && <button type="button" className="btn small-btn" data-action="add-warmups" onClick={addWarmups}>🔥 Aufwärmen</button>}
+          {barbell && <button type="button" className="btn small-btn" data-action="plates" onClick={() => setPlates(workWeight || 20)}><Icon name="plate" size={16} /> Scheiben{workWeight ? ` (${fmt(workWeight, 2)} kg)` : ''}</button>}
+          {canWarm && <button type="button" className="btn small-btn" data-action="add-warmups" onClick={addWarmups}><Icon name="flame" size={16} /> Aufwärmen</button>}
           {(props.canLink || b.superset) && (
             <button type="button" className={`btn small-btn${b.superset ? ' primary' : ''}`} data-action="superset" aria-pressed={Boolean(b.superset)}
               onClick={() => update((st) => { st.blocks[bi].superset = !st.blocks[bi].superset || undefined; })}>
-              {b.superset ? '🔗 Supersatz lösen' : `🔗 Supersatz mit ${props.nextName ?? 'nächster Übung'}`}
+              <><Icon name="link" size={16} /> {b.superset ? 'Supersatz lösen' : `Supersatz mit ${props.nextName ?? 'nächster Übung'}`}</>
             </button>
           )}
         </div>

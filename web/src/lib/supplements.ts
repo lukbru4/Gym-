@@ -5,13 +5,13 @@ import { DAYS, type Day } from './reminders';
 
 export interface Supplement { id: string; name: string; dose: string; time: string; /** null = jeden Tag */ days: Day[] | null; icon: string; on: boolean }
 export const PRESETS: Omit<Supplement, 'id' | 'on'>[] = [
-  { name: 'Kreatin', dose: '5 g', time: '08:00', days: null, icon: '⚡' },
-  { name: 'Protein-Shake', dose: '1 Messlöffel', time: '17:00', days: null, icon: '🥤' },
-  { name: 'Vitamin D', dose: '1 Kapsel', time: '08:00', days: null, icon: '☀️' },
-  { name: 'Magnesium', dose: '1 Tablette', time: '21:00', days: null, icon: '🌙' },
-  { name: 'Omega-3', dose: '1 Kapsel', time: '12:30', days: null, icon: '🐟' },
-  { name: 'Zink', dose: '1 Tablette', time: '21:00', days: null, icon: '🛡️' },
-  { name: 'Multivitamin', dose: '1 Tablette', time: '08:00', days: null, icon: '💊' },
+  { name: 'Kreatin', dose: '5 g', time: '08:00', days: null, icon: 'bolt' },
+  { name: 'Protein-Shake', dose: '1 Messlöffel', time: '17:00', days: null, icon: 'shaker' },
+  { name: 'Vitamin D', dose: '1 Kapsel', time: '08:00', days: null, icon: 'sun' },
+  { name: 'Magnesium', dose: '1 Tablette', time: '21:00', days: null, icon: 'moon' },
+  { name: 'Omega-3', dose: '1 Kapsel', time: '12:30', days: null, icon: 'fish' },
+  { name: 'Zink', dose: '1 Tablette', time: '21:00', days: null, icon: 'shield' },
+  { name: 'Multivitamin', dose: '1 Tablette', time: '08:00', days: null, icon: 'pill' },
 ];
 export const MAX_SUPPS = 12;
 
@@ -36,7 +36,7 @@ export function cleanSupps(raw: unknown): Supplement[] {
     out.push({
       id: typeof s.id === 'string' ? s.id.slice(0, 40) : `s${out.length}`, name,
       dose: typeof s.dose === 'string' ? s.dose.slice(0, 30) : '', time: okTime(s.time),
-      days: days && days.length && days.length < 7 ? days : null, icon: typeof s.icon === 'string' ? s.icon.slice(0, 4) : '💊', on: s.on !== false,
+      days: days && days.length && days.length < 7 ? days : null, icon: typeof s.icon === 'string' ? s.icon.slice(0, 12) : 'pill', on: s.on !== false,
     });
     if (out.length >= MAX_SUPPS) break;
   }

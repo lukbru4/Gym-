@@ -1,5 +1,6 @@
 // „Mein Gym“: Start mit einem leeren Boden – mit Trainings-Credits baust du Wände, Fenster, Licht, mehr Fläche und eine
 // 2. Etage, kaufst realistische Geräte und Deko und holst dich und deine Freunde als Figuren ins Gym, die dort herumlaufen.
+import { Icon } from '../components/Icon';
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
@@ -208,7 +209,7 @@ export function Gym() {
             }}>Fertig</button>
           </>
         ) : (
-          <button type="button" className="btn" id="gym-edit" onClick={() => setEdit(true)}>✏️ Einrichten</button>
+          <button type="button" className="btn" id="gym-edit" onClick={() => setEdit(true)}><Icon name="gear" size={16} /> Einrichten</button>
         )}
       </div>
 
@@ -218,10 +219,10 @@ export function Gym() {
           {ideas.map((i) => (
             <button key={i.name} type="button" className={`chip${i.personal ? ' personal' : ''}${gym.name === i.name ? ' active' : ''}`} data-name-idea={i.name}
               onClick={() => (edit ? setGym({ ...gym, name: i.name }) : void save({ ...gym, name: i.name }))}>
-              {i.personal ? '⭐ ' : ''}{i.name}
+              {i.personal ? '★ ' : ''}{i.name}
             </button>
           ))}
-          <button type="button" className="chip shuffle" id="gym-name-shuffle" onClick={() => setIdeaSeed((x) => x + 1)}>🎲 Neue Ideen</button>
+          <button type="button" className="chip shuffle" id="gym-name-shuffle" onClick={() => setIdeaSeed((x) => x + 1)}><Icon name="sparkle" size={16} /> Neue Ideen</button>
         </div>
       )}
 
@@ -248,7 +249,7 @@ export function Gym() {
               <span className="muted small" id="gym-view">Ansicht: {VIEW_NAMES[selObj.rot ?? 0]}{selObj.straight ? ' · gerade' : ' · 3D'} · Größe {Math.round((selObj.size ?? 1) * 100)} %</span>
               <div className="gym-selbtns">
                 <button type="button" className="btn small-btn" id="gym-rotate" onClick={() => updSel({ rot: (((selObj.rot ?? 0) + 1) % 4) as GymRot })}>⟳ Drehen</button>
-                <button type="button" className={`btn small-btn${selObj.straight ? ' primary' : ''}`} id="gym-straight" aria-pressed={!!selObj.straight} onClick={() => updSel({ straight: !selObj.straight || undefined })}>{selObj.straight ? '▭ Gerade' : '🧊 3D'}</button>
+                <button type="button" className={`btn small-btn${selObj.straight ? ' primary' : ''}`} id="gym-straight" aria-pressed={!!selObj.straight} onClick={() => updSel({ straight: !selObj.straight || undefined })}><Icon name={selObj.straight ? 'square' : 'cube'} size={16} /> {selObj.straight ? 'Gerade' : '3D'}</button>
                 <button type="button" className="btn small-btn" id="gym-smaller" aria-label="Kleiner" disabled={(selObj.size ?? 1) <= SIZE_MIN} onClick={() => updSel({ size: Math.max(SIZE_MIN, Math.round(((selObj.size ?? 1) - 0.1) * 10) / 10) })}>−</button>
                 <input type="range" id="gym-size" aria-label="Größe" min={SIZE_MIN * 100} max={SIZE_MAX * 100} step={10} value={Math.round((selObj.size ?? 1) * 100)} onChange={(e) => updSel({ size: Number(e.target.value) / 100 })} />
                 <button type="button" className="btn small-btn" id="gym-bigger" aria-label="Größer" disabled={(selObj.size ?? 1) >= SIZE_MAX} onClick={() => updSel({ size: Math.min(SIZE_MAX, Math.round(((selObj.size ?? 1) + 0.1) * 10) / 10) })}>+</button>
@@ -279,8 +280,8 @@ export function Gym() {
       )}
 
       <div className="seg gym-tabs" role="tablist" aria-label="Laden">
-        {([['bauen', '🧱 Bauen'], ['geraete', '🏋️ Geräte'], ['leute', '🧑‍🤝‍🧑 Leute'], ['deko', '🪴 Deko']] as const).map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={tab === id} className={`seg-tab${tab === id ? ' active' : ''}`} data-tab={id} onClick={() => setTab(id)}>{label}</button>
+        {([['bauen', 'Bauen', 'brick'], ['geraete', 'Geräte', 'dumbbell'], ['leute', 'Leute', 'people'], ['deko', 'Deko', 'plant']] as const).map(([id, label, icon]) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} className={`seg-tab${tab === id ? ' active' : ''}`} data-tab={id} onClick={() => setTab(id)}><Icon name={icon} size={16} /> {label}</button>
         ))}
       </div>
 
@@ -293,26 +294,26 @@ export function Gym() {
             const active = WALL_OF[b.id] ? curWall === WALL_OF[b.id] : FLOOR_OF[b.id] ? curFloor === FLOOR_OF[b.id] : built;
             return (
               <div key={b.id} className={`gym-card build-card${built ? ' built' : ''}${can ? '' : ' locked'}`} data-build={b.id}>
-                <span className="build-icon" aria-hidden="true">{{ wand: '🧱', fenster: '🪟', licht: '💡', boden: '⬛', flaeche: '📐', stock: '🏗️' }[b.group]}</span>
+                <span className="build-icon" aria-hidden="true"><Icon name={{ wand: 'brick', fenster: 'window', licht: 'lamp', boden: 'floor', flaeche: 'ruler', stock: 'stairs' }[b.group]} size={28} /></span>
                 <strong>{b.name}</strong>
                 <small>{b.text}</small>
-                {!can ? <span className="muted small">🔒 erst {b.needs!.filter((n) => !gym.build.includes(n)).map((n) => BUILD_ITEMS.find((x) => x.id === n)?.name).join(', ')}</span>
+                {!can ? <span className="muted small"><Icon name="lock" size={14} /> erst {b.needs!.filter((n) => !gym.build.includes(n)).map((n) => BUILD_ITEMS.find((x) => x.id === n)?.name).join(', ')}</span>
                   : style && have ? <button type="button" className="btn small-btn" data-use={b.id} disabled={active} onClick={() => void build(b)}>{active ? `✓ Aktiv${room.empore ? (floor ? ' oben' : ' unten') : ''}` : room.empore ? (floor ? 'Oben anwenden' : 'Unten anwenden') : 'Anwenden'}</button>
                     : built ? <span className="muted small">✓ Gebaut</span>
-                      : <button type="button" className="btn small-btn primary" data-buy={b.id} disabled={busy !== ''} onClick={() => void build(b)}>{have ? 'Bauen (gratis)' : `${fmt(b.price, 0)} 🪙`}</button>}
+                      : <button type="button" className="btn small-btn primary" data-buy={b.id} disabled={busy !== ''} onClick={() => void build(b)}>{have ? 'Bauen (gratis)' : <>{fmt(b.price, 0)} <Icon name="coin" size={14} /></>}</button>}
                 {built && <button type="button" className="btn small-btn link-danger" data-unbuild={b.id} onClick={() => void tearDown(b)}>Abbauen</button>}
               </div>
             );
           })}
           {((floor ? gym.wall2 : gym.wall) !== 'beton' || (floor ? gym.floor2 : gym.floor) !== 'fliesen') && (
             <div className="gym-card build-card">
-              <span className="build-icon" aria-hidden="true">↩️</span><strong>Standard{room.empore ? (floor ? ' (oben)' : ' (unten)') : ''}</strong><small>Beton-Wände und Fliesenboden</small>
+              <span className="build-icon" aria-hidden="true"><Icon name="rotate" size={28} /></span><strong>Standard{room.empore ? (floor ? ' (oben)' : ' (unten)') : ''}</strong><small>Beton-Wände und Fliesenboden</small>
               <button type="button" className="btn small-btn" data-reset-style onClick={() => void save(floor ? { ...gym, wall2: 'beton', floor2: 'fliesen' } : { ...gym, wall: 'beton', floor: 'fliesen' })}>Anwenden</button>
             </div>
           )}
           {gym.build.length > 0 && (
             <div className="gym-card build-card danger-card">
-              <span className="build-icon" aria-hidden="true">🧨</span><strong>Gym zurücksetzen</strong><small>Alles abbauen, Geräte ins Lager – Gekauftes bleibt dir.</small>
+              <span className="build-icon" aria-hidden="true"><Icon name="bomb" size={28} /></span><strong>Gym zurücksetzen</strong><small>Alles abbauen, Geräte ins Lager – Gekauftes bleibt dir.</small>
               <button type="button" className="btn small-btn danger" id="gym-reset" onClick={() => void resetAll()}>Zurücksetzen</button>
             </div>
           )}
@@ -330,7 +331,7 @@ export function Gym() {
                 <span className={`rarity r-${m.rarity} small`}>{RARITY_LABEL[m.rarity]}</span>
                 {have ? (placed.has(m.id) ? <PlacedInfo id={m.id} />
                   : <button type="button" className="btn small-btn" data-place={m.id} onClick={() => void save(put(m.id))}>{room.empore && floor ? 'Aufstellen (2. Etage)' : 'Aufstellen'}</button>)
-                  : <button type="button" className="btn small-btn primary" data-buy={machineShopId(m.id)} disabled={busy !== ''} onClick={() => void buy(machineShopId(m.id), m.name, price, (g) => put(m.id, g))}>{fmt(price, 0)} 🪙</button>}
+                  : <button type="button" className="btn small-btn primary" data-buy={machineShopId(m.id)} disabled={busy !== ''} onClick={() => void buy(machineShopId(m.id), m.name, price, (g) => put(m.id, g))}>{fmt(price, 0)} <Icon name="coin" size={14} /></button>}
               </div>
             );
           })}
@@ -375,7 +376,7 @@ export function Gym() {
                 <span>{d.name}</span>
                 {have ? (placed.has(d.id) ? <PlacedInfo id={d.id} />
                   : <button type="button" className="btn small-btn" data-place={d.id} onClick={() => void save(put(d.id))}>{room.empore && floor ? 'Aufstellen (2. Etage)' : 'Aufstellen'}</button>)
-                  : <button type="button" className="btn small-btn primary" data-buy={d.id} disabled={busy !== ''} onClick={() => void buy(d.id, d.name, d.price, (g) => put(d.id, g))}>{fmt(d.price, 0)} 🪙</button>}
+                  : <button type="button" className="btn small-btn primary" data-buy={d.id} disabled={busy !== ''} onClick={() => void buy(d.id, d.name, d.price, (g) => put(d.id, g))}>{fmt(d.price, 0)} <Icon name="coin" size={14} /></button>}
               </div>
             );
           })}
@@ -426,8 +427,8 @@ function LookDialog({ id, rot, straight, onRot, onStraight, onClose }: { id: str
           ))}
         </div>
         {m && <div className="seg seg-small" role="group" aria-label="Darstellung">
-          <button type="button" className={`seg-tab${!straight ? ' active' : ''}`} aria-pressed={!straight} id="gym-look-3d" onClick={() => onStraight(false)}>🧊 3D</button>
-          <button type="button" className={`seg-tab${straight ? ' active' : ''}`} aria-pressed={straight} id="gym-look-straight" onClick={() => onStraight(true)}>▭ Gerade</button>
+          <button type="button" className={`seg-tab${!straight ? ' active' : ''}`} aria-pressed={!straight} id="gym-look-3d" onClick={() => onStraight(false)}><Icon name="cube" size={16} /> 3D</button>
+          <button type="button" className={`seg-tab${straight ? ' active' : ''}`} aria-pressed={straight} id="gym-look-straight" onClick={() => onStraight(true)}><Icon name="square" size={16} /> Gerade</button>
         </div>}
         <button type="button" className="btn block" id="gym-look-close" onClick={onClose}>Schließen</button>
       </div>

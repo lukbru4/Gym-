@@ -9,7 +9,7 @@ export function PreviewBar() {
   return (
     <div className="preview-bar" id="preview-bar" role="status">
       <span>
-        👁 <strong>{label}</strong>
+        <strong>{label}</strong>
       </span>
       {location.hash !== '#/shop' && (
         <a className="btn small-btn" href="#/shop">Shop</a>

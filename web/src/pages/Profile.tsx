@@ -1,4 +1,5 @@
 // Profil mit Avatar, Kacheln und Kalender; Aufgaben; Medaillen; Freunde (Vorschau).
+import { Icon } from '../components/Icon';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
 import { displayName } from '../app/profile';
@@ -133,7 +134,7 @@ export function Medals() {
       <div className="medal-grid">
         {list.map((m) => (
           <div key={m.id} className={`medal ${m.done ? 'unlocked' : ''}`}>
-            <span className="medal-icon" aria-hidden="true">{m.done ? '🏅' : '🔒'}</span>
+            <span className="medal-icon" aria-hidden="true"><Icon name={m.done ? 'trophy' : 'lock'} size={28} /></span>
             <strong>{m.name}</strong>
             <span className="muted small">{m.text}</span>
             {m.done && m.date && <span className="muted small">{fmtDate(m.date, false)}</span>}

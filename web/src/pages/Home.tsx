@@ -1,4 +1,5 @@
 // Home: Umschalter „Mein Feed | Freunde“, Begrüßung mit Rückblick (laufendes Training: Zeile über der Leiste), Aufgaben, Körpergraph, Wochenstatistik.
+import { Icon } from '../components/Icon';
 import { GymCard } from './Gym';
 import { SuppToday } from './Supplements';
 import { PhotoInvite } from '../components/Progress';
@@ -122,7 +123,7 @@ export function Home() {
         // Browser: Erinnerung als Hinweis-Karte (in der App fürs Handy kommt sie als Benachrichtigung)
         if (isNative) return null;
         const hint = dueHint(getReminders(), { now: new Date(), week: planWeek(), trainedToday: g.workouts.some((w) => w.date === today), weekDone: g.weekDone, weekGoal: g.weekGoal, pro: false });
-        return hint ? <a className="card notice reminder-hint" id="reminder-hint" href={hint.route}>⏰ {hint.text} – los geht’s!</a> : null;
+        return hint ? <a className="card notice reminder-hint" id="reminder-hint" href={hint.route}><Icon name="clock" size={18} /> {hint.text} – los geht’s!</a> : null;
       })()}
       <MigrateCard />
       <StartChecklist workoutCount={g.workouts.length} />

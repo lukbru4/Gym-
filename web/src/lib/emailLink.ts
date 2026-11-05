@@ -13,8 +13,8 @@ export function parseEmailLink(hash: string): { tokenHash: string; type: EmailLi
 }
 
 export const EMAIL_LINK_DONE: Record<EmailLinkType, string> = {
-  email: 'Deine E-Mail ist bestätigt – willkommen bei Level Up! 💪',
-  signup: 'Deine E-Mail ist bestätigt – willkommen bei Level Up! 💪',
+  email: 'Deine E-Mail ist bestätigt – willkommen bei Level Up!',
+  signup: 'Deine E-Mail ist bestätigt – willkommen bei Level Up!',
   email_change: 'Deine neue E-Mail-Adresse ist bestätigt.',
   magiclink: 'Du bist angemeldet.',
   invite: 'Willkommen bei Level Up! Lege jetzt in den Einstellungen ein Passwort fest.',

@@ -133,7 +133,7 @@ function WeekGoalCard() {
       </div>
       {goalKg && lastKg != null && (
         <p className="small" id="goal-weight-info">
-          Aktuell {fmt(lastKg, 1)} kg · {Math.abs(lastKg - goalKg) < 0.05 ? 'Ziel erreicht 🎉' : `noch ${fmt(Math.abs(lastKg - goalKg), 1)} kg ${lastKg > goalKg ? 'abnehmen' : 'zunehmen'}`}
+          Aktuell {fmt(lastKg, 1)} kg · {Math.abs(lastKg - goalKg) < 0.05 ? 'Ziel erreicht!' : `noch ${fmt(Math.abs(lastKg - goalKg), 1)} kg ${lastKg > goalKg ? 'abnehmen' : 'zunehmen'}`}
           {' · '}<button type="button" className="linklike" id="goal-weight-clear" onClick={() => setGoalWeight(null)}>entfernen</button>
         </p>
       )}
@@ -154,7 +154,7 @@ function WeekGoalCard() {
       </ul>
       <button type="button" className="btn block" id="goal-add" onClick={addCustom}>+ Ziel hinzufügen</button>
       <p className="muted small">
-        Deine 🔥 Serie zählt Tage: Jedes Training zählt die Tage der Woche bis dahin (Training am Mittwoch = 3 Tage). Schaffst du dein
+        Deine Serie zählt Tage: Jedes Training zählt die Tage der Woche bis dahin (Training am Mittwoch = 3 Tage). Schaffst du dein
         Wochenziel, zählt die ganze Woche. Verpasst du es, beginnt die Serie in der nächsten Woche neu.
       </p>
     </div>
@@ -286,7 +286,7 @@ export function Account({ section }: { section?: string }) {
         </label>
         {api.social && !admin && (
           <p className="muted small scheme-hint">
-            Weitere Farbschemata gibt es im <a href="#/shop">Shop</a> – mit 👁 kannst du sie vorher ansehen.
+            Weitere Farbschemata gibt es im <a href="#/shop">Shop</a> – mit „Ansehen“ kannst du sie vorher ausprobieren.
           </p>
         )}
         <label>

@@ -1,4 +1,5 @@
 // Einstellungen → Erinnerungen: Training, Essen, Wasser, Serie. Geplant wird nur in der App fürs Handy.
+import { Icon } from './Icon';
 import { useState } from 'react';
 import { applyReminders, DAYS, planWeek, trainingDays, setReminders, testReminder, useReminders, type ReminderSettings } from '../lib/reminders';
 import { isNative } from '../lib/platform';
@@ -57,7 +58,7 @@ export function ReminderSettingsCard() {
           <label className="rem-time">Bis<input type="time" value={s.water.to} onChange={(e) => e.target.value && void save({ ...s, water: { ...s.water, to: e.target.value } })} /></label>
         </div>
       </div>
-      <a className="card rem-supps-link" id="rem-supps" href="#/supplements"><strong>💊 Supplements</strong><span className="muted small">Kreatin, Vitamin D & Co.: tägliche Erinnerung und abhaken ›</span></a>
+      <a className="card rem-supps-link" id="rem-supps" href="#/supplements"><strong><Icon name="pill" size={18} /> Supplements</strong><span className="muted small">Kreatin, Vitamin D & Co.: tägliche Erinnerung und abhaken ›</span></a>
       <div className="card" id="rem-streak">
         <label className="check-row"><input type="checkbox" id="rem-streak-on" checked={s.streak.on} onChange={(e) => toggle('streak', e.target.checked)} /><strong>Serie retten</strong></label>
         <p className="muted small">Sonntags, wenn dein Wochenziel noch nicht erreicht ist.</p>

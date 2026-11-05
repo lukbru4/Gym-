@@ -1,4 +1,5 @@
 // Challenges mit Freunden: herausfordern, annehmen/ablehnen, Punktestand, Ergebnis mit Bonus-Credits.
+import { Icon } from './Icon';
 import { useLive } from '../lib/live';
 import { ChoiceField } from './ChoiceSheet';
 import { useState, type FormEvent } from 'react';
@@ -35,7 +36,7 @@ function ChallengeItem({ c, social, onChange }: { c: Challenge; social: Social; 
   };
   const total = Number(c.my_score) + Number(c.their_score);
   const share = total > 0 ? Math.round((Number(c.my_score) / total) * 100) : 50;
-  const result = { won: `🏆 Gewonnen! +${c.bonus} Credits`, lost: 'Verloren – nächstes Mal!', tie: c.bonus ? `Unentschieden – +${c.bonus} Credits` : 'Unentschieden' };
+  const result = { won: `Gewonnen! +${c.bonus} Credits`, lost: 'Verloren – nächstes Mal!', tie: c.bonus ? `Unentschieden – +${c.bonus} Credits` : 'Unentschieden' };
   return (
     <li className={`challenge ${c.state}`} data-challenge={c.id}>
       <div className="block-head">
@@ -112,7 +113,7 @@ export function Challenges({ social, friends, heading = true }: { social: Social
       <p className="muted small">7 Tage ab Annahme. Gewinner bekommt +50 Credits, bei Gleichstand beide +25.</p>
       {accepted.length > 0 && !open && (
         <button className="btn primary block battle-btn" id="new-challenge" onClick={() => setOpen(true)}>
-          <span aria-hidden="true">⚔️</span> Freund herausfordern
+          <Icon name="swords" size={18} /> Freund herausfordern
         </button>
       )}
       {open && (

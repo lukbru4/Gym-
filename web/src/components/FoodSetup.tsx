@@ -1,4 +1,5 @@
 // Ernährungscoach: Begrüßung → 11 Fragen (eine pro Bildschirm) → Ergebnis mit Methodik → „Passt so“.
+import { Icon } from './Icon';
 import { useState } from 'react';
 import { fmt } from '../lib/format';
 import {
@@ -125,7 +126,7 @@ export function FoodSetup({ initial, onDone, onCancel }: { initial?: PlanInput |
     return (
       <div className="nc-screen" id="nc-intro">
         <div className="nc-bar"><i style={{ width: '0%' }} /></div>
-        <div className="nc-wave" aria-hidden="true">👋</div>
+        <div className="nc-wave" aria-hidden="true"><Icon name="thumb" size={40} /></div>
         <h1>Hi! Ich bin dein Ernährungscoach. Lass uns deinen Plan scharf stellen.</h1>
         <div className="nc-note"><b>Kurz vorab:</b> Ich bin eine KI, kein medizinisches Fachpersonal. Sprich mit deinem Hausarzt, bevor du eine neue Ernährungsform startest oder bei einer medizinischen oder diätetischen Vorerkrankung etwas änderst.</div>
         <p>Zum Start stelle ich dir ein paar kurze Fragen, damit ich dich kennenlerne und einen Plan baue, der wirklich zu dir passt.</p>

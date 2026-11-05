@@ -43,6 +43,7 @@ export type GroupSection = 'popular' | 'meal' | 'prep' | 'diet' | 'kcal';
 export interface DishGroup {
   id: string;
   title: string;
+  /** Name des flachen Icons (components/Icon) */
   emoji: string;
   section: GroupSection[];
   test: (d: Dish, i: DishInfo) => boolean;
@@ -53,32 +54,32 @@ const meal = (m: DishMeal) => (d: Dish) => d.meals.includes(m);
 const kcalPct = (i: DishInfo, g: number, per: number) => (i.kcal > 0 ? (g * per) / i.kcal : 0);
 
 export const DISH_GROUPS: DishGroup[] = [
-  { id: 'fruehstueck', title: 'Frühstück', emoji: '☕', section: ['meal'], test: meal('fruehstueck'), cover: 'hafer-beeren' },
-  { id: 'mittag', title: 'Mittagessen', emoji: '🍲', section: ['meal'], test: meal('mittag'), cover: 'lachs-reis-brokkoli' },
-  { id: 'abend', title: 'Abendessen', emoji: '🥗', section: ['meal'], test: meal('abend'), cover: 'tomaten-eier' },
-  { id: 'snack', title: 'Snack', emoji: '🍎', section: ['meal'], test: meal('snack'), cover: 'apfel-erdnuss' },
-  { id: 'schnell', title: 'Schnell', emoji: '⏱️', section: ['popular', 'prep'], test: (d, i) => (d.minutes ? d.minutes <= 15 : d.recipeTags?.includes('schnell') ?? (i.visible <= 3 && ['fruehstueck', 'brot', 'snack', 'salat'].includes(d.cat))), cover: 'skyr-bowl' },
-  { id: 'wenig', title: 'Wenig Zutaten', emoji: '🛒', section: ['popular', 'prep'], test: (_d, i) => i.visible >= 2 && i.visible <= 3, cover: 'kartoffel-quark' },
-  { id: 'ofen', title: 'Aus dem Ofen', emoji: '🔥', section: ['prep'], test: (d) => /auflauf|lasagne|ofen|quiche|gratin|braten(?!e)|pizza|flammkuchen|gef(ü|ue)llte/i.test(d.name), cover: 'haehnchen-ofen' },
-  { id: 'pfanne', title: 'Aus der Pfanne', emoji: '🍳', section: ['prep'], test: (d) => /pfanne|gebraten|r(ü|ue)hr|omelett|spiegel|bratkartoffel|shakshuka|wok|puffer|pfannkuchen|pancake/i.test(d.name), cover: 'tomaten-eier' },
-  { id: 'suppe', title: 'Suppen & Eintöpfe', emoji: '🥣', section: ['prep'], test: (d) => d.cat === 'suppe' || /suppe|eintopf|chili|dal\b|curry/i.test(d.name), cover: 'tomatensuppe' },
-  { id: 'salat', title: 'Salate & Bowls', emoji: '🥙', section: ['prep'], test: (d) => d.cat === 'salat' || /salat|bowl/i.test(d.name), cover: 'griechischer-salat' },
-  { id: 'kalt', title: 'Ohne Kochen', emoji: '🧊', section: ['prep'], test: (d) => ['brot', 'snack'].includes(d.cat) && !/toast hawaii|pfannkuchen|waffel|eier mit|spiegel/i.test(d.name) || /overnight|m(ü|ue)sli|quark|skyr|joghurt|salat|smoothie|cottage/i.test(d.name) && !/nudel|kartoffel|warm|gebacken/i.test(d.name), cover: 'overnight-oats' },
-  { id: 'imbiss', title: 'Imbiss & Fast Food', emoji: '🍔', section: ['prep'], test: (d) => d.cat === 'imbiss', cover: 'burger-pommes' },
-  { id: 'vegetarisch', title: 'Vegetarisch', emoji: '🧀', section: ['popular', 'diet'], test: (_d, i) => i.vegetarian },
-  { id: 'vegan', title: 'Vegan', emoji: '🌱', section: ['popular', 'diet'], test: (_d, i) => i.vegan },
-  { id: 'protein', title: 'High Protein', emoji: '💪', section: ['popular', 'diet'], test: (_d, i) => i.protein >= 25 || kcalPct(i, i.protein, 4) >= 0.3 },
-  { id: 'lowcarb', title: 'Low Carb', emoji: '🥑', section: ['popular', 'diet'], test: (_d, i) => i.carbs <= 20 && i.kcal >= 150 && i.protein >= 10 },
-  { id: 'lowfat', title: 'Low Fat', emoji: '🥒', section: ['diet'], test: (_d, i) => kcalPct(i, i.fat, 9) <= 0.25 },
-  { id: 'kalorienarm', title: 'Kalorienarm', emoji: '🍏', section: ['popular', 'diet'], test: (_d, i) => i.kcal <= 400 && i.kcal >= 100 },
-  { id: 'pescetarisch', title: 'Pescetarisch', emoji: '🐟', section: ['diet'], test: (_d, i) => !i.meat },
-  { id: 'zuckerfrei', title: 'Ohne Zucker', emoji: '🚫', section: ['diet'], test: (_d, i) => i.sugarFree },
-  { id: 'laktosefrei', title: 'Laktosefrei', emoji: '🥛', section: ['diet'], test: (_d, i) => i.lactoseFree },
-  { id: 'k300', title: 'bis 300 kcal', emoji: '🍉', section: ['kcal'], test: (_d, i) => i.kcal < 300 },
-  { id: 'k500', title: '300–500 kcal', emoji: '🥪', section: ['kcal'], test: (_d, i) => i.kcal >= 300 && i.kcal < 500 },
-  { id: 'k700', title: '500–700 kcal', emoji: '🍛', section: ['kcal'], test: (_d, i) => i.kcal >= 500 && i.kcal < 700 },
-  { id: 'k900', title: '700–900 kcal', emoji: '🍝', section: ['kcal'], test: (_d, i) => i.kcal >= 700 && i.kcal < 900 },
-  { id: 'k900p', title: 'ab 900 kcal', emoji: '🍔', section: ['kcal'], test: (_d, i) => i.kcal >= 900 },
+  { id: 'fruehstueck', title: 'Frühstück', emoji: 'sun', section: ['meal'], test: meal('fruehstueck'), cover: 'hafer-beeren' },
+  { id: 'mittag', title: 'Mittagessen', emoji: 'apple', section: ['meal'], test: meal('mittag'), cover: 'lachs-reis-brokkoli' },
+  { id: 'abend', title: 'Abendessen', emoji: 'leaf', section: ['meal'], test: meal('abend'), cover: 'tomaten-eier' },
+  { id: 'snack', title: 'Snack', emoji: 'apple', section: ['meal'], test: meal('snack'), cover: 'apfel-erdnuss' },
+  { id: 'schnell', title: 'Schnell', emoji: 'clock', section: ['popular', 'prep'], test: (d, i) => (d.minutes ? d.minutes <= 15 : d.recipeTags?.includes('schnell') ?? (i.visible <= 3 && ['fruehstueck', 'brot', 'snack', 'salat'].includes(d.cat))), cover: 'skyr-bowl' },
+  { id: 'wenig', title: 'Wenig Zutaten', emoji: 'cards', section: ['popular', 'prep'], test: (_d, i) => i.visible >= 2 && i.visible <= 3, cover: 'kartoffel-quark' },
+  { id: 'ofen', title: 'Aus dem Ofen', emoji: 'flame', section: ['prep'], test: (d) => /auflauf|lasagne|ofen|quiche|gratin|braten(?!e)|pizza|flammkuchen|gef(ü|ue)llte/i.test(d.name), cover: 'haehnchen-ofen' },
+  { id: 'pfanne', title: 'Aus der Pfanne', emoji: 'flame', section: ['prep'], test: (d) => /pfanne|gebraten|r(ü|ue)hr|omelett|spiegel|bratkartoffel|shakshuka|wok|puffer|pfannkuchen|pancake/i.test(d.name), cover: 'tomaten-eier' },
+  { id: 'suppe', title: 'Suppen & Eintöpfe', emoji: 'drop', section: ['prep'], test: (d) => d.cat === 'suppe' || /suppe|eintopf|chili|dal\b|curry/i.test(d.name), cover: 'tomatensuppe' },
+  { id: 'salat', title: 'Salate & Bowls', emoji: 'leaf', section: ['prep'], test: (d) => d.cat === 'salat' || /salat|bowl/i.test(d.name), cover: 'griechischer-salat' },
+  { id: 'kalt', title: 'Ohne Kochen', emoji: 'drop', section: ['prep'], test: (d) => ['brot', 'snack'].includes(d.cat) && !/toast hawaii|pfannkuchen|waffel|eier mit|spiegel/i.test(d.name) || /overnight|m(ü|ue)sli|quark|skyr|joghurt|salat|smoothie|cottage/i.test(d.name) && !/nudel|kartoffel|warm|gebacken/i.test(d.name), cover: 'overnight-oats' },
+  { id: 'imbiss', title: 'Imbiss & Fast Food', emoji: 'star', section: ['prep'], test: (d) => d.cat === 'imbiss', cover: 'burger-pommes' },
+  { id: 'vegetarisch', title: 'Vegetarisch', emoji: 'leaf', section: ['popular', 'diet'], test: (_d, i) => i.vegetarian },
+  { id: 'vegan', title: 'Vegan', emoji: 'leaf', section: ['popular', 'diet'], test: (_d, i) => i.vegan },
+  { id: 'protein', title: 'High Protein', emoji: 'dumbbell', section: ['popular', 'diet'], test: (_d, i) => i.protein >= 25 || kcalPct(i, i.protein, 4) >= 0.3 },
+  { id: 'lowcarb', title: 'Low Carb', emoji: 'leaf', section: ['popular', 'diet'], test: (_d, i) => i.carbs <= 20 && i.kcal >= 150 && i.protein >= 10 },
+  { id: 'lowfat', title: 'Low Fat', emoji: 'leaf', section: ['diet'], test: (_d, i) => kcalPct(i, i.fat, 9) <= 0.25 },
+  { id: 'kalorienarm', title: 'Kalorienarm', emoji: 'target', section: ['popular', 'diet'], test: (_d, i) => i.kcal <= 400 && i.kcal >= 100 },
+  { id: 'pescetarisch', title: 'Pescetarisch', emoji: 'fish', section: ['diet'], test: (_d, i) => !i.meat },
+  { id: 'zuckerfrei', title: 'Ohne Zucker', emoji: 'shield', section: ['diet'], test: (_d, i) => i.sugarFree },
+  { id: 'laktosefrei', title: 'Laktosefrei', emoji: 'drop', section: ['diet'], test: (_d, i) => i.lactoseFree },
+  { id: 'k300', title: 'bis 300 kcal', emoji: 'target', section: ['kcal'], test: (_d, i) => i.kcal < 300 },
+  { id: 'k500', title: '300–500 kcal', emoji: 'target', section: ['kcal'], test: (_d, i) => i.kcal >= 300 && i.kcal < 500 },
+  { id: 'k700', title: '500–700 kcal', emoji: 'target', section: ['kcal'], test: (_d, i) => i.kcal >= 500 && i.kcal < 700 },
+  { id: 'k900', title: '700–900 kcal', emoji: 'target', section: ['kcal'], test: (_d, i) => i.kcal >= 700 && i.kcal < 900 },
+  { id: 'k900p', title: 'ab 900 kcal', emoji: 'star', section: ['kcal'], test: (_d, i) => i.kcal >= 900 },
 ];
 export const GROUP_BY_ID = new Map(DISH_GROUPS.map((g) => [g.id, g]));
 

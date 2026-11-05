@@ -172,7 +172,7 @@ function Designer() {
         </ul>
       )}
       <div className="row">
-        <button className="btn grow" id="designer-preview" onClick={preview}>👁 In der App ansehen</button>
+        <button className="btn grow" id="designer-preview" onClick={preview}>In der App ansehen</button>
       </div>
       <div className="row">
         <button className="btn primary grow" id="designer-save" onClick={() => save(false)}>{editId ? 'Änderungen speichern' : 'Im Shop anbieten'}</button>
@@ -267,7 +267,7 @@ function Reports() {
       ) : list.status === 'error' ? (
         <LoadError error={list.error} />
       ) : !list.data.length ? (
-        <p className="muted small">Keine offenen Meldungen. 👍</p>
+        <p className="muted small">Keine offenen Meldungen.</p>
       ) : (
         <ul className="admin-list reports">
           {list.data.map((r) => (
@@ -424,7 +424,7 @@ function Database() {
       <h3>Datenbank (Supabase)</h3>
       {have === null ? <p className="muted">Wird geprüft …</p> : (
         <p id="admin-db-state" className={ok ? 'db-ok' : 'db-old'}>
-          {ok ? '✓ Aktuell' : '⚠️ Update nötig'} · in Supabase: {have || 'alt'} · App braucht: {SCHEMA_VERSION}
+          {ok ? '✓ Aktuell' : 'Update nötig'} · in Supabase: {have || 'alt'} · App braucht: {SCHEMA_VERSION}
         </p>
       )}
       <ol className="small">
@@ -469,7 +469,7 @@ export function Admin() {
     );
   return (
     <>
-      <h2>🛠 Admin-Menü</h2>
+      <h2>Admin-Menü</h2>
       <Database />
       {owner && <Admins />}
       {owner && <DishPhotos />}

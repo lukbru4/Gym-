@@ -1,4 +1,5 @@
 // Eigene Mahlzeiten: erstellen (Zutaten suchen/scannen, Gramm), ändern, löschen und mit einem Tipp eintragen.
+import { Icon } from './Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { ask } from './Dialog';
@@ -163,7 +164,7 @@ export function MyMeals({ onAdd, onAddMany, draft, onDraftDone }: { onAdd: (e: N
             return (
               <li key={m.id}>
                 <button type="button" className="picker-item dish-item" data-my-meal={m.id} onClick={() => setOpen(m.id)}>
-                  <span className="my-meal-icon" aria-hidden="true">🍽️</span>
+                  <span className="my-meal-icon" aria-hidden="true"><Icon name="apple" size={24} /></span>
                   <span className="dish-text">
                     <span className="picker-name">{m.name}</span>
                     <span className="picker-sub">{fmt(t.kcal, 0)} kcal · {fmt(t.protein, 0)} g Eiweiß · {m.items.length} {m.items.length === 1 ? 'Zutat' : 'Zutaten'}</span>

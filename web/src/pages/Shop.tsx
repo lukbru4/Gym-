@@ -136,7 +136,7 @@ export function Shop() {
                       aria-pressed={previewing === schemeOf(item.id)}
                       onClick={() => setPreviewScheme(previewing === schemeOf(item.id) ? null : schemeOf(item.id))}
                     >
-                      {previewing === schemeOf(item.id) ? '👁 Vorschau aus' : '👁 Ansehen'}
+                      {previewing === schemeOf(item.id) ? 'Vorschau aus' : 'Ansehen'}
                     </button>
                   )}
                   {has ? (

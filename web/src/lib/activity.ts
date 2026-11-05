@@ -1,6 +1,7 @@
 // „Deine Aktivitäten“ im Rückblick: was du selbst gemacht hast – Trainings, Bestwerte, Supplements, Wasser, Gewicht, Gym-Ausbau.
 import type { BodyWeight, ExerciseMap, ISODate, Workout, WorkoutSet } from './types';
 
+/** icon = Name eines flachen Icons (components/Icon) */
 export interface Activity { date: ISODate; icon: string; text: string; kind: 'workout' | 'pr' | 'supp' | 'water' | 'weight' | 'gym' }
 export interface GymLogEntry { date: ISODate; text: string }
 
@@ -17,6 +18,8 @@ export interface ActivityInput {
   water?: Record<string, number>;
   weights?: BodyWeight[];
   gymLog?: GymLogEntry[];
+  /** nur diese Arten (Standard: alle) */
+  kinds?: Activity['kind'][];
 }
 
 /** Alle Aktivitäten im Zeitraum, neueste zuerst (am selben Tag: Training vor dem Rest) */
@@ -32,26 +35,27 @@ export function activities(i: ActivityInput): Activity[] {
     const cardio = ss.reduce((a, s) => a + num(s.duration_min), 0);
     const what = names.length ? names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '') : 'Training';
     const extra = [ss.length ? `${ss.length} ${ss.length === 1 ? 'Satz' : 'Sätze'}` : '', vol > 0 ? `${fmt(vol)} kg` : '', cardio > 0 ? `${fmt(cardio)} Min.` : ''].filter(Boolean).join(' · ');
-    out.push({ date: w.date, icon: '💪', text: extra ? `${what} · ${extra}` : what, kind: 'workout' });
+    out.push({ date: w.date, icon: 'dumbbell', text: extra ? `${what} · ${extra}` : what, kind: 'workout' });
   }
   for (const [d, ids] of Object.entries(i.taken ?? {})) {
     if (!inR(d) || !ids.length) continue;
     const names = ids.map((id) => i.suppNames?.get(id)).filter(Boolean) as string[];
-    if (names.length) out.push({ date: d, icon: '💊', text: `${names.join(', ')} genommen`, kind: 'supp' });
+    if (names.length) out.push({ date: d, icon: 'pill', text: `${names.join(', ')} genommen`, kind: 'supp' });
   }
-  for (const [d, ml] of Object.entries(i.water ?? {})) if (inR(d) && ml > 0) out.push({ date: d, icon: '💧', text: `${fmt(ml / 1000, 2)} l Wasser getrunken`, kind: 'water' });
-  for (const w of i.weights ?? []) if (inR(w.date)) out.push({ date: w.date, icon: '⚖️', text: `Gewicht eingetragen: ${fmt(w.weight_kg, 1)} kg`, kind: 'weight' });
+  for (const [d, ml] of Object.entries(i.water ?? {})) if (inR(d) && ml > 0) out.push({ date: d, icon: 'drop', text: `${fmt(ml / 1000, 2)} l Wasser getrunken`, kind: 'water' });
+  for (const w of i.weights ?? []) if (inR(w.date)) out.push({ date: w.date, icon: 'scale', text: `Gewicht eingetragen: ${fmt(w.weight_kg, 1)} kg`, kind: 'weight' });
   for (const g of i.gymLog ?? []) {
     if (!inR(g.date)) continue;
-    // Einträge mit eigenem Symbol vorne (📷 Foto, 📏 Maße), sonst Gym-Ausbau
-    const m = g.text.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
-    out.push({ date: g.date, icon: m ? m[1] : '🏗️', text: m ? m[2] : g.text, kind: 'gym' });
+    // Foto- und Maße-Einträge (früher mit Emoji vorne gespeichert), sonst Gym-Ausbau
+    const text = g.text.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');
+    out.push({ date: g.date, icon: /^Fortschritts-Foto/.test(text) ? 'camera' : /^Maße/.test(text) ? 'tape' : 'brick', text, kind: 'gym' });
   }
   const order: Activity['kind'][] = ['workout', 'pr', 'gym', 'weight', 'supp', 'water'];
   out.sort((a, b) => (a.date === b.date ? order.indexOf(a.kind) - order.indexOf(b.kind) : a.date < b.date ? 1 : -1));
   // Bestwerte des Zeitraums ganz oben (ohne eigenes Datum)
-  const prs = (i.prs ?? []).slice(0, 3).map((p): Activity => ({ date: i.to, icon: '🏆', text: `Neuer Bestwert: ${p.exercise} ${fmt(p.e1rm, 1)} kg (geschätztes 1RM)`, kind: 'pr' }));
-  return [...prs, ...out];
+  const prs = (i.prs ?? []).slice(0, 3).map((p): Activity => ({ date: i.to, icon: 'trophy', text: `Neuer Bestwert: ${p.exercise} ${fmt(p.e1rm, 1)} kg (geschätztes 1RM)`, kind: 'pr' }));
+  const all = [...prs, ...out];
+  return i.kinds ? all.filter((a) => i.kinds!.includes(a.kind)) : all;
 }
 
 // ---- Gym-Verlauf (auf dem Gerät) --------------------------------------------------------------

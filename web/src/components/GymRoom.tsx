@@ -43,7 +43,7 @@ function widthOf(o: GymObject) {
 }
 
 /** Pfeil: aus welcher Richtung man das Gerät gerade sieht */
-const VIEW_ARROWS = ['👁 vorne', '👁 links', '👁 hinten', '👁 rechts'];
+const VIEW_ARROWS = ['Ansicht vorne', 'Ansicht links', 'Ansicht hinten', 'Ansicht rechts'];
 
 export function GymRoom({ gym, tier, floor = 0, edit = false, selected, onSelect, onMove, onOpen, meName, visitorName, id = 'gym-room' }: {
   /** du läufst als Besucher mit (Gym eines Freundes) */ visitorName?: string;
@@ -92,7 +92,7 @@ export function GymRoom({ gym, tier, floor = 0, edit = false, selected, onSelect
             onPointerDown={(e) => { if (!edit) return; e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); drag.current = o.id; onSelect?.(o.id); }}>
             {machine ? <MachineArt pattern={machine.pattern} view={rot} pxPerM={pxPerM} straight={o.straight} />
               : deco ? <div style={{ transform: decoTransform(rot) }}><DecoArt item={deco} height={Math.round(deco.h * pxPerM)} /></div> : null}
-            {edit && selected === o.id && <span className="gym-obj-view" aria-hidden="true">{o.straight ? '👁 gerade' : VIEW_ARROWS[rot]}</span>}
+            {edit && selected === o.id && <span className="gym-obj-view" aria-hidden="true">{o.straight ? 'Ansicht gerade' : VIEW_ARROWS[rot]}</span>}
             {edit && <span className="gym-obj-name">{nameOf(o.id)}</span>}
           </div>
         );

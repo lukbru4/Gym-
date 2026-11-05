@@ -101,10 +101,9 @@ check(await page.locator('#photo-compare-view').count() === 0 && await page.loca
 // bleibt nach Neuladen (IndexedDB)
 await page.reload(); await page.locator('#recap').waitFor();
 // Aktivitäten
-await page.locator('#recap-acts').waitFor();
-if (await page.locator('#recap-acts-more').count()) await page.click('#recap-acts-more');
-const acts = await page.locator('#recap-acts').innerText();
-check(acts.includes('📷') && acts.includes('Fortschritts-Foto (Seitlich)'), 'Aktivitäten: Fortschritts-Fotos von heute');
+await page.waitForTimeout(500);
+const acts = (await page.locator('#recap-acts').count()) ? await page.locator('#recap-acts').innerText() : '';
+check(!acts.includes('Fortschritts-Foto'), 'Aktivitäten zeigen keine Fotos (nur Training & Supplements)');
 check(await page.locator('#photo-invite').count() === 0, 'Einladung verschwindet nach dem ersten Foto');
 await go(page, '#/fotos'); await page.locator('#photos').waitFor();
 await page.waitForFunction(() => document.querySelectorAll('.photo-thumb img').length === 2);

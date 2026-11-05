@@ -1,4 +1,5 @@
 // Monatskalender im Profil: Trainingstage sind markiert und führen zum Training.
+import { Icon } from './Icon';
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
@@ -8,7 +9,7 @@ import type { Workout } from '../lib/types';
 
 export function Calendar({ workouts }: { workouts: Workout[] }) {
   const { api, dataVersion } = useApp();
-  // Tage mit Fortschritts-Foto bekommen ein 📷
+  // Tage mit Fortschritts-Foto bekommen ein Kamera-Symbol
   const photos = useAsync(() => api.progress.listPhotos(), [api, dataVersion]);
   const photoDays = new Set(photos.status === 'ok' ? photos.data.map((p) => p.date) : []);
   const [month, setMonth] = useState(todayISO().slice(0, 7));
@@ -43,7 +44,7 @@ export function Calendar({ workouts }: { workouts: Workout[] }) {
           const id = byDate.get(iso);
           const photo = photoDays.has(iso);
           const cls = `cal-day${id ? ' trained' : ''}${iso === today ? ' today' : ''}${photo ? ' photo' : ''}`;
-          const cam = photo ? <span className="cal-photo" aria-label="Fortschritts-Foto">📷</span> : null;
+          const cam = photo ? <span className="cal-photo" aria-label="Fortschritts-Foto"><Icon name="camera" size={10} /></span> : null;
           return id ? (
             <a key={iso} className={cls} href={`#/training/${id}`} aria-label={`${fmtDate(iso)}: Training${photo ? ', Foto' : ''}`}>{d}{cam}</a>
           ) : photo ? (

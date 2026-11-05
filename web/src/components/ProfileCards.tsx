@@ -1,4 +1,5 @@
 // Profil-Karten: Stärkeziel (Ring), Letzte 7 Tage (Körperfigur + Balken), Serien (Wochenkreise), Level.
+import { Icon } from './Icon';
 import { useState } from 'react';
 import { useApp } from '../app/context';
 import type { Game } from '../app/game';
@@ -99,7 +100,7 @@ export function StreakCard({ g }: { g: Game }) {
   const done = new Set(g.workouts.map((w) => w.date));
   return (
     <div className="card streak-card" id="streak-card">
-      <div className="block-head"><h3>Serien</h3><span className="small">🔥 {g.streak} Tage</span></div>
+      <div className="block-head"><h3>Serien</h3><span className="small"><Icon name="flame" size={16} /> {g.streak} Tage</span></div>
       <div className="week-circles">
         {DAYS.map((d, i) => {
           const day = addDays(start, i);

@@ -25,7 +25,7 @@ export function TitleCard({ t }: { t: TrainingTitle }) {
         <li>Wie oft: {t.perWeek.toLocaleString('de-DE', { maximumFractionDigits: 1 })} Trainings pro Woche (letzte 8 Wochen) → <b>{levelInfo(t.often).name}</b></li>
         <li>Wie gut: Stufen deiner Muskeln im Körpergraph → <b>{levelInfo(t.good).name}</b></li>
       </ul>
-      <p className="small" id="title-next">{t.next ?? 'Höchster Titel erreicht – du bist Ultra! 💜'}</p>
+      <p className="small" id="title-next">{t.next ?? 'Höchster Titel erreicht – du bist Ultra!'}</p>
       <div className="title-scale" aria-label="Alle Titel">
         {STRENGTH_LEVELS.slice(1).map((l) => <span key={l.level} className={l.level === t.level ? 'on' : ''} style={{ background: `linear-gradient(135deg, ${l.light}, ${l.dark})` }}>{l.name}</span>)}
       </div>

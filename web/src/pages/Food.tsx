@@ -1,4 +1,5 @@
 // Essen: Ernährungscoach (Interview → Plan) und Tagestracker mit Kalorienring, Makros, Wasser, 7 Tagen und Tagebuch (nur Pro).
+import { Icon } from '../components/Icon';
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
@@ -165,7 +166,7 @@ export function Food() {
       </div>
 
       <div className="nc-card" id="food-water">
-        <div className="nc-between"><b>💧 Wasser</b><span id="water-val">{fmt(water / 1000, 2)} / {fmt(waterGoalMl / 1000, 1)} L</span></div>
+        <div className="nc-between"><b><Icon name="drop" size={18} /> Wasser</b><span id="water-val">{fmt(water / 1000, 2)} / {fmt(waterGoalMl / 1000, 1)} L</span></div>
         <div className="nc-track"><i className="water" style={{ width: `${Math.min(100, (water / waterGoalMl) * 100)}%` }} /></div>
         <div className="nc-row water-steps" role="group" aria-label="Menge pro Tippen">
           {WATER_STEPS.map((ml) => (

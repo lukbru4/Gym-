@@ -1,7 +1,8 @@
-// Begrüßung oben auf Home: „Guten Abend, Lukas“ plus Fakten zu dieser Woche bzw. diesem Monat.
+// Begrüßung oben auf Home: „Guten Abend, Lukas“, eine Zeile und drei Kennzahlen; weitere Fakten hinter „Mehr anzeigen“;
+// darunter die Aktivitäten der letzten 3 Tage (nur Trainings und Supplements).
 import { useState } from 'react';
-import { activities, loadGymLog } from '../lib/activity';
-import { loadWater } from '../lib/nutritionStore';
+import { activities } from '../lib/activity';
+import { Icon } from './Icon';
 import { loadSupps, loadTaken, useSuppsTick } from '../lib/supplements';
 import { useApp } from '../app/context';
 import { displayName } from '../app/profile';
@@ -30,7 +31,7 @@ function facts(r: Recap, goal: number, done: number): { icon: string; text: Reac
   const out: { icon: string; text: React.ReactNode }[] = [];
   if (r.period === 'week')
     out.push({
-      icon: '🎯',
+      icon: 'target',
       text: done >= goal ? (
         <>Wochenziel geschafft: <strong>{done} von {goal}</strong> – die ganze Woche zählt für deine Serie</>
       ) : (
@@ -39,7 +40,7 @@ function facts(r: Recap, goal: number, done: number): { icon: string; text: Reac
     });
   const prevLabel = r.period === 'week' ? 'Vorwoche' : r.period === 'month' ? 'Vormonat' : 'Vorjahr';
   out.push({
-    icon: '💪',
+    icon: 'dumbbell',
     text: (
       <>
         <strong>{plural(r.workouts, 'Training', 'Trainings')}</strong>
@@ -49,7 +50,7 @@ function facts(r: Recap, goal: number, done: number): { icon: string; text: Reac
   });
   if (r.volume > 0)
     out.push({
-      icon: '🏋️',
+      icon: 'plate',
       text: (
         <>
           <strong>{fmt(r.volume, 0)} kg</strong> bewegt in {plural(r.sets, 'Satz', 'Sätzen')} <Delta pct={change(r.volume, r.previous.volume)} />
@@ -59,7 +60,7 @@ function facts(r: Recap, goal: number, done: number): { icon: string; text: Reac
   if (r.prs.length) {
     const best = r.prs[0];
     out.push({
-      icon: '🏆',
+      icon: 'trophy',
       text: (
         <>
           <strong>{r.prs.length === 1 ? 'Neuer Bestwert' : `${r.prs.length} neue Bestwerte`}</strong>
@@ -70,10 +71,10 @@ function facts(r: Recap, goal: number, done: number): { icon: string; text: Reac
     });
   }
   if (r.topExercise)
-    out.push({ icon: '⭐', text: <>Am meisten: <strong>{r.topExercise.name}</strong> ({plural(r.topExercise.sets, 'Satz', 'Sätze')}){r.topMuscle ? ` · Fokus ${r.topMuscle}` : ''}</> });
+    out.push({ icon: 'star', text: <>Am meisten: <strong>{r.topExercise.name}</strong> ({plural(r.topExercise.sets, 'Satz', 'Sätze')}){r.topMuscle ? ` · Fokus ${r.topMuscle}` : ''}</> });
   if (r.cardioMin > 0 || r.distanceKm > 0)
-    out.push({ icon: '🏃', text: <><strong>{fmt(r.cardioMin, 0)} Min.</strong> Cardio{r.distanceKm > 0 ? ` · ${fmt(r.distanceKm)} km` : ''}</> });
-  if (r.streak > 1) out.push({ icon: '🔥', text: <>Serie: <strong>{r.streak} Tage</strong></> });
+    out.push({ icon: 'run', text: <><strong>{fmt(r.cardioMin, 0)} Min.</strong> Cardio{r.distanceKm > 0 ? ` · ${fmt(r.distanceKm)} km` : ''}</> });
+  if (r.streak > 1) out.push({ icon: 'flame', text: <>Serie: <strong>{r.streak} Tage</strong></> });
   return out;
 }
 
@@ -87,14 +88,17 @@ function headline(r: Recap): string {
 }
 
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-const dayLabel = (d: string, today: string) => (d === today ? 'Heute' : `${WD[new Date(`${d}T12:00:00`).getDay()]} ${d.slice(8, 10)}.${d.slice(5, 7)}.`);
+const addDays = (iso: string, n: number) => { const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const dayLabel = (d: string, today: string) => (d === today ? 'Heute' : d === addDays(today, -1) ? 'Gestern' : `${WD[new Date(`${d}T12:00:00`).getDay()]} ${d.slice(8, 10)}.${d.slice(5, 7)}.`);
+const MORE_KEY = 'gym-tracker-recap-more';
 
 /** period/onPeriod: ein gemeinsamer Zeitraum-Schalter für Rückblick und Statistik auf der Startseite */
-export function RecapCard({ workouts, sets, today, weights = [], period: outer, onPeriod }: { workouts: Workout[]; sets: WorkoutSet[]; today: string; weights?: BodyWeight[]; period?: RecapPeriod; onPeriod?: (p: RecapPeriod) => void }) {
+export function RecapCard({ workouts, sets, today, period: outer, onPeriod }: { workouts: Workout[]; sets: WorkoutSet[]; today: string; weights?: BodyWeight[]; period?: RecapPeriod; onPeriod?: (p: RecapPeriod) => void }) {
   const { api, user, exerciseMap } = useApp();
   const [own, setPeriod] = useState(readPeriod);
   const period = outer ?? own;
   const [allActs, setAllActs] = useState(false);
+  const [more, setMore] = useState(() => { try { return localStorage.getItem(MORE_KEY) === '1'; } catch { return false; } });
   useSuppsTick();
   const choose = (p: RecapPeriod) => {
     if (onPeriod) return onPeriod(p);
@@ -110,24 +114,21 @@ export function RecapCard({ workouts, sets, today, weights = [], period: outer, 
   const done = trainingDaysThisWeek(workouts, today);
   const name = displayName(api, user);
   const uid = user?.id ?? 'local';
-  const water: Record<string, number> = {};
-  for (let d = new Date(`${r.from}T12:00:00`); d.toISOString().slice(0, 10) <= today; d.setDate(d.getDate() + 1)) {
-    const iso = d.toISOString().slice(0, 10);
-    const ml = loadWater(uid, iso);
-    if (ml > 0) water[iso] = ml;
-  }
+  // Aktivitäten: immer die letzten 3 Tage, nur Trainings und genommene Supplements
   const acts = activities({
-    from: r.from, to: today, workouts, sets, exercises: exerciseMap(), prs: r.prs, weights, water,
-    taken: loadTaken(uid), suppNames: new Map(loadSupps(uid).map((s) => [s.id, s.name])), gymLog: loadGymLog(uid),
+    from: addDays(today, -2), to: today, workouts, sets, exercises: exerciseMap(), kinds: ['workout', 'supp'],
+    taken: loadTaken(uid), suppNames: new Map(loadSupps(uid).map((s) => [s.id, s.name])),
   });
-  const shown = allActs ? acts : acts.slice(0, 5);
+  const shown = allActs ? acts : acts.slice(0, 4);
+  const fs = facts(r, goal, done);
+  const toggleMore = () => { setMore(!more); try { localStorage.setItem(MORE_KEY, more ? '0' : '1'); } catch { /* nur Komfort */ } };
   return (
     <section className="card recap" id="recap" aria-label="Dein Rückblick">
       <div className="recap-head">
         <h2>
           {greeting(new Date().getHours())}
           {name && name !== 'Du' ? ', ' : ' '}
-          <span className="nowrap">{name && name !== 'Du' ? name : ''} 👋</span>
+          <span className="nowrap">{name && name !== 'Du' ? name : ''}</span>
         </h2>
         <div className="mini-seg" role="tablist" aria-label="Zeitraum">
           {(['week', 'month', 'year'] as const).map((p) => (
@@ -137,30 +138,40 @@ export function RecapCard({ workouts, sets, today, weights = [], period: outer, 
           ))}
         </div>
       </div>
-      <p className="recap-line">{headline(r)}</p>
+      <p className="recap-line">{period === 'week' ? (done >= goal ? `Wochenziel geschafft: ${done} ${done === 1 ? 'Training' : 'Trainings'} (Ziel ${goal})` : `Diese Woche: ${done} von ${goal} Trainings`) : headline(r)}</p>
+      <div className="recap-stats" id="recap-stats">
+        <div><Icon name="dumbbell" size={22} /><strong>{r.workouts}</strong><small>Trainings</small></div>
+        <div><Icon name="plate" size={22} /><strong>{r.volume >= 10000 ? `${fmt(r.volume / 1000, 1)} t` : `${fmt(r.volume, 0)} kg`}</strong><small>Volumen</small></div>
+        <div><Icon name="flame" size={22} /><strong>{r.streak}</strong><small>{r.streak === 1 ? 'Tag Serie' : 'Tage Serie'}</small></div>
+      </div>
       {r.workouts > 0 && (
-        <ul className="recap-facts">
-          {facts(r, goal, done).map((f, i) => (
-            <li key={i}>
-              <span aria-hidden="true">{f.icon}</span>
-              <span>{f.text}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          <button type="button" className="link-btn small recap-more-btn" id="recap-more" aria-expanded={more} onClick={toggleMore}>{more ? 'Weniger anzeigen' : 'Mehr anzeigen'}</button>
+          {more && (
+            <ul className="recap-facts" id="recap-facts">
+              {fs.map((f, i) => (
+                <li key={i}>
+                  <Icon name={f.icon} size={18} />
+                  <span>{f.text}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
       {acts.length > 0 && (
         <div className="recap-acts" id="recap-acts">
-          <h3>Deine Aktivitäten</h3>
+          <h3>Deine Aktivitäten <small className="muted">· letzte 3 Tage</small></h3>
           <ul>
             {shown.map((a, i) => (
               <li key={i} data-act={a.kind}>
-                <span className="act-day">{a.kind === 'pr' ? 'Neu' : dayLabel(a.date, today)}</span>
-                <span aria-hidden="true">{a.icon}</span>
+                <span className="act-day">{dayLabel(a.date, today)}</span>
+                <Icon name={a.icon} size={18} />
                 <span>{a.text}</span>
               </li>
             ))}
           </ul>
-          {acts.length > 5 && <button type="button" className="link-btn small" id="recap-acts-more" onClick={() => setAllActs(!allActs)}>{allActs ? 'Weniger anzeigen' : `Alle ${acts.length} anzeigen`}</button>}
+          {acts.length > 4 && <button type="button" className="link-btn small" id="recap-acts-more" onClick={() => setAllActs(!allActs)}>{allActs ? 'Weniger anzeigen' : `Alle ${acts.length} anzeigen`}</button>}
         </div>
       )}
     </section>

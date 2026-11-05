@@ -42,18 +42,18 @@ const METRIC: Record<string, string> = { workouts: 'Trainings', sets: 'Sätze', 
 export function describe(n: AppNotification): { text: string; href: string; icon: string } {
   const who = n.actor_name;
   switch (n.kind) {
-    case 'like': return { icon: '🔥', text: `${who} hat dein Training angefeuert`, href: n.workout_id ? `#/training/${n.workout_id}` : '#/workouts' };
-    case 'comment': return { icon: '💬', text: `${who} hat kommentiert: „${n.body ?? ''}“`, href: n.workout_id ? `#/training/${n.workout_id}` : '#/workouts' };
-    case 'friend_request': return { icon: '👋', text: `${who} möchte mit dir befreundet sein`, href: '#/freunde' };
-    case 'friend_accepted': return { icon: '🤝', text: `${who} hat deine Freundschaftsanfrage angenommen`, href: `#/freunde/profil/${n.actor}` };
-    case 'challenge_invite': return { icon: '⚔️', text: `${who} fordert dich heraus (${METRIC[n.body ?? ''] ?? 'Challenge'})`, href: '#/freunde' };
-    case 'challenge_accepted': return { icon: '⚔️', text: `${who} hat deine Challenge angenommen – los geht’s!`, href: '#/freunde' };
-    case 'challenge_declined': return { icon: '🏳️', text: `${who} hat deine Challenge abgelehnt`, href: '#/freunde' };
-    case 'gym_cheer': return { icon: '🔥', text: `${who} hat dein Gym angefeuert (+5 Credits)`, href: '#/gym' };
+    case 'like': return { icon: 'flame', text: `${who} hat dein Training angefeuert`, href: n.workout_id ? `#/training/${n.workout_id}` : '#/workouts' };
+    case 'comment': return { icon: 'chat', text: `${who} hat kommentiert: „${n.body ?? ''}“`, href: n.workout_id ? `#/training/${n.workout_id}` : '#/workouts' };
+    case 'friend_request': return { icon: 'person', text: `${who} möchte mit dir befreundet sein`, href: '#/freunde' };
+    case 'friend_accepted': return { icon: 'handshake', text: `${who} hat deine Freundschaftsanfrage angenommen`, href: `#/freunde/profil/${n.actor}` };
+    case 'challenge_invite': return { icon: 'swords', text: `${who} fordert dich heraus (${METRIC[n.body ?? ''] ?? 'Challenge'})`, href: '#/freunde' };
+    case 'challenge_accepted': return { icon: 'swords', text: `${who} hat deine Challenge angenommen – los geht’s!`, href: '#/freunde' };
+    case 'challenge_declined': return { icon: 'flag', text: `${who} hat deine Challenge abgelehnt`, href: '#/freunde' };
+    case 'gym_cheer': return { icon: 'flame', text: `${who} hat dein Gym angefeuert (+5 Credits)`, href: '#/gym' };
     case 'gift': {
       const [amount, ...msg] = (n.body ?? '').split('|');
       const m = msg.join('|');
-      return { icon: '🎁', text: `${who} hat dir ${amount} Credits geschenkt${m ? `: „${m}“` : ''}`, href: '#/gym' };
+      return { icon: 'gift', text: `${who} hat dir ${amount} Credits geschenkt${m ? `: „${m}“` : ''}`, href: '#/gym' };
     }
   }
 }

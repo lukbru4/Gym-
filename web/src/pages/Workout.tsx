@@ -1,4 +1,5 @@
 // Verlauf und Detailansicht eines gespeicherten Trainings.
+import { Icon } from '../components/Icon';
 import { useLive } from '../lib/live';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
@@ -45,7 +46,7 @@ function WorkoutSocial({ social, id }: { social: Social; id: number }) {
   return (
     <div className="card" id="workout-social">
       <h3>Freunde</h3>
-      <p className="small">🔥 {info.data.likes === 1 ? '1 Anfeuerung' : `${info.data.likes} Anfeuerungen`}</p>
+      <p className="small"><Icon name="flame" size={16} /> {info.data.likes === 1 ? '1 Anfeuerung' : `${info.data.likes} Anfeuerungen`}</p>
       <Comments social={social} workoutId={id} />
     </div>
   );

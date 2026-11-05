@@ -1,4 +1,5 @@
 // Eintrag hinzufügen (Suche, Foto, Gerichte, Barcode, Beschreiben, Manuell) für das Ernährungstagebuch.
+import { Icon } from './Icon';
 import { useEffect, useState } from 'react';
 import { useApp } from '../app/context';
 import { pickNumber } from './NumberPicker';
@@ -75,7 +76,7 @@ export function Barcode({ onPick, onError }: { onPick: (i: FoodItem) => void; on
     return <BarcodeScanner onClose={() => setScanning(false)} onCode={(c) => { setScanning(false); setCode(c); void find(c); }} />;
   return (
     <>
-      <button className="btn primary block" id="scan-start" type="button" onClick={() => setScanning(true)}>📷 Mit der Kamera scannen</button>
+      <button className="btn primary block" id="scan-start" type="button" onClick={() => setScanning(true)}><Icon name="camera" size={18} /> Mit der Kamera scannen</button>
       <p className="muted small center">oder Nummer unter dem Barcode eintippen:</p>
       <form className="row" onSubmit={(e) => { e.preventDefault(); void find(code); }}>
         <input id="food-code" className="grow" inputMode="numeric" placeholder="z. B. 3017620422003" aria-label="Barcode-Nummer" autoComplete="off" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />

@@ -1,4 +1,5 @@
 // Mitteilungen: Anfeuern, Kommentare, Freundschaften und Challenges der letzten 30 Tage.
+import { Icon } from '../components/Icon';
 import { useEffect } from 'react';
 import { useApp } from '../app/context';
 import { ago, describe, markAllSeen, refreshNotifications, useNotifications } from '../lib/notifications';
@@ -27,7 +28,7 @@ export function Notifications() {
             return (
               <li key={`${n.kind}-${n.at}-${i}`} className={n.unread ? 'unread' : ''} data-kind={n.kind}>
                 <a href={d.href}>
-                  <span className="notif-icon" aria-hidden="true">{d.icon}</span>
+                  <span className="notif-icon" aria-hidden="true"><Icon name={d.icon} size={22} /></span>
                   <span className="notif-text">{d.text}<small>{ago(n.at)}</small></span>
                 </a>
               </li>

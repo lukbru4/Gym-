@@ -1,4 +1,5 @@
 // Körpermaße und Fortschritts-Fotos (Körper-Seite) sowie geteilte Fotos im Freundesprofil.
+import { Icon } from './Icon';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useApp } from '../app/context';
 import { useAsync } from '../app/useAsync';
@@ -20,7 +21,7 @@ function LoadProblem({ error, onRetry }: { error: unknown; onRetry: () => void }
   if (isMissingSchema(error)) {
     return (
       <div className="notice small schema-missing" id="schema-missing">
-        <strong>⚙️ Datenbank-Update 68 nötig</strong>
+        <strong><Icon name="gear" size={18} /> Datenbank-Update 68 nötig</strong>
         <p>Damit Fotos und Maße in deinem Konto gespeichert werden, muss in Supabase einmal das Datenbank-Update laufen: SQL Editor öffnen, den Inhalt von <code>supabase/schema.sql</code> einfügen und auf „Run“ tippen.</p>
         <div className="row">
           <a className="btn small-btn primary" href={`${WEB_URL}supabase/einrichten.html`} target="_blank" rel="noopener">1. SQL kopieren</a>
@@ -56,7 +57,7 @@ export function MeasuresSection() {
     if (!hasValues(v)) return showError(new Error('Bitte mindestens ein Maß eintragen (z. B. Taille 82).'));
     try {
       await api.progress.saveMeasure(date, v);
-      addGymLog(user?.id ?? 'local', date, `📏 Maße eingetragen: ${measureSummary(v)}`);
+      addGymLog(user?.id ?? 'local', date, `Maße eingetragen: ${measureSummary(v)}`);
       setVals({}); setOpen(false); dataChanged();
     } catch (err) {
       showError(err);
@@ -88,7 +89,7 @@ export function MeasuresSection() {
         </div>
       )}
       {!open ? (
-        <button type="button" className="btn block" id="measure-open" onClick={() => setOpen(true)}>📏 Maße eintragen</button>
+        <button type="button" className="btn block" id="measure-open" onClick={() => setOpen(true)}><Icon name="tape" size={18} /> Maße eintragen</button>
       ) : (
         <form className="card measure-form" id="measure-form" onSubmit={save}>
           <label>Datum<input type="date" value={date} required onChange={(e) => setDate(e.target.value)} /></label>
@@ -183,7 +184,7 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
         setProgress(`${done + 1} von ${todo.length} …`);
         const blob = await toMaxJpeg(r.file, 1024, 0.82);
         await api.progress.addPhoto(blob, r.date, r.pose, share);
-        addGymLog(user?.id ?? 'local', r.date, `📷 Fortschritts-Foto (${poseName(r.pose)})${share ? ' – für Freunde' : ''}`);
+        addGymLog(user?.id ?? 'local', r.date, `Fortschritts-Foto (${poseName(r.pose)})${share ? ' – für Freunde' : ''}`);
         done++;
       }
       closeReview();
@@ -217,15 +218,15 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
         </div>
         {canShare ? (
           <div className="seg seg-small" role="group" aria-label="Wer sieht das Foto?">
-            <button type="button" className={`seg-tab${!shared ? ' active' : ''}`} aria-pressed={!shared} id="photo-private" onClick={() => setShared(false)}>🔒 Nur ich</button>
-            <button type="button" className={`seg-tab${shared ? ' active' : ''}`} aria-pressed={shared} id="photo-friends" onClick={() => setShared(true)}>👥 Freunde</button>
+            <button type="button" className={`seg-tab${!shared ? ' active' : ''}`} aria-pressed={!shared} id="photo-private" onClick={() => setShared(false)}><Icon name="lock" size={16} /> Nur ich</button>
+            <button type="button" className={`seg-tab${shared ? ' active' : ''}`} aria-pressed={shared} id="photo-friends" onClick={() => setShared(true)}><Icon name="people" size={16} /> Freunde</button>
           </div>
-        ) : <p className="muted small">🔒 Ohne Konto bleiben Fotos nur auf diesem Gerät.</p>}
+        ) : <p className="muted small"><Icon name="lock" size={16} /> Ohne Konto bleiben Fotos nur auf diesem Gerät.</p>}
         <input ref={fileRef} type="file" accept="image/*" multiple id="photo-file" hidden onChange={(e) => void pick(e.target.files, false)} />
         <input ref={camRef} type="file" accept="image/*" capture="user" id="photo-camera" hidden onChange={(e) => void pick(e.target.files, true)} />
         <div className="row photo-buttons">
-          <button type="button" className="btn primary grow" id="photo-gallery" disabled={busy || broken} onClick={() => fileRef.current?.click()}>🖼️ Aus Galerie</button>
-          <button type="button" className="btn grow" id="photo-add" disabled={busy || broken} onClick={() => camRef.current?.click()}>📷 Kamera</button>
+          <button type="button" className="btn primary grow" id="photo-gallery" disabled={busy || broken} onClick={() => fileRef.current?.click()}><Icon name="camera" size={18} /> Aus Galerie</button>
+          <button type="button" className="btn grow" id="photo-add" disabled={busy || broken} onClick={() => camRef.current?.click()}><Icon name="camera" size={18} /> Kamera</button>
         </div>
         <p className="muted small">Aus der Galerie kannst du mehrere Fotos auf einmal wählen – sie bekommen automatisch ihr Aufnahmedatum, das du vor dem Speichern prüfen kannst. Tipp: gleiches Licht, gleicher Ort, gleiche Pose.{canShare ? ' Bitte keine Nacktfotos – Freunde können Fotos melden.' : ''}</p>
       </div>
@@ -240,7 +241,7 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
             {ps.map((p) => (
               <button key={p.id} type="button" className="photo-thumb" data-photo={p.id} onClick={() => setView(p)} aria-label={`Foto vom ${fmtDate(p.date)}, ${poseName(p.pose)}`}>
                 {urls[p.id] ? <img src={urls[p.id]} alt="" loading="lazy" /> : <span className="photo-ph" />}
-                <span className="photo-meta">{fmtShortDate(p.date)} · {poseName(p.pose)} {p.shared ? '👥' : '🔒'}</span>
+                <span className="photo-meta">{fmtShortDate(p.date)} · {poseName(p.pose)} {p.shared ? 'Freunde' : 'Privat'}</span>
               </button>
             ))}
           </div>
@@ -264,7 +265,7 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
                 </li>
               ))}
             </ul>
-            {canShare && <p className="small">Sichtbar für: <strong>{shared ? '👥 Freunde' : '🔒 Nur dich'}</strong> <button type="button" className="link-btn" id="review-share" onClick={() => setShared(!shared)}>ändern</button></p>}
+            {canShare && <p className="small">Sichtbar für: <strong>{shared ? 'Freunde' : 'Nur dich'}</strong> <button type="button" className="link-btn" id="review-share" onClick={() => setShared(!shared)}>ändern</button></p>}
             {progress && <p className="small" id="review-progress">Wird gespeichert: {progress}</p>}
             <div className="row">
               <button type="button" className="btn primary grow" id="review-save" disabled={busy || review.every((r) => r.skip)} onClick={() => void saveReview()}>
@@ -279,11 +280,11 @@ export function PhotosSection({ weights }: { weights: BodyWeight[] }) {
         <div className="dialog-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setView(null); }}>
           <div className="dialog photo-view" id="photo-view" role="dialog" aria-modal="true" aria-label="Foto">
             {urls[view.id] && <img src={urls[view.id]} alt={`Fortschritts-Foto vom ${fmtDate(view.date)}`} />}
-            <p className="small"><strong>{fmtDate(view.date)}</strong> · {poseName(view.pose)} · {view.shared ? '👥 Freunde sehen es' : '🔒 Nur du'}</p>
+            <p className="small"><strong>{fmtDate(view.date)}</strong> · {poseName(view.pose)} · {view.shared ? 'Freunde sehen es' : 'Nur du'}</p>
             <div className="row">
               {canShare && <button type="button" className="btn small-btn grow" id="photo-toggle-share" onClick={async () => {
                 try { await api.progress.setShared(view.id, !view.shared); setView({ ...view, shared: !view.shared }); dataChanged(); } catch (err) { showError(err); }
-              }}>{view.shared ? '🔒 Nur noch für mich' : '👥 Mit Freunden teilen'}</button>}
+              }}>{view.shared ? 'Nur noch für mich' : 'Mit Freunden teilen'}</button>}
               <button type="button" className="btn small-btn danger" id="photo-delete" onClick={async () => {
                 if (!(await ask('Dieses Foto endgültig löschen?', { title: 'Foto löschen?', ok: 'Löschen', danger: true }))) return;
                 try { await api.progress.deletePhoto(view.id); setView(null); setCmp(null); dataChanged(); } catch (err) { showError(err); }
@@ -412,7 +413,7 @@ export function PhotoInvite() {
   if (hidden || photos.status === 'loading' || (photos.status === 'ok' && photos.data.length > 0)) return null;
   return (
     <div className="card supp-invite" id="photo-invite">
-      <a href="#/fotos"><strong>📷 Fortschritts-Fotos</strong><span className="muted small">Fotos aus deiner Galerie oder mit der Kamera – und Vorher/Nachher vergleichen.</span><span className="btn small-btn primary">Los geht's</span></a>
+      <a href="#/fotos"><strong><Icon name="camera" size={18} /> Fortschritts-Fotos</strong><span className="muted small">Fotos aus deiner Galerie oder mit der Kamera – und Vorher/Nachher vergleichen.</span><span className="btn small-btn primary">Los geht's</span></a>
       <button type="button" className="icon-btn" aria-label="Ausblenden" id="photo-invite-close" onClick={() => { try { localStorage.setItem(PHOTO_INVITE_KEY, '1'); } catch { /* nur Komfort */ } setHidden(true); }}>✕</button>
     </div>
   );

@@ -126,7 +126,7 @@ export function Quiz() {
               <li key={w.day}><strong>{WEEKDAY_NAMES[w.day]}</strong><span>{w.template.replace(PLAN_PREFIX, '')}</span></li>
             ))}
           </ul>
-          <p className="muted small">Wochenziel: {plan.weekGoal}× pro Woche – das zählt für deine 🔥 Serie.</p>
+          <p className="muted small">Wochenziel: {plan.weekGoal}× pro Woche – das zählt für deine Serie.</p>
         </div>
         <div className="card" id="calorie-card">
           <h3>Dein Kalorienbedarf</h3>

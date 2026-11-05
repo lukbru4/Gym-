@@ -1,4 +1,5 @@
 // Rahmen der App: Kopfzeile (Level, Serie, Credits, Menü), Reiter unter „Ränge“, untere Leiste, Update-Hinweis.
+import { Icon } from './Icon';
 import { checkDbVersion, useDbVersion } from '../lib/dbVersion';
 import { useNotifications } from '../lib/notifications';
 import type { Social } from '../data/social';
@@ -40,7 +41,7 @@ export function Header({ game }: { game: Game | null }) {
     return (
       <header className="topbar">
         <h1 id="app-title">
-          <a href="#/">🏋️ Level Up</a>
+          <a href="#/">Level Up</a>
         </h1>
       </header>
     );
@@ -81,13 +82,13 @@ export function Header({ game }: { game: Game | null }) {
       </button>
       {open && (
         <div className="menu" id="menu" ref={menuRef}>
-          <a href="#/gym" id="menu-gym">🏋️ Mein Gym</a>
-          {api.social && <a href="#/gyms" id="menu-gyms">👥 Gyms der Freunde</a>}
-          <a href="#/supplements" id="menu-supps">💊 Supplements</a>
-          <a href="#/fotos" id="menu-fotos">📷 Fotos & Maße</a>
+          <a href="#/gym" id="menu-gym"><Icon name="gym" size={18} /> Mein Gym</a>
+          {api.social && <a href="#/gyms" id="menu-gyms"><Icon name="people" size={18} /> Gyms der Freunde</a>}
+          <a href="#/supplements" id="menu-supps"><Icon name="pill" size={18} /> Supplements</a>
+          <a href="#/fotos" id="menu-fotos"><Icon name="camera" size={18} /> Fotos & Maße</a>
           <a href="#/konto">Konto &amp; Einstellungen</a>
           {api.social && <a href="#/shop">Shop</a>}
-          {admin && <a href="#/admin" id="menu-admin">🛠 Admin-Menü</a>}
+          {admin && <a href="#/admin" id="menu-admin"><Icon name="gear" size={18} /> Admin-Menü</a>}
           {admin && <a href="#/animationen" id="menu-anim">Animationen testen</a>}
           <a href="#/backup">Backup</a>
           {api.mode === 'cloud' && (

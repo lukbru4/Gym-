@@ -2408,3 +2408,16 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 
 /* Kraft-Legende: Farbfelder mit Verlauf hell → dunkel (Beginner Gelb … Ultra Lila) */
 .level-legend li .swatch { width: 18px; height: 18px; border-radius: 5px; }
+
+/* Rückblick: drei Kennzahlen, Icons */
+.recap-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0 4px; }
+.recap-stats > div { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border-radius: 12px; background: color-mix(in srgb, var(--text) 6%, transparent); }
+.recap-stats strong { font-size: 1.15rem; } .recap-stats small { color: var(--text-secondary); font-size: 0.72rem; }
+.recap-more-btn { display: block; margin: 4px auto 0; }
+.recap-facts li { align-items: center; }
+.recap-acts li { grid-template-columns: 62px 22px 1fr; align-items: center; }
+.ico { flex: none; display: inline-block; vertical-align: -0.2em; }
+
+.btn .ico, .seg-tab .ico, .chip .ico, .link-btn .ico, a .ico { margin-right: 5px; }
+.recap-stats .ico, .build-icon .ico, .notif-icon .ico, .welcome-icon .ico, .empty-icon .ico, .big-icon .ico, .friend-gym-icon .ico, .medal-icon .ico, .dish-tile-emoji .ico { margin-right: 0; }
+.welcome-icon .ico, .empty-icon .ico, .big-icon .ico { display: block; margin: 0 auto; }
