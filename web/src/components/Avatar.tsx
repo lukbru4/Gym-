@@ -40,9 +40,10 @@ function Accessory({ id }: { id?: string }) {
   }
 }
 
-export function Avatar({ level, skin, accessory }: { level: number; skin?: string; accessory?: string }) {
+/** skin wird nicht mehr genutzt (Körpergraph-Looks gibt es nicht mehr, immer Standard-Orange) */
+export function Avatar({ level, accessory }: { level: number; skin?: string; accessory?: string }) {
   return (
-    <svg className="avatar" viewBox="0 0 200 170" role="img" aria-label={`Avatar, Level ${level}`} data-skin={skin} data-accessory={accessory}>
+    <svg className="avatar" viewBox="0 0 200 170" role="img" aria-label={`Avatar, Level ${level}`} data-accessory={accessory}>
       <defs>
         <filter id="avatar-glow" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="2.2" result="b" />

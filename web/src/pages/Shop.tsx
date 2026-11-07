@@ -2,7 +2,6 @@
 import { useState, useSyncExternalStore } from 'react';
 import { useApp } from '../app/context';
 import { useGame } from '../app/gameContext';
-import { Avatar } from '../components/Avatar';
 import { LoadError, Loading } from '../components/Bits';
 import { Coin } from '../components/Icons';
 import { getCosmetics, setCosmetics, useCosmetics } from '../lib/cosmetics';
@@ -15,8 +14,7 @@ import { ask } from '../components/Dialog';
 const schemeOf = (itemId: string): SchemeChoice | null =>
   itemId.startsWith('scheme_c_') ? `custom:${itemId}` : ((Object.entries(PREMIUM_SCHEMES).find(([, id]) => id === itemId)?.[0] ?? null) as SchemeChoice | null);
 
-function Preview({ item, level }: { item: ShopItem; level: number }) {
-  if (item.kind === 'skin') return <div className="shop-preview"><Avatar level={level} skin={item.id} /></div>;
+function Preview({ item }: { item: ShopItem }) {
   if (item.kind === 'title') return <div className="shop-preview title-preview" lang="de">„{item.name}“</div>;
   // Farbschema: Mini-Ansicht der App in Hell und Dunkel
   const pal = item.palette;
@@ -126,7 +124,7 @@ export function Shop() {
               const missing = item.price - balance;
               return (
                 <div key={item.id} className={`shop-item${active ? ' equipped' : ''}`} data-item={item.id}>
-                  <Preview item={item} level={g.player.level} />
+                  <Preview item={item} />
                   <h4>{item.name}</h4>
                   <p>{item.description}</p>
                   {item.kind === 'scheme' && !(has && active) && (

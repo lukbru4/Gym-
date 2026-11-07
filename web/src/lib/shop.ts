@@ -45,7 +45,6 @@ export const SHOP_ITEMS: ShopItem[] = [
 ];
 
 export const SHOP_SECTIONS: [ShopKind, string][] = [
-  ['skin', 'Körpergraph-Looks'],
   ['title', 'Titel'],
 ];
 

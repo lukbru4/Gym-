@@ -3,7 +3,6 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { levelInfo, mixHex, muscleColor, STRENGTH_LEVELS } from '../lib/levels';
 import { ANATOMY, type AnatomyPart } from '../lib/anatomy';
-import { useCosmetics } from '../lib/cosmetics';
 import { MUSCLE_NAMES, type MuscleLevel } from '../lib/muscles';
 import type { MuscleId } from '../lib/types';
 
@@ -174,9 +173,8 @@ function Figure({ side, simple, levels, focus, labels, onSelect, gid }: FigurePr
   );
 }
 
-/** skin: Shop-Look; ohne Angabe der eigene ausgerüstete Look */
-export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = false, view = 'both', simple = false, box }: { levels?: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void; skin?: string | null; /** Übungs-/Trainingsansicht: Hauptmuskel (p) und Hilfsmuskel (s) statt Kraft-Stufen */ focus?: Focus; labels?: boolean; /** nur von vorne oder nur von hinten */ view?: 'both' | 'front' | 'back'; simple?: boolean; /** Ausschnitt (x, y, Breite, Höhe) zum Heranzoomen */ box?: [number, number, number, number] }) {
-  const own = useCosmetics().equipped.skin;
+/** skin: früher Shop-Look, wird ignoriert (immer Standard-Orange) */
+export function BodyGraph({ levels = new Map(), onSelect, focus, labels = false, view = 'both', simple = false, box }: { levels?: Map<MuscleId, MuscleLevel>; onSelect?: (m: MuscleId) => void; skin?: string | null; /** Übungs-/Trainingsansicht: Hauptmuskel (p) und Hilfsmuskel (s) statt Kraft-Stufen */ focus?: Focus; labels?: boolean; /** nur von vorne oder nur von hinten */ view?: 'both' | 'front' | 'back'; simple?: boolean; /** Ausschnitt (x, y, Breite, Höhe) zum Heranzoomen */ box?: [number, number, number, number] }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const gid = (m: MuscleId) => `mc${uid}-${m}`;
   const grads = focus ? [] : [...levels.entries()].filter(([, r]) => r.level > 0).map(([m, r]) => {
@@ -184,7 +182,7 @@ export function BodyGraph({ levels = new Map(), onSelect, skin, focus, labels = 
     return <linearGradient key={m} id={gid(m)} x1="0.1" y1="0" x2="0.9" y2="1"><stop offset="0" stopColor={mixHex(col, '#ffffff', 0.3)} /><stop offset="1" stopColor={col} /></linearGradient>;
   });
   return (
-    <div className="bodygraph-panel" data-skin={skin === undefined ? own : skin ?? undefined}>
+    <div className="bodygraph-panel">
       <svg
         preserveAspectRatio={box ? 'xMidYMid slice' : undefined}
         className={`bodygraph anat${view !== 'both' ? ' single' : ''}${simple ? ' mini' : ''}`}
