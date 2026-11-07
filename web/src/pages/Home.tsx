@@ -1,0 +1,178 @@
+// Home: Umschalter „Mein Feed | Freunde“, Begrüßung mit Rückblick (laufendes Training: Zeile über der Leiste), Aufgaben, Körpergraph, Wochenstatistik.
+import { Icon } from '../components/Icon';
+import { GymCard } from './Gym';
+import { SuppToday } from './Supplements';
+import { PhotoInvite } from '../components/Progress';
+import { TitleBadge, titleFor } from '../components/TitleBadge';
+import { StartChecklist } from '../components/StartChecklist';
+import { dueHint, getReminders, planWeek } from '../lib/reminders';
+import { isNative } from '../lib/platform';
+import { CycleCard } from '../components/CycleCard';
+import { useState } from 'react';
+import { useApp } from '../app/context';
+import { useGame } from '../app/gameContext';
+import { useAsync } from '../app/useAsync';
+import { BodyGraph, LevelScale } from '../components/BodyGraph';
+import { CreditsRules, LoadError, Loading, QuestRows } from '../components/Bits';
+import { ChartView } from '../components/ChartView';
+import { RecapCard } from '../components/Recap';
+import { migrateToCloud, migrationDone, readLocalData } from '../data/migrate';
+import { datedSets } from '../lib/editor';
+import { fmt, fmtShortDate, plural } from '../lib/format';
+import { strengthLevels } from '../lib/muscles';
+import { periodSummary, todayISO, type StatsPeriod } from '../lib/stats';
+import { APP_VERSION } from '../version';
+import { notify } from '../components/Dialog';
+
+export function HomeTabs({ active }: { active: 'mine' | 'history' | 'friends' }) {
+  const tab = (id: 'mine' | 'history' | 'friends', href: string, label: string) => (
+    <a className={`seg-tab${active === id ? ' active' : ''}`} href={href} role="tab" aria-selected={active === id}>
+      {label}
+    </a>
+  );
+  return (
+    <nav className="seg" role="tablist" aria-label="Feed">
+      {tab('mine', '#/', 'Mein Feed')}
+      {tab('history', '#/verlauf', 'Verlauf')}
+      {tab('friends', '#/feed/freunde', 'Freunde')}
+    </nav>
+  );
+}
+
+function MigrateCard() {
+  const { api, user, exercises, setExercises, showError, dataChanged } = useApp();
+  const [status, setStatus] = useState('Die lokale Kopie bleibt zur Sicherheit erhalten.');
+  const [busy, setBusy] = useState(false);
+  const localData = api.mode === 'cloud' && user && !migrationDone(user.id) ? readLocalData() : null;
+  if (!localData || !user) return null;
+  const run = async () => {
+    setBusy(true);
+    try {
+      const r = await migrateToCloud(localData, api, exercises, user.id, setStatus);
+      setExercises(r.cloudExercises);
+      await notify(`Übertragen: ${plural(r.workouts, 'Training', 'Trainings')}, ${plural(r.weights, 'Gewichtseintrag', 'Gewichtseinträge')}, ${plural(r.templates, 'Vorlage', 'Vorlagen')}.`);
+      dataChanged();
+    } catch (err) {
+      setBusy(false);
+      setStatus('Übertragung abgebrochen – du kannst es erneut versuchen.');
+      showError(err);
+    }
+  };
+  return (
+    <div className="card highlight" id="migrate-card">
+      <h3>Lokale Daten gefunden</h3>
+      <p className="small">
+        Auf diesem Gerät liegen noch {plural(localData.workouts.length, 'Training', 'Trainings')},{' '}
+        {plural((localData.body_weights || []).length, 'Gewichtseintrag', 'Gewichtseinträge')} und{' '}
+        {plural((localData.templates || []).length, 'Vorlage', 'Vorlagen')} aus dem lokalen Modus.
+      </p>
+      <button className="btn primary block" id="migrate" disabled={busy} onClick={run}>
+        In mein Konto übertragen
+      </button>
+      <p className="muted small" id="migrate-status">{status}</p>
+    </div>
+  );
+}
+
+const STATS_KEY = 'gym-tracker-stats-period';
+const STATS_TEXT: Record<StatsPeriod, { title: string; unit: string }> = {
+  week: { title: 'Diese Woche', unit: 'Tag' },
+  month: { title: 'Dieser Monat', unit: 'Tag' },
+  year: { title: 'Dieses Jahr', unit: 'Monat' },
+};
+function readStatsPeriod(): StatsPeriod {
+  try {
+    // ein gemeinsamer Schalter für Rückblick und Statistik: Standard „Woche“ (wie der Rückblick bisher)
+    const v = localStorage.getItem(STATS_KEY) ?? localStorage.getItem('gym-tracker-recap-period');
+    return v === 'month' || v === 'year' ? v : 'week';
+  } catch {
+    return 'week';
+  }
+}
+
+export function Home() {
+  const [statsPeriod, setStatsPeriod] = useState(readStatsPeriod);
+  const { api, exerciseMap, dataVersion } = useApp();
+  const game = useGame();
+  const weights = useAsync(() => api.listBodyWeights(), [api, dataVersion]);
+  if (game.status === 'loading' || weights.status === 'loading') return <><HomeTabs active="mine" /><Loading /></>;
+  if (game.status === 'error') return <LoadError error={game.error} />;
+  if (weights.status === 'error') return <LoadError error={weights.error} />;
+  const g = game.data;
+  const today = todayISO();
+  const stats = periodSummary(g.workouts, g.sets, today, statsPeriod);
+  const text = STATS_TEXT[statsPeriod];
+  const pickPeriod = (p: StatsPeriod) => {
+    setStatsPeriod(p);
+    try {
+      localStorage.setItem(STATS_KEY, p);
+    } catch {
+      /* nur Komfort */
+    }
+  };
+  const levels = strengthLevels(datedSets(g.workouts, g.sets), exerciseMap(), today);
+  const lastWeight = weights.data[weights.data.length - 1];
+  const labels = stats.buckets.map((b) => b.label);
+
+  return (
+    <>
+      <HomeTabs active="mine" />
+      <RecapCard workouts={g.workouts} sets={g.sets} today={today} weights={weights.data} period={statsPeriod} onPeriod={pickPeriod} />
+      <a className="card title-mini" id="title-mini" href="#/profil"><span>Dein Titel</span><TitleBadge t={titleFor(g.workouts, g.sets, exerciseMap())} /><span className="tile-chev" aria-hidden="true">›</span></a>
+      {(() => {
+        // Browser: Erinnerung als Hinweis-Karte (in der App fürs Handy kommt sie als Benachrichtigung)
+        if (isNative) return null;
+        const hint = dueHint(getReminders(), { now: new Date(), week: planWeek(), trainedToday: g.workouts.some((w) => w.date === today), weekDone: g.weekDone, weekGoal: g.weekGoal, pro: false });
+        return hint ? <a className="card notice reminder-hint" id="reminder-hint" href={hint.route}><Icon name="clock" size={18} /> {hint.text} – los geht’s!</a> : null;
+      })()}
+      <MigrateCard />
+      <StartChecklist workoutCount={g.workouts.length} />
+      <SuppToday compact />
+      <PhotoInvite />
+      <GymCard balance={g.balance} />
+      <CycleCard compact />
+      {api.mode === 'local' && (
+        <p className="notice small">
+          Lokaler Modus: Deine Daten liegen nur in diesem Browser. Sichere sie regelmäßig über ☰ → <a href="#/backup">Backup</a>.
+        </p>
+      )}
+      <a className="card quests-mini" href="#/aufgaben">
+        <div className="block-head">
+          <h3>Heutige Aufgaben</h3>
+          <span className="muted small">
+            {g.quests.today.filter((q) => q.done).length} / {g.quests.today.length}
+          </span>
+        </div>
+        <QuestRows list={g.quests.today} />
+      </a>
+      <a className="bodygraph-link" href="#/koerper" aria-label="Körpergraph öffnen">
+        <BodyGraph levels={levels} />
+        <LevelScale id="home-scale" />
+      </a>
+      <a className="btn primary block big" href="#/workouts">Workout starten</a>
+      <div className="stats-head">
+        <h2>{text.title}</h2>
+      </div>
+      <div className="tiles">
+        <div className="tile"><span className="tile-value">{stats.total.workouts}</span><span className="tile-label">Trainings</span></div>
+        <div className="tile"><span className="tile-value">{fmt(stats.total.volume, 0)}</span><span className="tile-label">kg Volumen</span></div>
+        <div className="tile"><span className="tile-value">{fmt(stats.total.cardioMin, 0)}</span><span className="tile-label">Min. Cardio</span></div>
+        <div className="tile">
+          <span className="tile-value">{lastWeight ? fmt(lastWeight.weight_kg) : '–'}</span>
+          <span className="tile-label">kg Körpergewicht{lastWeight ? ` (${fmtShortDate(lastWeight.date)})` : ''}</span>
+        </div>
+      </div>
+      <div className="card">
+        <h3>Trainings pro {text.unit}</h3>
+        <ChartView type="bar" labels={labels} series={[{ label: 'Trainings', data: stats.buckets.map((b) => b.workouts), color: '--series-1' }]} unit="Trainings" integer ariaLabel={`Trainings pro ${text.unit}`} id="c-count" />
+      </div>
+      <div className="card">
+        <h3>Volumen pro {text.unit}</h3>
+        <p className="muted small">Summe aus Wiederholungen × Gewicht aller Kraftsätze</p>
+        <ChartView type="bar" labels={labels} series={[{ label: 'Volumen', data: stats.buckets.map((b) => Math.round(b.volume)), color: '--series-1' }]} unit="kg" ariaLabel={`Volumen pro ${text.unit}`} id="c-volume" />
+      </div>
+      <CreditsRules />
+      <p className="muted small center">App-Version {APP_VERSION}</p>
+    </>
+  );
+}
