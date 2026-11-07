@@ -2508,3 +2508,16 @@ label.btn.block.disabled { opacity: 0.6; pointer-events: none; }
 .title-dots { display: flex; gap: 3px; justify-content: center; margin-top: 3px; }
 .title-dots b { width: 6px; height: 6px; border-radius: 50%; background: rgba(0, 0, 0, 0.22); }
 .title-dots b.on { background: rgba(0, 0, 0, 0.75); }
+
+/* Trainingspläne mit Körpergraph */
+.split-list { display: grid; gap: 12px; margin-top: 6px; }
+.split-card { display: flex; flex-direction: column; gap: 6px; padding: 14px; text-align: left; font: inherit; color: var(--text); background: var(--surface); border: 2px solid var(--border); border-radius: 16px; cursor: pointer; }
+.split-card.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.split-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.split-head strong { font-size: 1.1rem; }
+.split-head small, .split-text { color: var(--text-secondary); font-size: 0.85rem; }
+.split-days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.split-day { margin: 0; flex: none; text-align: center; background: color-mix(in srgb, var(--text) 4%, transparent); border-radius: 12px; padding: 6px 6px 4px; }
+.split-figs { display: flex; align-items: flex-end; gap: 0; }
+.split-day figcaption { font-size: 0.75rem; font-weight: 700; margin-top: 2px; }
+.plan-day-figure { display: flex; justify-content: center; margin: 4px 0 8px; }

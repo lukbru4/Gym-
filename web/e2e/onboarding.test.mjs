@@ -74,6 +74,14 @@ for (let n = 0; n < 30; n++) {
     check((await page.locator('#ob-limit').innerText()).startsWith('2 von 2'), 'Fokus: höchstens 2');
     await shot('13-focus'); await page.click('#ob-next'); continue;
   }
+  if (id === 'split') {
+    check(await page.locator('.split-card').count() === 5, '5 Pläne zur Auswahl');
+    check(await page.locator('.split-card[data-split="ppl"] .split-day').count() === 3, 'PPL: 3 Tage mit Körpergraph');
+    check(await page.locator('.split-day[data-kind="push"] [data-part="chest"]').count() > 0, 'Push-Tag: Brust markiert');
+    check(await page.locator('.split-day[data-kind="push"] [data-part="upper-back"]').count() === 0, 'Push-Tag: Latissimus nicht markiert');
+    await page.screenshot({ path: `${SHOTS}/ob-12b-split.png`, fullPage: true });
+    await page.click('.split-card[data-split="arnold"]'); await page.waitForTimeout(300); continue;
+  }
   if (id === 'pain' || id === 'equip') { await page.locator('.ob-chip').first().click(); await page.click('#ob-next'); continue; }
   if (id === 'place') { await page.click('[data-v="gym"]'); await page.waitForTimeout(300); continue; }
   if (id === 'style') { await page.click('#ob-next'); continue; } // schon „Maschinen“ (Anfänger)
@@ -84,6 +92,7 @@ await page.locator('#plan-week').waitFor();
 check(seen2.length >= 10 && seen2.length <= 15, `Runde 2: ${seen2.length} Fragen`);
 check((await page.locator('#view h2').first().innerText()).toLowerCase().includes('berechnet'), 'Plan ist berechnet');
 const a2 = await page.evaluate(() => JSON.parse(localStorage.getItem('gym-tracker-quiz')).answers);
+check(a2.split === 'arnold' && (await page.locator('[data-plan-template="Plan · Brust & Rücken"]').count()) === 1, 'Arnold-Split im Plan');
 check(a2.r2 && a2.days === '3' && a2.duration === '45' && a2.style === 'maschinen' && a2.focus.length === 2, 'Runde 2 gespeichert, Plan-Antworten passen');
 await page.screenshot({ path: `${SHOTS}/ob-14-plan.png`, fullPage: true });
 await go(page, '#/workouts'); await page.locator('h2').first().waitFor();

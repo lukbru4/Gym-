@@ -2,7 +2,7 @@
 // Antworten landen in denselben Answers wie der Trainingsplan (lib/plan.ts) und werden mit dem Konto gespeichert.
 import type { Answers } from './plan';
 
-export type StepKind = 'cards' | 'multi' | 'slider' | 'bodyfat' | 'text' | 'info' | 'week' | 'focus' | 'months' | 'level';
+export type StepKind = 'cards' | 'multi' | 'slider' | 'bodyfat' | 'text' | 'info' | 'week' | 'focus' | 'months' | 'level' | 'split';
 export interface Opt { v: string; label: string; sub?: string; icon?: string }
 export interface Help { title: string; lines: string[] }
 export interface Step {
@@ -100,7 +100,7 @@ const ROUND2_BASE: Step[] = [
   { id: 'place', section: 'Dein Training', title: 'Wo trainierst du?', kind: 'cards', options: [{ v: 'gym', label: 'Im Fitnessstudio', icon: 'gym' }, { v: 'homeDb', label: 'Zuhause mit Gewichten', icon: 'dumbbell' }, { v: 'homeBw', label: 'Zuhause ohne Geräte', icon: 'person' }] },
   { id: 'equip', section: 'Dein Training', title: 'Welche Geräte hast du zuhause?', hint: 'Mehrere möglich.', kind: 'multi', when: (a) => a.place === 'homeDb', options: [{ v: 'lh', label: 'Langhantel' }, { v: 'kh', label: 'Kurzhanteln' }, { v: 'kl', label: 'Klimmzugstange' }, { v: 'ba', label: 'Bänder' }] },
   { id: 'weekdays', section: 'Deine Woche', title: 'Deine Wochenplanung', hint: 'An welchen Tagen kannst du – und wie lange?', kind: 'week', min: 30, max: 120, step: 15 },
-  { id: 'split', section: 'Deine Woche', title: 'Wie sollen die Trainings aufgeteilt sein?', kind: 'cards', options: [{ v: 'auto', label: 'Automatisch', sub: 'Passend zu deinen Tagen (empfohlen)' }, { v: 'ganz', label: 'Ganzkörper', sub: 'Jedes Mal alles' }, { v: 'ob', label: 'Oberkörper / Unterkörper' }, { v: 'ppl', label: 'Push / Pull / Beine' }] },
+  { id: 'split', section: 'Dein Plan', title: 'Welchen Plan willst du trainieren?', hint: 'Bei jedem Plan siehst du, welche Muskeln an welchem Tag arbeiten.', kind: 'split' },
   { id: 'focus', section: 'Dein Fokus', title: 'Wo liegt dein Fokus?', hint: 'Höchstens 2 Muskelgruppen – oder alles gleich.', kind: 'focus', limit: 2, options: [{ v: 'brust', label: 'Brust' }, { v: 'ruecken', label: 'Rücken' }, { v: 'schultern', label: 'Schultern' }, { v: 'arme', label: 'Arme' }, { v: 'beine', label: 'Beine & Po' }, { v: 'bauch', label: 'Bauch' }, { v: 'alles', label: 'Alles gleich' }] },
   { id: 'pain', section: 'Dein Körper', title: 'Hast du Beschwerden?', hint: 'Solche Übungen lassen wir weg. Bei Schmerzen bitte ärztlich abklären.', kind: 'multi', options: [{ v: 'keine', label: 'Keine' }, { v: 'knie', label: 'Knie' }, { v: 'ruecken', label: 'Unterer Rücken' }, { v: 'schulter', label: 'Schulter' }, { v: 'ellbogen', label: 'Ellbogen' }, { v: 'handgelenk', label: 'Handgelenk' }] },
   { id: 'style', section: 'Dein Training', title: 'Welche Übungen magst du lieber?', kind: 'cards', options: [{ v: 'alles', label: 'Alles – egal' }, { v: 'maschinen', label: 'Maschinen & Kabelzüge', sub: 'Leicht zu lernen, gut für Anfänger' }, { v: 'frei', label: 'Freie Gewichte', sub: 'Hanteln, Stange, Körpergewicht' }, { v: 'ohnelh', label: 'Ohne Langhantel' }] },

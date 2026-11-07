@@ -9,8 +9,9 @@ import { usePro } from '../lib/pro';
 import { calorieNeeds, JOB_OPTIONS } from '../lib/calories';
 import { fmt } from '../lib/format';
 import { ExerciseInfo } from '../components/ExerciseInfo';
-import { activeQuestions, answerLabel, generatePlan, hasOtherSport, exerciseGroupOf, GROUP_ORDER, isAnswered, isCustomized, OTHER, otherKey, QUESTIONS, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
+import { activeQuestions, answerLabel, kindOf, generatePlan, hasOtherSport, exerciseGroupOf, GROUP_ORDER, isAnswered, isCustomized, OTHER, otherKey, QUESTIONS, loadQuiz, PLAN_PREFIX, saveQuiz, type Answers, type Question } from '../lib/plan';
 import { PlanDayEditor } from '../components/PlanDayEditor';
+import { DayFigure } from '../components/SplitPicker';
 import { CATALOG_MUSCLES } from '../lib/exerciseCatalog';
 import { matchesSearch } from '../lib/searchTerms';
 import { withNewCycle } from '../lib/cycle';
@@ -190,6 +191,7 @@ export function Quiz({ startPlan = false }: { startPlan?: boolean }) {
               <strong>{t.name.replace(PLAN_PREFIX, '')}</strong>
               <span className="muted small">{t.exercises.filter((e) => !e.cardio).length} Übungen · ca. {t.minutes} Min.{isCustomized(answers, t.name) ? ' · angepasst' : ''}</span>
             </summary>
+            {kindOf(t.name) && <div className="plan-day-figure"><DayFigure kind={kindOf(t.name)!} height={150} /></div>}
             <PlanDayEditor template={t} answers={answers} onChange={store} onInfo={setInfo} />
           </details>
         ))}

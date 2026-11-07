@@ -70,3 +70,17 @@ describe('Fragerunden', () => {
     expect(k.adjust).toBe(-200);
   });
 });
+
+describe('Pläne (Splits)', () => {
+  const base = { sex: 'm', age: '25', height: '180', weight: '80', goal: 'muskel', exp: 'mittel', place: 'gym', duration: '60' };
+  it('Arnold-Split: Brust & Rücken, Schultern & Arme, Beine', () => {
+    const p = generatePlan({ ...base, split: 'arnold', days: '6' });
+    expect(p.templates.map((t) => t.name)).toEqual(['Plan · Brust & Rücken A', 'Plan · Schultern & Arme A', 'Plan · Beine A', 'Plan · Brust & Rücken B', 'Plan · Schultern & Arme B', 'Plan · Beine B']);
+    expect(p.templates.every((t) => t.exercises.length >= 4)).toBe(true);
+  });
+  it('Bro-Split: 5 Tage, ein Muskel pro Tag', () => {
+    const p = generatePlan({ ...base, split: 'bro', days: '5' });
+    expect(p.templates.map((t) => t.name.replace('Plan · ', ''))).toEqual(['Brust', 'Rücken', 'Schultern', 'Arme', 'Beine']);
+    expect(generatePlan({ ...base, split: 'bro', days: '3' }).notes.some((n) => n.includes('Bro-Split'))).toBe(true);
+  });
+});

@@ -44,7 +44,7 @@ export const QUESTIONS: Question[] = [
   { id: 'goalWeight', q: 'Wie viel möchtest du wiegen?', hint: 'Daraus rechnen wir mit, ob du abnehmen oder zunehmen solltest.', type: 'range', min: 35, max: 200, def: 75, step: 0.5, unit: 'kg', defFrom: 'weight', when: (a) => a.goalKg === 'ja' },
   { id: 'exp', q: 'Wie lange trainierst du schon mit Gewichten?', type: 'one', options: [['neu', 'Gar nicht / gerade angefangen'], ['basis', 'Unter 1 Jahr'], ['mittel', '1–3 Jahre'], ['profi', 'Über 3 Jahre']] },
   { id: 'days', q: 'Wie oft pro Woche willst du trainieren?', hint: 'Wird dein Wochenziel für die Serie.', type: 'one', options: [['1', '1× pro Woche'], ['2', '2× pro Woche'], ['3', '3× pro Woche'], ['4', '4× pro Woche'], ['5', '5× pro Woche'], ['6', '6× pro Woche']] },
-  { id: 'split', q: 'Welche Aufteilung möchtest du?', hint: 'Wie die Trainings über die Woche verteilt werden.', type: 'one', options: [['auto', 'Automatisch (passend zu meinen Tagen)'], ['ppl', 'Push / Pull / Beine'], ['ganz', 'Ganzkörper'], ['ob', 'Oberkörper / Unterkörper']] },
+  { id: 'split', q: 'Welche Aufteilung möchtest du?', hint: 'Wie die Trainings über die Woche verteilt werden.', type: 'one', options: [['auto', 'Automatisch (passend zu meinen Tagen)'], ['ganz', 'Ganzkörper'], ['ob', 'Oberkörper / Unterkörper'], ['ppl', 'Push / Pull / Beine'], ['arnold', 'Arnold-Split'], ['bro', 'Bro-Split (ein Muskel pro Tag)']] },
   { id: 'duration', q: 'Wie lange darf ein Training dauern?', type: 'one', options: [['30', '30 Minuten'], ['45', '45 Minuten'], ['60', '60 Minuten'], ['90', '90 Minuten']] },
   { id: 'place', q: 'Wo trainierst du?', type: 'one', options: [['gym', 'Im Fitnessstudio'], ['homeDb', 'Zuhause mit Gewichten'], ['homeBw', 'Zuhause ohne Geräte']] },
   { id: 'equip', q: 'Welche Geräte hast du zuhause?', hint: 'Mehrere möglich.', type: 'multi', when: (a) => a.place === 'homeDb', options: [['lh', 'Langhantel'], ['kh', 'Kurzhanteln'], ['kl', 'Klimmzugstange'], ['ba', 'Bänder']] },
@@ -206,14 +206,24 @@ export function normalizeAnswers(a: Answers): { answers: Answers; notes: string[
 }
 
 /** Plätze pro Trainingsart: je Platz mehrere Kandidaten, der passendste wird gewählt */
-type Kind = 'ganz' | 'push' | 'pull' | 'beine' | 'oben' | 'unten';
-const MUST: Record<Kind, number[]> = { ganz: [0, 1, 2], push: [0, 1], pull: [0, 1], beine: [0, 1], oben: [0, 1], unten: [0, 1] };
+export type Kind = 'ganz' | 'push' | 'pull' | 'beine' | 'oben' | 'unten' | 'br' | 'sa' | 'brust' | 'ruecken' | 'schulter' | 'arme';
+const MUST: Record<Kind, number[]> = { ganz: [0, 1, 2], push: [0, 1], pull: [0, 1], beine: [0, 1], oben: [0, 1], unten: [0, 1], br: [0, 1], sa: [0, 1], brust: [0, 1], ruecken: [0, 1], schulter: [0, 1], arme: [0, 1] };
+/** Name des Trainingstags je Art */
+export const KIND_NAMES: Record<Kind, string> = { ganz: 'Ganzkörper', push: 'Push', pull: 'Pull', beine: 'Beine', oben: 'Oberkörper', unten: 'Unterkörper', br: 'Brust & Rücken', sa: 'Schultern & Arme', brust: 'Brust', ruecken: 'Rücken', schulter: 'Schultern', arme: 'Arme' };
 const SLOTS: Record<Kind, Pick[][]> = {
   push: [[P.bank, P.khBank, X.brustpresse, P.butterfly, P.dips, X.pushup], [P.schraeg, P.khBank, X.schraegPresse, X.flys, P.butterfly, X.crossover], [P.ohp, X.ohpKh, X.ohpMa, P.lateral], [P.lateral, X.lateralMa, X.lateralKabel, P.ohp], [P.pushdown, X.ropePushdown, P.french, P.dips], [P.french, X.overhead, P.pushdown, X.ropePushdown], [P.plank, P.crunch, X.cableCrunch]],
   pull: [[P.pullup, P.lat, X.klimmMa, X.latEng], [P.bbRow, X.khRow, X.rowMa, P.cableRow, P.lat], [P.cableRow, X.rowMa, P.lat, P.bbRow, X.khRow], [P.facePull, X.reverseFly, P.lateral], [P.curl, X.scott, X.cableCurl, P.hammer], [P.hammer, P.curl, X.cableCurl], [P.rdl, X.hyper, P.crunch]],
   beine: [[P.squat, X.hack, P.presse, X.bulgarian, P.lunge], [P.rdl, X.curlLegSit, P.curlLeg, P.dead], [P.presse, X.bulgarian, P.lunge, P.extension, X.stepups], [P.curlLeg, X.curlLegSit, P.rdl, X.hipthrust, X.glute], [P.extension, P.lunge], [P.calves, X.calvesSit], [P.plank, P.crunch, X.legRaise, X.cableCrunch]],
   ganz: [[P.squat, X.hack, P.presse, P.lunge], [P.bank, P.khBank, X.brustpresse, P.butterfly, P.dips, X.pushup], [P.lat, P.pullup, P.bbRow, P.cableRow, X.rowMa, X.khRow], [P.rdl, P.curlLeg, X.hipthrust, X.glute, P.dead], [P.ohp, X.ohpKh, X.ohpMa, P.lateral], [P.bbRow, P.cableRow, X.khRow, X.rowMa, P.pullup], [P.curl, P.pushdown, P.hammer, X.ropePushdown, X.scott], [P.plank, P.crunch, X.cableCrunch]],
   oben: [[P.bank, P.khBank, X.brustpresse, P.butterfly, P.dips, X.pushup], [P.lat, P.pullup, P.bbRow, X.latEng, X.klimmMa], [P.ohp, X.ohpKh, X.ohpMa, P.lateral], [P.cableRow, X.rowMa, X.khRow, P.bbRow, P.lat], [P.curl, X.scott, P.hammer, X.cableCurl], [P.pushdown, X.ropePushdown, P.french, X.overhead], [P.facePull, X.reverseFly, P.lateral], [P.schraeg, P.khBank, X.schraegPresse, X.flys]],
+  // Arnold-Split: Brust & Rücken / Schultern & Arme / Beine
+  br: [[P.bank, P.khBank, X.brustpresse, P.dips], [P.pullup, P.lat, X.klimmMa, X.latEng], [P.schraeg, X.schraegPresse, P.khBank, X.flys], [P.bbRow, X.khRow, X.rowMa, P.cableRow], [P.butterfly, X.flys, X.crossover, P.dips], [P.cableRow, X.rowMa, P.lat, X.khRow], [P.rdl, X.hyper, P.plank]],
+  sa: [[P.ohp, X.ohpKh, X.ohpMa], [P.curl, X.scott, X.cableCurl, P.hammer], [P.pushdown, X.ropePushdown, P.french, P.dips], [P.lateral, X.lateralMa, X.lateralKabel], [P.hammer, X.cableCurl, P.curl, X.scott], [P.french, X.overhead, X.ropePushdown, P.pushdown], [P.facePull, X.reverseFly, P.lateral], [P.crunch, P.plank, X.cableCrunch]],
+  // Bro-Split: ein Muskel pro Tag
+  brust: [[P.bank, P.khBank, X.brustpresse, P.dips], [P.schraeg, X.schraegPresse, P.khBank], [P.butterfly, X.flys, X.crossover], [P.dips, X.pushup, X.brustpresse, P.butterfly], [X.crossover, X.flys, P.butterfly], [P.pushdown, X.ropePushdown, P.french]],
+  ruecken: [[P.pullup, P.lat, X.klimmMa, X.latEng], [P.bbRow, X.khRow, X.rowMa, P.cableRow], [P.cableRow, X.rowMa, P.lat, X.khRow], [X.latEng, P.lat, X.klimmMa], [P.rdl, X.hyper, P.dead], [P.hammer, P.curl, X.cableCurl]],
+  schulter: [[P.ohp, X.ohpKh, X.ohpMa], [P.lateral, X.lateralMa, X.lateralKabel], [P.facePull, X.reverseFly], [X.ohpKh, X.ohpMa, P.ohp], [X.lateralKabel, P.lateral, X.lateralMa], [X.reverseFly, P.facePull], [P.plank, P.crunch, X.cableCrunch]],
+  arme: [[P.curl, X.scott, X.cableCurl, P.hammer], [P.pushdown, X.ropePushdown, P.french, P.dips], [P.hammer, X.cableCurl, P.curl], [P.french, X.overhead, X.ropePushdown], [X.scott, X.cableCurl, P.curl], [X.ropePushdown, P.pushdown, X.overhead], [P.crunch, P.plank, X.legRaise]],
   unten: [[P.squat, X.hack, P.presse, P.lunge, X.bulgarian], [P.rdl, X.curlLegSit, P.curlLeg, X.hipthrust, P.dead], [P.presse, P.lunge, X.bulgarian, P.extension], [P.curlLeg, X.curlLegSit, P.rdl, X.glute], [P.extension, P.lunge, X.stepups], [P.calves, X.calvesSit], [P.plank, P.crunch, X.legRaise], [P.crunch, P.plank, X.cableCrunch, X.absMa]],
 };
 
@@ -319,8 +329,10 @@ export function generatePlan(raw: Answers): Plan {
     split === 'ganz' ? cycle(['ganz'])
     : split === 'ppl' ? cycle(['push', 'pull', 'beine'])
     : split === 'ob' ? cycle(['oben', 'unten'])
+    : split === 'arnold' ? cycle(['br', 'sa', 'beine'])
+    : split === 'bro' ? cycle(['brust', 'ruecken', 'schulter', 'arme', 'beine'])
     : days === 1 ? ['ganz'] : days === 2 ? ['ganz', 'ganz'] : days === 3 ? (beginner ? cycle(['ganz']) : ['push', 'pull', 'beine']) : days === 4 ? ['oben', 'unten', 'oben', 'unten'] : ['push', 'pull', 'beine'];
-  const names: Record<Kind, string> = { ganz: 'Ganzkörper', push: 'Push', pull: 'Pull', beine: 'Beine', oben: 'Oberkörper', unten: 'Unterkörper' };
+  const names = KIND_NAMES;
 
   const { ok, avoid, pain, style, style0, place } = allowedOf(a);
   const focus = new Set(asList(a.focus).filter((f) => f !== 'alles'));
@@ -436,6 +448,8 @@ export function generatePlan(raw: Answers): Plan {
   ];
   if (split === 'ppl' && days < 3) notes.push('Push / Pull / Beine braucht mindestens 3 Trainingstage, damit alle Teile drankommen – mit weniger Tagen ist Ganzkörper besser.');
   if (split === 'ob' && days < 2) notes.push('Oberkörper / Unterkörper braucht mindestens 2 Trainingstage.');
+  if (split === 'arnold' && days < 3) notes.push('Der Arnold-Split braucht mindestens 3 Trainingstage (ideal 6), damit alle Teile drankommen.');
+  if (split === 'bro' && days < 5) notes.push('Der Bro-Split braucht 5 Trainingstage – mit weniger Tagen fehlen Muskelgruppen. Ganzkörper oder Oberkörper/Unterkörper passen besser.');
   if (beginner && days === 3 && split === 'auto') notes.push('Als Einsteiger trainierst du jeden Muskel drei Mal pro Woche (Ganzkörper) – so lernst du die Übungen am schnellsten.');
   if (style0 === 'maschinen' && place !== 'gym') notes.push('Maschinen gibt es nur im Fitnessstudio – für dein Training zuhause haben wir diese Vorliebe nicht berücksichtigt.');
   if (style !== 'alles' || avoid.size) {
@@ -535,9 +549,9 @@ const pickOf = (name: string): Pick | undefined => BY_NAME.get(name) ?? CATALOG_
 const isTop = (name: string) => RECOMMENDED.has(name) || popularityOf(name) === 1;
 const choice = (p: Pick): PlanChoice => ({ name: p.name, muscle: GROUP_NAMES[p.muscles[0]] ?? p.muscles[0], recommended: isTop(p.name) });
 const byRec = (x: PlanChoice, y: PlanChoice) => Number(y.recommended) - Number(x.recommended) || popularityOf(x.name) - popularityOf(y.name) || x.name.localeCompare(y.name, 'de');
-const kindOf = (templateName: string): Kind | null => {
+export const kindOf = (templateName: string): Kind | null => {
   const label = templateName.replace(PLAN_PREFIX, '').replace(/ [A-F1-9]$/, '');
-  const k = (Object.entries({ ganz: 'Ganzkörper', push: 'Push', pull: 'Pull', beine: 'Beine', oben: 'Oberkörper', unten: 'Unterkörper' }) as [Kind, string][]).find(([, n]) => n === label);
+  const k = (Object.entries(KIND_NAMES) as [Kind, string][]).find(([, n]) => n === label);
   return k ? k[0] : null;
 };
 const currentNames = (raw: Answers, templateName: string) => new Set((generatePlan(raw).templates.find((t) => t.name === templateName)?.exercises ?? []).map((e) => e.name));
