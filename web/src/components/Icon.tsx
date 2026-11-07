@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 
 const C = {
-  red: '#e5484d', redL: '#ffd1d3', orange: '#f76b15', orangeL: '#ffdcc3', yellow: '#f5b300', yellowL: '#fff1b8',
+  red: '#ff6a1a', redL: '#ffd9c2', orange: '#f76b15', orangeL: '#ffdcc3', yellow: '#f5b300', yellowL: '#fff1b8',
   green: '#30a46c', greenL: '#c6f0d6', blue: '#0090ff', blueL: '#cde7ff', purple: '#8e4ec6', purpleL: '#e7d7f8',
   gray: '#6f7782', grayL: '#dfe3e8', dark: '#2b2f36', white: '#ffffff', skin: '#f2c6a0',
 };

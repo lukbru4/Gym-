@@ -106,12 +106,7 @@ export function accentVariants(hex: string): AccentVars {
 
 export const isHexColor = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
 export function getAccent(): string | null {
-  try {
-    const v = JSON.parse(localStorage.getItem(ACCENT_KEY) ?? 'null');
-    return isHexColor(v?.color) ? v.color.toLowerCase() : null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 /** null = Farbe des Farbschemas */
 export function setAccent(color: string | null) {
@@ -140,14 +135,9 @@ function write(key: string, value: string) {
   }
 }
 
+/** Es gibt nur noch ein Design (Schwarz & Orange); alte gespeicherte Schemata werden ignoriert */
 export function getScheme(): SchemeChoice {
-  try {
-    const v = localStorage.getItem(SCHEME_KEY);
-    if (v?.startsWith('custom:') && storedCustom()?.id === v.slice(7)) return v as SchemeChoice;
-  } catch {
-    /* Standard */
-  }
-  return read(SCHEME_KEY, SCHEMES, DEFAULT_SCHEME);
+  return DEFAULT_SCHEME;
 }
 export const schemeLabel = (c: SchemeChoice) =>
   c.startsWith('custom:') ? customPalettes.get(c.slice(7))?.name ?? storedCustom()?.name ?? 'Eigenes Schema' : SCHEMES.find(([id]) => id === c)?.[1] ?? c;

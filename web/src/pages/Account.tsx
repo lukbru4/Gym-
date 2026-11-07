@@ -12,8 +12,6 @@ import { navigate } from '../app/router';
 import { clearDraft } from '../lib/editor';
 import { plural } from '../lib/format';
 import { todayISO } from '../lib/stats';
-import { useCosmetics } from '../lib/cosmetics';
-import { useShopItems } from '../lib/shop';
 import { activeQuestions, isAnswered, loadQuiz } from '../lib/plan';
 import { usePro } from '../lib/pro';
 import { refreshAvatars, useAvatarUrl } from '../lib/avatars';
@@ -25,17 +23,12 @@ import { addCustomGoal, removeCustomGoal, toggleCustomGoal, useCustomGoals } fro
 import { pickNumber } from '../components/NumberPicker';
 import { fmt } from '../lib/format';
 import {
-  SCHEMES,
   THEME_OPTIONS,
   getDarkHours,
-  getScheme,
   getThemeMode,
   setDarkHours,
-  setScheme,
   setThemeMode,
   timeModeLabel,
-  schemeAllowed,
-  type SchemeChoice,
   type ThemeMode,
 } from '../lib/theme';
 import { hardReload } from '../lib/update';
@@ -169,7 +162,6 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 export function Account({ section }: { section?: string }) {
   const { api, user, setExercises, showError, dataChanged } = useApp();
-  const [scheme, setSchemeState] = useState(getScheme());
   const [themeMode, setThemeModeState] = useState(getThemeMode());
   const [hours, setHoursState] = useState(getDarkHours());
   const changeHours = (key: 'from' | 'until', value: number) => {
@@ -179,15 +171,6 @@ export function Account({ section }: { section?: string }) {
     setHoursState(next);
   };
   const [busy, setBusy] = useState(false);
-  const { owned, admin } = useCosmetics();
-  // Shop-Farbschemata nur zeigen, wenn gekauft (oder gerade aktiv)
-  // Nur Standard + Gekauftes (Admin: alles, auch eigene Entwürfe)
-  const shopItems = useShopItems();
-  const schemes: [SchemeChoice, string][] = [
-    ...SCHEMES.filter(([id]) => schemeAllowed(id, owned, admin)),
-    ...shopItems.filter((i) => i.custom && (admin || owned.includes(i.id))).map((i): [SchemeChoice, string] => [`custom:${i.id}`, `${i.name} (eigenes)`]),
-  ];
-
   const deleteAccount = async () => {
     if (!(await confirmDelete('Das Löschen deines Kontos'))) return;
     setBusy(true);
@@ -273,26 +256,7 @@ export function Account({ section }: { section?: string }) {
       <>
       <div className="card">
         <h3>Stil</h3>
-        <label>
-          Farbschema
-          <select
-            id="scheme"
-            value={scheme}
-            onChange={(e) => {
-              setScheme(e.target.value as SchemeChoice);
-              setSchemeState(e.target.value as SchemeChoice);
-            }}
-          >
-            {schemes.map(([id, label]) => (
-              <option key={id} value={id}>{label}</option>
-            ))}
-          </select>
-        </label>
-        {api.social && !admin && (
-          <p className="muted small scheme-hint">
-            Weitere Farbschemata gibt es im <a href="#/shop">Shop</a> – mit „Ansehen“ kannst du sie vorher ausprobieren.
-          </p>
-        )}
+        <p className="muted small" id="colorway">Farben: Schwarz &amp; Orange – das Design von Level Up.</p>
         <label>
           Hell / Dunkel
           <select

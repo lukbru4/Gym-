@@ -19,7 +19,7 @@
     // Design vor dem ersten Zeichnen setzen (gleiche Regeln wie src/lib/theme.ts)
     try {
       var r = document.documentElement;
-      var sc = localStorage.getItem('gym-tracker-scheme') || 'standard';
+      var sc = 'standard';
       var cs = sc.indexOf('custom:') === 0 ? JSON.parse(localStorage.getItem('gym-tracker-custom-scheme') || 'null') : null;
       r.dataset.scheme = cs && cs.id === sc.slice(7) ? 'custom' : sc;
       var m = localStorage.getItem('gym-tracker-theme') || 'dark', h = new Date().getHours();
@@ -34,7 +34,7 @@
         r.style.setProperty('--neon', cs.neon);
         r.style.setProperty('color-scheme', dark ? 'dark' : 'light');
       }
-      var a = JSON.parse(localStorage.getItem('gym-tracker-accent') || 'null');
+      var a = null;
       if (a && a.light) {
         r.style.setProperty('--accent', dark ? a.dark : a.light);
         r.style.setProperty('--accent-text', dark ? a.darkText : a.lightText);
