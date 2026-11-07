@@ -1,0 +1,28 @@
+// Startseite: Reiter „Mein Feed · Verlauf · Freunde“ – Verlauf zeigt alle bisherigen Trainings
+import { check, launch, phone, seed, useData, BASE, SHOTS } from './lib.mjs';
+const b = await launch();
+const { page } = await phone(b);
+await useData(page, seed({ workouts: 6 }));
+await page.goto(BASE); await page.locator('#recap').waitFor();
+const tabs = await page.locator('nav.seg .seg-tab').allInnerTexts();
+check(tabs.join('|') === 'Mein Feed|Verlauf|Freunde', 'Reiter: Mein Feed · Verlauf · Freunde');
+// Startseite ohne Doppeltes: kein „Letztes Training“ unten, nur ein Zeitraum-Schalter
+check(!(await page.locator('h2', { hasText: 'Letztes Training' }).count()) && !(await page.locator('a.btn', { hasText: 'Alle Trainings ansehen' }).count()), 'Kein doppelter Verlauf unten auf der Startseite');
+check(await page.locator('.mini-seg').count() === 1, 'Nur ein Woche/Monat/Jahr-Schalter');
+const title0 = await page.locator('.stats-head h2').innerText();
+await page.click('[data-period="month"]');
+check((await page.locator('.stats-head h2').innerText()) !== title0, 'Der Schalter oben steuert auch die Statistik unten');
+await page.click('[data-period="week"]');
+await page.screenshot({ path: `${SHOTS}/home-aufgeraeumt.png`, fullPage: true });
+await page.locator('nav.seg .seg-tab', { hasText: 'Verlauf' }).click();
+await page.locator('#history-summary').waitFor();
+check((await page.locator('nav.seg .seg-tab.active').innerText()) === 'Verlauf', 'Verlauf ist aktiv');
+check((await page.locator('#nav .nav-tab.active').getAttribute('data-section')) === 'home', 'Untere Leiste: Home aktiv');
+check((await page.locator('#history-summary .tile-value').first().innerText()) === '6', 'Alle 6 Trainings gezählt');
+check(await page.locator('a[href^="#/training/"]').count() === 6, '6 Trainings in der Liste');
+await page.screenshot({ path: `${SHOTS}/verlauf.png` });
+await page.locator('a[href^="#/training/"]').first().click();
+await page.waitForTimeout(400);
+check((await page.evaluate(() => location.hash)).startsWith('#/training/'), 'Training öffnet sich');
+check(page.errors.length === 0, 'Keine Seitenfehler ' + page.errors.join(' | '));
+await b.close();

@@ -1,0 +1,60 @@
+# Baut die App (web/) und veröffentlicht sie auf GitHub Pages.
+# Veröffentlicht wird nur, wenn in den Repo-Einstellungen „Pages → Source: GitHub Actions“ gewählt ist.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main, claude/gym-activity-tracker-tv8mg9]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      pages_from_actions: ${{ steps.source.outputs.actions }}
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx vite build
+      - name: Pages-Quelle prüfen (GitHub Actions oder Branch?)
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          type=$(gh api "repos/${{ github.repository }}/pages" --jq .build_type 2>/dev/null || echo unknown)
+          echo "Pages build_type: $type"
+          if [ "$type" = "workflow" ]; then echo "actions=true" >> "$GITHUB_OUTPUT"; else echo "actions=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.source.outputs.actions == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.pages_from_actions == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
