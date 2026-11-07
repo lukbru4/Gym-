@@ -34,7 +34,7 @@ export function SplitPicker({ value, onPick }: { value: string | undefined; onPi
         <span><strong>Automatisch (empfohlen)</strong><small>Wir wählen passend zu deinen Tagen und deiner Erfahrung.</small></span>
       </button>
       {SPLITS.map((s) => <SplitCard key={s.id} split={s} on={value === s.id} onPick={() => onPick(s.id)} />)}
-      <p className="muted small">Orange = Hauptmuskeln, hell = Hilfsmuskeln. Links von vorne, rechts von hinten.</p>
+      <p className="muted small">Orange = Hauptmuskeln, Gelb = Hilfsmuskeln. Links von vorne, rechts von hinten.</p>
     </div>
   );
 }
