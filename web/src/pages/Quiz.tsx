@@ -19,12 +19,12 @@ import type { TemplateExercise } from '../lib/types';
 
 const WEEKDAY_NAMES: Record<string, string> = { Mo: 'Montag', Di: 'Dienstag', Mi: 'Mittwoch', Do: 'Donnerstag', Fr: 'Freitag', Sa: 'Samstag', So: 'Sonntag' };
 
-export function Quiz() {
+export function Quiz({ startPlan = false }: { startPlan?: boolean }) {
   const { api, exercises, addExercise, showError, dataChanged } = useApp();
   const [answers, setAnswers] = useState<Answers>(() => loadQuiz()?.answers ?? {});
   const [step, setStep] = useState(0);
   const [filter, setFilter] = useState('');
-  const [phase, setPhase] = useState<'quiz' | 'plan'>('quiz');
+  const [phase, setPhase] = useState<'quiz' | 'plan'>(startPlan ? 'plan' : 'quiz');
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
   const pro = usePro();
@@ -118,7 +118,7 @@ export function Quiz() {
     };
     return (
       <>
-        <h2>Dein Plan</h2>
+        <h2>{startPlan ? 'Dein Trainingsplan ist berechnet' : 'Dein Plan'}</h2>
         <div className="card" id="plan-week">
           <h3>Deine Woche</h3>
           <ul className="plan-week">

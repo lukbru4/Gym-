@@ -61,9 +61,9 @@ test('SCHEMA_VERSION der App passt zu schema_version() in schema.sql', async () 
 describe('Pro', async () => {
   const { PRO_PRICES, yearSavingPct, setPro, getPro, fmtEuro } = await import('../src/lib/pro');
   test('Preise und Ersparnis', () => {
-    expect(PRO_PRICES).toEqual({ month: 9.99, year: 64.99 });
+    expect(PRO_PRICES).toEqual({ month: 8, year: 45 });
     expect(fmtEuro(64.99)).toBe('64,99 €');
-    expect(yearSavingPct()).toBe(46);
+    expect(yearSavingPct()).toBe(53);
   });
   test('Status vom Server wird abgesichert', () => {
     setPro({ pro: true, admin: false, until: '2027-01-01T00:00:00Z' });

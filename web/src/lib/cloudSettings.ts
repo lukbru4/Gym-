@@ -14,6 +14,7 @@ const FIXED = [
 const PER_USER = [
   'gym-tracker-supps:{uid}', 'gym-tracker-supps-taken:{uid}', 'gym-tracker-feedback-{uid}', 'gym-tracker-recovery-{uid}',
   'gym-tracker-nutrition-plan-{uid}', 'gym-tracker-gymlog:{uid}', 'gym-tracker-plan-offered:{uid}', 'gym-tracker-welcome:{uid}',
+  'gym-tracker-r2-later:{uid}',
 ];
 /** Tageswerte (Wasser): nur die letzten 60 Tage */
 const WATER = /^gym-tracker-water-(.+)-(\d{4}-\d{2}-\d{2})$/;

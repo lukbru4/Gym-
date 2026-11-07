@@ -214,3 +214,9 @@ Ziel: Level Up als iOS- und Android-App veröffentlichen – mit Konten, Freunde
   - Technik: Kauf in der App → RevenueCat → Webhook an Supabase setzt `pro_until`; Server prüft Pro-Funktionen
   - Pflichten: „Käufe wiederherstellen“-Knopf, Abo-Bedingungen in Nutzungsbedingungen/Store, Kündigung über Apple/Google
   - Voraussetzung: Entwickler-Konten, Steuer- und Bankdaten bei Apple/Google hinterlegt (**Lukas**)
+
+## Fragerunden & Abo (v155)
+- [x] Fragerunde 1 „Über dich“ (~20 Fragen, Pflicht für neue Konten, mit Mess-Hilfen und Körperfett-Rechner)
+- [x] Fragerunde 2 „Dein Training“ (~12 Fragen, freiwillig, vor dem Training angeboten) → berechneter Plan
+- [x] Abo 8 €/Monat · 45 €/Jahr, 7 Tage gratis, Bestandskonten frei – Bezahlseite fertig (`#/abo`), Schranke aus (`PAYWALL_ON` in `web/src/data/config.ts`)
+- [ ] Echte Zahlung: Apple-Entwicklerkonto, Produkte in App Store Connect, RevenueCat/StoreKit, Server setzt `subscriptions.pro_until` – dann `PAYWALL_ON = true`

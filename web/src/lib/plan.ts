@@ -34,7 +34,7 @@ export const hasOtherSport = (a: Answers) => {
 };
 
 export const QUESTIONS: Question[] = [
-  { id: 'goal', q: 'Was ist dein Hauptziel?', type: 'one', options: [['muskel', 'Muskelaufbau'], ['kraft', 'Stärker werden'], ['abnehmen', 'Abnehmen / definieren'], ['fit', 'Fit & gesund bleiben'], ['ausdauer', 'Ausdauer verbessern']] },
+  { id: 'goal', q: 'Was ist dein Hauptziel?', type: 'one', options: [['muskel', 'Muskelaufbau'], ['kraft', 'Stärker werden'], ['abnehmen', 'Abnehmen / definieren'], ['rekomp', 'Rekomposition (Fett weg, Muskeln rauf)'], ['fit', 'Fit & gesund bleiben'], ['ausdauer', 'Ausdauer verbessern']] },
   { id: 'sex', q: 'Dein Geschlecht', hint: 'Optional.', type: 'one', options: [['m', 'Männlich'], ['w', 'Weiblich'], ['d', 'Divers'], ['x', 'Keine Angabe']] },
   { id: 'age', q: 'Wie alt bist du?', type: 'range', min: 14, max: 90, def: 30, step: 1, unit: 'Jahre' },
   { id: 'height', q: 'Wie groß bist du?', type: 'range', min: 120, max: 220, def: 175, step: 1, unit: 'cm' },
@@ -263,6 +263,7 @@ function prescribe(kind: Kind0, a: Answers): { sets: number; lo: number; hi: num
     kraft: { compound: [4, 3, 6, 180], iso: [3, 8, 10, 90], core: [3, 10, 15, 60] },
     muskel: { compound: [3, 6, 10, 120], iso: [3, 10, 15, 75], core: [3, 12, 20, 60] },
     abnehmen: { compound: [3, 8, 12, 90], iso: [3, 12, 15, 60], core: [3, 15, 20, 45] },
+    rekomp: { compound: [3, 6, 10, 120], iso: [3, 10, 15, 75], core: [3, 12, 20, 60] },
     fit: { compound: [3, 8, 12, 90], iso: [3, 12, 15, 60], core: [3, 15, 20, 45] },
     ausdauer: { compound: [3, 12, 15, 60], iso: [3, 15, 20, 45], core: [3, 15, 25, 45] },
   };
@@ -447,7 +448,7 @@ export function generatePlan(raw: Answers): Plan {
   if (hasOtherSport(a) && hardSports && sportDays >= 2) notes.push('Wegen deines Sports außerhalb vom Gym: Leg das Beintraining nicht direkt vor einen intensiven Sporttag und plane an Spieltagen lieber Oberkörper.');
   if (hasOtherSport(a) && sportDays >= 4 && days >= 4) notes.push('Du trainierst insgesamt sehr viel. Achte auf mindestens einen freien Tag pro Woche und genug Schlaf.');
   if (a.sleep === '5') notes.push('Du schläfst unter 6 Stunden: Muskeln wachsen im Schlaf. Schon eine Stunde mehr bringt spürbar mehr als ein zusätzlicher Satz.');
-  if (a.food === 'nein' && (a.goal === 'muskel' || a.goal === 'kraft' || a.goal === 'abnehmen')) notes.push('Für dein Ziel zählt die Ernährung mindestens so viel wie das Training – nutze den Kalorienbedarf unten und tracke ein paar Tage.');
+  if (a.food === 'nein' && (a.goal === 'muskel' || a.goal === 'kraft' || a.goal === 'abnehmen' || a.goal === 'rekomp')) notes.push('Für dein Ziel zählt die Ernährung mindestens so viel wie das Training – nutze den Kalorienbedarf unten und tracke ein paar Tage.');
   for (const v of volume) {
     if (v.sets < 8 && ['Brust', 'Rücken', 'Beine & Gesäß'].includes(v.group) && focus.size && [...focus].some((f) => GROUP_NAMES[f] === v.group)) notes.push(`${v.group} bekommt nur ${v.sets} Sätze pro Woche – für Wachstum sind etwa 10–20 sinnvoll. Mehr Trainingstage oder ein längeres Training helfen.`);
   }

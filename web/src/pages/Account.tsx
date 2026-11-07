@@ -70,7 +70,11 @@ function QuestionsCard() {
         Beantworte ein paar Fragen zu Ziel, Zeit, Geräten und Alltag – daraus erstellen wir deinen persönlichen Trainingsplan mit Vorlagen, Wochenplan und Kalorienbedarf.
         {saved ? ` Bisher beantwortet: ${done} von ${total}.` : ''}
       </p>
-      <a className="btn primary block" id="open-quiz" href="#/trainingsplan">{saved ? 'Plan ansehen & anpassen' : 'Trainingsplan erstellen'}</a>
+      <a className="btn primary block" id="open-quiz" href={saved ? '#/trainingsplan' : '#/training-fragen'}>{saved ? 'Plan ansehen & anpassen' : 'Trainingsplan erstellen'}</a>
+      <div className="row">
+        <a className="btn small-btn grow" id="redo-r1" href="#/ueber-dich">Fragerunde „Über dich“</a>
+        <a className="btn small-btn grow" id="redo-r2" href="#/training-fragen">Fragen zum Training</a>
+      </div>
     </div>
   );
 }

@@ -52,6 +52,7 @@ import { PICK_SPECS, pickNumber } from '../components/NumberPicker';
 import { PlateDialog } from '../components/PlateCalc';
 import { getSetup, isBarbell, warmupSets } from '../lib/plates';
 import { stepFor } from '../lib/progression';
+import { Round2Offer } from './Onboarding';
 
 interface Loaded { state: EditorState; prev: Map<number, WorkoutSet[]> }
 
@@ -316,6 +317,7 @@ function EditorForm({ initial, prev }: { initial: EditorState; prev: Map<number,
           </label>
         </div>
       )}
+      {live && state.blocks.length === 0 && <Round2Offer />}
       {live && state.blocks.length > 0 && state.recovery === undefined && !state.blocks.some((b) => b.sets.some((r) => r.done)) && (
         <RecoveryCard
           onSkip={() => update((s) => void (s.recovery = null))}

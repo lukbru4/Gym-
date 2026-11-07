@@ -8,7 +8,7 @@ import { notify } from '../components/Dialog';
 // Wurzel der App: startet das Backend, verwaltet Login und Übungen, wählt die Seite zur Adresse (#/…).
 import { EMAIL_LINK_DONE, parseEmailLink } from '../lib/emailLink';
 import { Notifications } from '../pages/Notifications';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { BottomNav, DbUpdateBanner, Header, SubNav, UpdateBanner } from '../components/Chrome';
 import { PreviewBar } from '../components/PreviewBar';
 import { WorkoutBar } from '../components/WorkoutBar';
@@ -35,11 +35,17 @@ import { enforceSchemeRules } from '../lib/theme';
 import { getWeekGoal, setLocalWeekGoal } from '../lib/weekGoal';
 import { Analysis, OneRmCalculator, RankGallery, Ranks } from '../pages/Ranks';
 import { Quiz } from '../pages/Quiz';
+import { Round1, Round2 } from '../pages/Onboarding';
+import { accessState } from '../lib/access';
+import { round1Done } from '../lib/rounds';
+import { subscribeQuiz } from '../lib/plan';
+import { PAYWALL_ON, PAYWALL_SINCE, TRIAL_DAYS } from '../data/config';
+import { todayISO } from '../lib/stats';
 import { loadQuiz, saveQuiz, setQuizSyncer } from '../lib/plan';
 import { Food } from '../pages/Food';
 import { Animations } from '../pages/Animations';
-import { ProPage } from '../components/Pro';
-import { setPro, usePro } from '../lib/pro';
+import { AboPage, ProGate, ProPage } from '../components/Pro';
+import { setFullAccess, setPro, usePro } from '../lib/pro';
 import { applyReminders, listenReminderTaps } from '../lib/reminders';
 import { clearAvatars, refreshAvatars } from '../lib/avatars';
 import { History, WorkoutDetail } from '../pages/Workout';
@@ -71,6 +77,10 @@ const ROUTES: Route[] = [
   [/^#\/konto$/, () => <Account />],
   [/^#\/konto\/([a-z]+)$/, (m) => <Account section={m[1]} />],
   [/^#\/(trainingsplan|fragen)$/, () => <Quiz />],
+  [/^#\/trainingsplan\/plan$/, () => <Quiz startPlan />],
+  [/^#\/ueber-dich$/, () => <Round1 />],
+  [/^#\/training-fragen$/, () => <Round2 />],
+  [/^#\/abo$/, () => <AboPage />],
   [/^#\/pro$/, () => <ProPage />],
   [/^#\/essen$/, () => <Food />],
   [/^#\/raenge$/, () => <Ranks />],
@@ -156,6 +166,10 @@ function Shell() {
   // Trainingsplan-Antworten gehören zum Konto: auf neuen Geräten laden, Änderungen mitspeichern.
   // Wer noch nie einen Plan erstellt hat, kommt nach dem Anmelden direkt dorthin (einmal pro Konto und Gerät).
   const userId = user?.id ?? '';
+  const isNewAccount = Boolean(user?.created_at && user.created_at.slice(0, 10) >= PAYWALL_SINCE);
+  // Fragerunde 1 ist für neue Konten Pflicht (Antworten werden vom Konto geladen, danach geprüft)
+  const [quizChecked, setQuizChecked] = useState(false);
+  const r1 = useSyncExternalStore(subscribeQuiz, () => round1Done(loadQuiz()?.answers));
   useEffect(() => {
     const social = api.social;
     if (!social) {
@@ -173,17 +187,20 @@ function Shell() {
       } catch {
         return;
       }
-      navigate(welcomeSeen(userId) ? '#/trainingsplan' : '#/willkommen');
+      // Neue Konten: erst die Fragerunde „Über dich“
+      if (isNewAccount) navigate('#/ueber-dich');
+      else navigate(welcomeSeen(userId) ? '#/trainingsplan' : '#/willkommen');
     };
     social.myPlanAnswers().then(
       (remote) => {
         if (!alive) return;
         const local = loadQuiz();
+        setQuizChecked(true);
         if (remote) saveQuiz({ answers: remote, plan: local?.plan ?? null, savedAt: new Date().toISOString() }, true);
         else if (local) void social.setPlanAnswers(local.answers).catch(() => {});
         else offer();
       },
-      () => offer(), // Datenbank noch ohne Plan-Funktionen: nur lokal entscheiden
+      () => { setQuizChecked(true); offer(); }, // Datenbank noch ohne Plan-Funktionen: nur lokal entscheiden
     );
     return () => {
       alive = false;
@@ -208,6 +225,15 @@ function Shell() {
   useEffect(() => {
     if (page === null) redirect(hash === '#/gewicht' ? '#/koerper' : '#/');
   }, [page, hash]);
+  // Neue Konten ohne Fragerunde 1: nur die Fragerunde (und Konto/Abmelden) ist erreichbar
+  const free = /^#\/(ueber-dich|konto|abo)/.test(hash);
+  if (isNewAccount && quizChecked && !r1 && !free) page = <Round1 />;
+  // Bezahlschranke (vorerst aus, siehe PAYWALL_ON)
+  const access = accessState({ paywallOn: PAYWALL_ON, pro: proState.paid || proState.admin, accountCreated: user?.created_at, since: PAYWALL_SINCE, trialStart: (loadQuiz()?.answers.r1 as string | undefined) ?? null, trialDays: TRIAL_DAYS, today: todayISO() });
+  const locked = proState.loaded && access.state === 'locked' && !free;
+  const open = access.state !== 'locked';
+  useEffect(() => setFullAccess(open), [open]);
+  if (locked) page = <ProGate daysLeft={0} onLogout={() => void api.signOut()} />;
 
   return (
     <GameProvider value={game}>
@@ -216,6 +242,7 @@ function Shell() {
       <DbUpdateBanner />
       <SubNav />
       <main id="view" className="container" key={hash}>
+        {access.state === 'trial' && proState.loaded && r1 && !free && <a className="trial-bar" id="trial-bar" href="#/abo">Noch {access.daysLeft} {access.daysLeft === 1 ? 'Tag' : 'Tage'} gratis · Abo ansehen</a>}
         {page}
       </main>
       <WorkoutBar />

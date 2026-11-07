@@ -16,7 +16,7 @@ export function StartChecklist({ workoutCount }: { workoutCount: number }) {
   const friends = useAsync(async () => (api.social ? api.social.friends() : []), [api, dataVersion, live]);
   if (checklistHidden()) return null;
   const items: { id: string; text: string; href: string; done: boolean }[] = [
-    { id: 'plan', text: 'Trainingsplan erstellen', href: '#/trainingsplan', done: hasPlan },
+    { id: 'plan', text: 'Trainingsplan erstellen', href: hasPlan ? '#/trainingsplan' : '#/training-fragen', done: hasPlan },
     { id: 'training', text: 'Erstes Training eintragen', href: '#/workouts', done: workoutCount > 0 },
     ...(api.social ? [{ id: 'friend', text: 'Einen Freund hinzufügen', href: '#/freunde', done: friends.status === 'ok' && friends.data.some((f) => f.status === 'friend') }] : []),
     { id: 'reminders', text: 'Erinnerungen einschalten', href: '#/konto/erinnerungen', done: rem.training.on || rem.food.on || rem.water.on || rem.streak.on },

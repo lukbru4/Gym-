@@ -54,8 +54,8 @@ export function calorieNeeds(a: Answers): CalorieNeeds | null {
   // Mit Zielgewicht: Tempo ≈ 0,5 % des Körpergewichts pro Woche beim Abnehmen, 0,25 % beim Zunehmen (1 kg Körpergewicht ≈ 7700 kcal)
   const goalKg = a.goalKg === 'ja' ? num(a.goalWeight) : null;
   const diff = goalKg ? goalKg - weight : 0;
-  let adjust = goal === 'abnehmen' ? -400 : goal === 'muskel' ? 250 : goal === 'kraft' ? 150 : 0;
-  let goalNote = goal === 'abnehmen' ? 'zum Abnehmen etwa 400 kcal unter deinem Verbrauch' : goal === 'muskel' ? 'zum Muskelaufbau etwa 250 kcal über deinem Verbrauch' : goal === 'kraft' ? 'etwas über deinem Verbrauch für mehr Kraft' : 'etwa dein geschätzter Verbrauch';
+  let adjust = goal === 'abnehmen' ? -400 : goal === 'rekomp' ? -200 : goal === 'muskel' ? 250 : goal === 'kraft' ? 150 : 0;
+  let goalNote = goal === 'abnehmen' ? 'zum Abnehmen etwa 400 kcal unter deinem Verbrauch' : goal === 'rekomp' ? 'für Rekomposition leicht unter deinem Verbrauch, mit viel Eiweiß' : goal === 'muskel' ? 'zum Muskelaufbau etwa 250 kcal über deinem Verbrauch' : goal === 'kraft' ? 'etwas über deinem Verbrauch für mehr Kraft' : 'etwa dein geschätzter Verbrauch';
   let weeks: number | null = null;
   if (goalKg && Math.abs(diff) >= 1) {
     const rate = Math.abs(diff) > 0 && diff < 0 ? weight * 0.005 : weight * 0.0025; // kg pro Woche
@@ -67,7 +67,7 @@ export function calorieNeeds(a: Answers): CalorieNeeds | null {
     goalNote = 'du bist schon nah an deinem Zielgewicht – Gewicht halten';
   }
   const target = Math.min(6000, Math.max(1200, Math.round((tdee + adjust) / 50) * 50));
-  const perKg = goal === 'muskel' || goal === 'abnehmen' ? 2 : goal === 'kraft' ? 1.8 : goal === 'ausdauer' ? 1.5 : 1.6;
+  const perKg = goal === 'muskel' || goal === 'abnehmen' || goal === 'rekomp' ? 2 : goal === 'kraft' ? 1.8 : goal === 'ausdauer' ? 1.5 : 1.6;
   const protein = Math.round(perKg * weight);
   const fat = Math.round((target * 0.25) / 9);
   const carbs = Math.max(0, Math.round((target - protein * 4 - fat * 9) / 4));

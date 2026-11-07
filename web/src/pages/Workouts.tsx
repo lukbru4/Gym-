@@ -14,6 +14,7 @@ import { ask } from '../components/Dialog';
 import { CycleCard } from '../components/CycleCard';
 import { getCycle } from '../lib/cycle';
 import { loadQuiz, PLAN_PREFIX } from '../lib/plan';
+import { Round2Offer } from './Onboarding';
 
 export function Workouts() {
   const { api, exerciseById, exercises, addExercise, showError, dataVersion, dataChanged } = useApp();
@@ -56,6 +57,7 @@ export function Workouts() {
     <>
       <h2>Workouts</h2>
       <FirstTip id="workouts" title="So trainierst du">Tippe auf <strong>„Leeres Training“</strong> oder starte eine Vorlage. Übungen fügst du mit „+ Übung hinzufügen“ hinzu – jede Karte zeigt dir die Bewegung. Trag pro Satz Gewicht und Wiederholungen ein und hake ihn ab; am Ende „Beenden &amp; speichern“.</FirstTip>
+      <Round2Offer />
       <CycleCard />
       {(() => {
         const plan = loadQuiz()?.plan;

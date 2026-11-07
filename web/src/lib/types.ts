@@ -85,6 +85,8 @@ export interface Template {
 export interface User {
   id: string;
   email?: string | null;
+  /** Konto angelegt (von Supabase) */
+  created_at?: string;
 }
 
 export type ExerciseMap = Map<number, Pick<Exercise, 'name' | 'type' | 'muscles' | 'user_id'>>;

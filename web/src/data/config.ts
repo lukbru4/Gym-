@@ -16,3 +16,10 @@ export const SCHEMA_VERSION = 70;
 export const SUPABASE_REF = /^https:\/\/([a-z0-9]+)\.supabase\.co/.exec(SUPABASE_URL)?.[1] ?? '';
 /** Seite im Supabase-Dashboard dieses Projekts, z. B. „sql/new“ für den SQL Editor */
 export const supabaseDashboardUrl = (path = '') => `https://supabase.com/dashboard/project/${SUPABASE_REF}${path ? `/${path}` : ''}`;
+
+/** Bezahlschranke (Abo nach 7 Tagen Testphase). Aus, bis echte Zahlungen über Apple/Google eingerichtet sind –
+ *  bis dahin können alle die App gratis nutzen. */
+export const PAYWALL_ON = false;
+/** Konten, die vor diesem Tag angelegt wurden, bleiben dauerhaft gratis (Bestandsschutz) */
+export const PAYWALL_SINCE = '2026-11-08';
+export const TRIAL_DAYS = 7;
