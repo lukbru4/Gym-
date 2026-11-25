@@ -8,7 +8,7 @@ const FIXED = [
   'gym-tracker-goal-weight', 'gym-tracker-custom-goals', 'gym-tracker-theme', 'gym-tracker-scheme', 'gym-tracker-accent',
   'gym-tracker-custom-scheme', 'gym-tracker-dark-hours', 'gym-tracker-dish-favorites', 'gym-tracker-water-step', 'gym-tracker-plates',
   'gym-tracker-checklist-hidden', 'gym-tracker-supps-invite-hidden', 'gym-tracker-photo-invite-hidden', 'gym-tracker-stats-period',
-  'gym-tracker-recap-period', 'gym-tracker-progress-exercise', 'gym-tracker-board-exercise',
+  'gym-tracker-recap-period', 'gym-tracker-theme-v160', 'gym-tracker-progress-exercise', 'gym-tracker-board-exercise',
 ];
 /** Kontobezogene Schlüssel: {uid} wird beim Sichern zum Platzhalter, beim Wiederherstellen zur eigenen ID */
 const PER_USER = [

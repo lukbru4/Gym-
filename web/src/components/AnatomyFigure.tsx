@@ -72,7 +72,7 @@ export function AnatomyFigure({ side = 'front', marks, colors = ['#ff6a1a', '#ff
           <defs><clipPath id={`anat-body-${side}-${uid}`}><path d={ANATOMY.outline[side]} transform={`translate(${cx} 0) scale(${sx} 1) translate(${-cx} 0)`} stroke="#000" strokeWidth={t * 70} /></clipPath></defs>
           <g clipPath={`url(#anat-body-${side}-${uid})`}>
             <rect x={cx - hw} y={side === 'front' ? 668 : 640} width={hw * 2} height={side === 'front' ? 150 : 175} fill="#24272d" />
-            <rect x={cx - hw} y={side === 'front' ? 668 : 640} width={hw * 2} height={10} fill="#ff6a1a" />
+            <rect x={cx - hw} y={side === 'front' ? 668 : 640} width={hw * 2} height={10} fill="#0a0a0a" />
           </g>
         </>
       )}

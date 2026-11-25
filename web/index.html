@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Level Up</title>
   <meta name="description" content="Trainings, Fortschritt und Körpergewicht tracken">
-  <meta name="theme-color" content="#0a0a0a">
+  <meta name="theme-color" content="#ffffff">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="icon" href="./favicon-64.png" type="image/png" sizes="64x64">
@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Level Up">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <script>
     // Design vor dem ersten Zeichnen setzen (gleiche Regeln wie src/lib/theme.ts)
     try {
@@ -22,7 +22,8 @@
       var sc = 'standard';
       var cs = sc.indexOf('custom:') === 0 ? JSON.parse(localStorage.getItem('gym-tracker-custom-scheme') || 'null') : null;
       r.dataset.scheme = cs && cs.id === sc.slice(7) ? 'custom' : sc;
-      var m = localStorage.getItem('gym-tracker-theme') || 'dark', h = new Date().getHours();
+      if (!localStorage.getItem('gym-tracker-theme-v160')) { localStorage.setItem('gym-tracker-theme-v160', '1'); if (localStorage.getItem('gym-tracker-theme') === 'dark') localStorage.setItem('gym-tracker-theme', 'light'); }
+      var m = localStorage.getItem('gym-tracker-theme') || 'light', h = new Date().getHours();
       var hrs = JSON.parse(localStorage.getItem('gym-tracker-dark-hours') || 'null') || { from: 18, until: 6 };
       var night = hrs.from > hrs.until ? h >= hrs.from || h < hrs.until : h >= hrs.from && h < hrs.until;
       if (m === 'time') r.dataset.theme = night ? 'dark' : 'light';
@@ -41,7 +42,7 @@
       }
     } catch (e) {
       document.documentElement.dataset.scheme = 'standard';
-      document.documentElement.dataset.theme = 'dark';
+      document.documentElement.dataset.theme = 'light';
     }
   </script>
 </head>

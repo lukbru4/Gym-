@@ -35,8 +35,8 @@ export const PREMIUM_SCHEMES: Partial<Record<SchemeId, string>> = {
 };
 export const DEFAULT_SCHEME: SchemeId = 'standard';
 export const THEME_OPTIONS: [ThemeMode, string][] = [
-  ['dark', 'Schwarz (Standard)'],
-  ['light', 'Weiß'],
+  ['light', 'Weiß (Standard)'],
+  ['dark', 'Schwarz'],
   ['time', 'Nach Uhrzeit'],
   ['system', 'Wie Gerät'],
 ];
@@ -230,7 +230,18 @@ export function setPreviewScheme(id: SchemeChoice | null) {
   applyTheme();
   previewListeners.forEach((l) => l());
 }
-export const getThemeMode = () => read(KEY, THEME_OPTIONS, 'dark');
+/** Einmalig (v160): Weiß ist jetzt Standard – wer noch das alte Standard-Schwarz gespeichert hat, wird umgestellt */
+const MIGRATED = 'gym-tracker-theme-v160';
+function migrateTheme() {
+  try {
+    if (localStorage.getItem(MIGRATED)) return;
+    localStorage.setItem(MIGRATED, '1');
+    if (localStorage.getItem(KEY) === 'dark') localStorage.setItem(KEY, 'light');
+  } catch {
+    /* ohne Speicher gilt der Standard */
+  }
+}
+export const getThemeMode = () => (migrateTheme(), read(KEY, THEME_OPTIONS, 'light'));
 
 /** Liefert 'dark', 'light' oder null (= Gerät entscheidet) */
 export function resolveTheme(mode: ThemeMode, now = new Date()): 'dark' | 'light' | null {

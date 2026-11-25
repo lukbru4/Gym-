@@ -1,18 +1,18 @@
 :root {
   color-scheme: light;
-  --bg: #f4f4f5;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --border: #e4e4e7;
-  --text: #0b0b0b;
-  --text-secondary: #5a5a60;
-  --accent: #e5560b;
+  --border: #e5e5e5;
+  --text: #0a0a0a;
+  --text-secondary: #6b6b6b;
+  --accent: #0a0a0a;
   --accent-text: #ffffff;
   --danger: #b42318;
-  --grid: #e8e8ea;
-  --invalid: #fdeee4;
-  --series-1: #e5560b;
-  --series-2: #52525b;
-  --done: #fdeee4;
+  --grid: #ececec;
+  --invalid: #fdeceb;
+  --series-1: #0a0a0a;
+  --series-2: #8a8a8a;
+  --done: #f2f2f2;
   --streak: #ea580c;
   --warmup: #b86e00;
   --radius: 14px;
@@ -21,38 +21,38 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0a0a0b;
-    --surface: #151517;
-    --border: #2a2a2d;
+    --bg: #0a0a0a;
+    --surface: #151515;
+    --border: #2a2a2a;
     --text: #ffffff;
-    --text-secondary: #b4b4ba;
-    --accent: #ff6a1a;
+    --text-secondary: #b4b4b4;
+    --accent: #ffffff;
     --accent-text: #0a0a0a;
     --danger: #ff6b6b;
-    --grid: #2a2a2d;
+    --grid: #2a2a2a;
     --invalid: #3a1a1a;
-    --series-1: #ff7a33;
-    --series-2: #a1a1aa;
-    --done: #2a170c;
+    --series-1: #ffffff;
+    --series-2: #8a8a8a;
+    --done: #1c1c1c;
     --streak: #ff8a3d;
     --warmup: #eda100;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0a0a0b;
-  --surface: #151517;
-  --border: #2a2a2d;
+  --bg: #0a0a0a;
+  --surface: #151515;
+  --border: #2a2a2a;
   --text: #ffffff;
   --text-secondary: #b4b4ba;
-  --accent: #ff6a1a;
+  --accent: #ffffff;
   --accent-text: #0a0a0a;
   --danger: #ff6b6b;
   --grid: #2a2a2d;
   --invalid: #3a1a1a;
-  --series-1: #ff7a33;
-  --series-2: #a1a1aa;
-  --done: #2a170c;
+  --series-1: #ffffff;
+  --series-2: #8a8a8a;
+  --done: #1c1c1c;
   --streak: #ff8a3d;
   --warmup: #eda100;
 }
@@ -654,58 +654,56 @@
 }
 :root[data-scheme="standard"] {
   color-scheme: light;
-  --bg: #f4f4f5;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --border: #e4e4e7;
+  --border: #e5e5e5;
   --text: #0a0a0a;
-  --text-secondary: #55555c;
-  --accent: #e5560b;
+  --text-secondary: #6b6b6b;
+  --accent: #0a0a0a;
   --accent-text: #ffffff;
   --danger: #b42318;
-  --grid: #e8e8ea;
-  --invalid: #fdeee4;
-  --done: #fdeee4;
+  --grid: #ececec;
+  --invalid: #fdeceb;
+  --done: #f2f2f2;
   --warmup: #a35a00;
-  --series-1: #e5560b;
-  --series-2: #52525b;
+  --series-1: #0a0a0a;
+  --series-2: #8a8a8a;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-scheme="standard"]:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0a0a0b;
-    --surface: #151517;
-    --border: #2a2a2d;
+    --bg: #0a0a0a;
+    --surface: #151515;
+    --border: #2a2a2a;
     --text: #ffffff;
-    --text-secondary: #b4b4ba;
-    --accent: #ff6a1a;
+    --text-secondary: #b4b4b4;
+    --accent: #ffffff;
     --accent-text: #0a0a0a;
-    --accent-text: #ffffff;
     --danger: #ff6b6b;
-    --grid: #2a2a2d;
+    --grid: #2a2a2a;
     --invalid: #3a1a1a;
-    --done: #2a170c;
+    --done: #1c1c1c;
     --warmup: #ffb02e;
-    --series-1: #ff7a33;
-    --series-2: #a1a1aa;
+    --series-1: #ffffff;
+    --series-2: #8a8a8a;
   }
 }
 :root[data-scheme="standard"][data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0a0a0b;
-  --surface: #151517;
-  --border: #2a2a2d;
+  --bg: #0a0a0a;
+  --surface: #151515;
+  --border: #2a2a2a;
   --text: #ffffff;
   --text-secondary: #b4b4ba;
-  --accent: #ff6a1a;
+  --accent: #ffffff;
   --accent-text: #0a0a0a;
-  --accent-text: #ffffff;
   --danger: #ff6b6b;
   --grid: #2a2a2d;
   --invalid: #3a1a1a;
-  --done: #2a170c;
+  --done: #1c1c1c;
   --warmup: #ffb02e;
-  --series-1: #ff7a33;
-  --series-2: #a1a1aa;
+  --series-1: #ffffff;
+  --series-2: #8a8a8a;
 }
 /* SCHEMES:END */
 
@@ -730,7 +728,7 @@
 :root[data-scheme="glut"] { --neon: #ff8a3d; }
 :root[data-scheme="gold"] { --neon: #f2c14e; }
 :root[data-scheme="eis"] { --neon: #5cc8ff; }
-:root[data-scheme="standard"] { --neon: #ff6a1a; }
+:root[data-scheme="standard"] { --neon: #d4d7dc; }
 :root[data-scheme="kirsche"] { --neon: #ff6fae; }
 :root[data-scheme="wald"] { --neon: #4ee06a; }
 :root[data-scheme="mitternacht"] { --neon: #7c8cff; }
