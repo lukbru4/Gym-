@@ -1,0 +1,4 @@
+Hier liegen die Übungsbilder. Pro Übung ein Ordner mit dem Namen aus docs/bild-auftraege.md (z. B. latziehen):
+  latziehen/0.jpg  = Startstellung
+  latziehen/1.jpg  = Endstellung
+Die App erkennt neue Ordner automatisch beim nächsten Veröffentlichen. Ohne Bilder zeigt die App die gezeichnete Animation.

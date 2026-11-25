@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#000"/>
+  <!-- Logo nachgezeichnet aus dem Foto (Mitte): Haispitze oben, Halbkreis unten; weiß auf Schwarz -->
+  <g transform="translate(512 512) scale(1.32) translate(-390 -415)" fill="#fff">
+    <path d="M250 130 C360 165 468 228 494 330 C514 420 502 492 484 570 L298 570 C304 420 292 262 250 130 Z"/>
+    <path d="M176 566 L604 566 C604 650 508 712 390 712 C272 712 176 650 176 566 Z"/>
+  </g>
+</svg>
